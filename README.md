@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plataforma de Gestión Integral
 
-## Getting Started
+Plataforma de gestión empresarial (CRM, cotizaciones, proyectos, logística,
+asistencias) construida como base escalable y personalizable por cliente.
 
-First, run the development server:
+## Stack
 
+- **Framework:** Next.js 16 (App Router) + TypeScript
+- **Estilos:** Tailwind CSS + shadcn/ui
+- **Base de datos:** PostgreSQL (Neon)
+- **ORM:** Drizzle ORM
+- **Autenticación:** Better Auth
+- **Kanban:** dnd-kit
+- **Generación de PDF:** Playwright
+- **Despliegue:** Vercel
+
+## Estructura del proyecto
+
+- `app/` — rutas y páginas (App Router)
+- `core/` — auth, roles, catálogos maestros, motor de precios, PDF, auditoría
+- `modules/` — módulos de negocio: crm, cotizaciones, proyectos, logistica, asistencias
+- `config/clientes/` — configuración por cliente (branding, campos, flujos)
+- `db/schema/` — esquemas de Drizzle
+- `db/migrations/` — migraciones generadas (no editar a mano)
+- `docs/spec/` — especificación de negocio, fuente de verdad antes que el código
+
+## Configuración local
+
+1. Clonar el repositorio e instalar dependencias:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+   npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Crear `.env.local` en la raíz con:
+DATABASE_URL="postgresql://usuario:contraseña@host/basededatos"
+   (Obtener la cadena de conexión desde el panel de Neon)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Verificar que la conexión a la base de datos funciona:
+```bash
+   npx drizzle-kit check
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Levantar el servidor de desarrollo:
+```bash
+   npm run dev
+```
+   Abrir `http://localhost:3000`
 
-## Learn More
+## Despliegue
 
-To learn more about Next.js, take a look at the following resources:
+Desplegado en Vercel, conectado a la rama `main`. Cada push a `main` dispara
+un deploy automático. Variable de entorno `DATABASE_URL` configurada en el
+panel de Vercel (Project Settings → Environment Variables), con el mismo
+valor que en `.env.local`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+URL de producción: `[pendiente — agregar cuando esté desplegado]`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Convenciones del proyecto
 
-## Deploy on Vercel
+Ver `AGENTS.md` para las reglas completas de arquitectura y convenciones
+de código que sigue este proyecto (y que sigue Claude Code al trabajar aquí).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estado del proyecto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MVP en construcción — fase de captura de especificación y checkpoint 1
+(cimientos: auth, roles, layout).
