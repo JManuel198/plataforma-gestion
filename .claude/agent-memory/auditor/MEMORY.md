@@ -1,0 +1,2 @@
+- [Verificación técnica en este repo](proyecto_verificacion-tecnica.md) — package.json solo tiene `lint`; usar `npx tsc --noEmit` como sustituto de typecheck.
+- [Patrones ya validados](proyecto_patrones-establecidos.md) — conversión de dinero por string (dinero.ts) y re-chequeo de sesión dentro de Server Actions (actions.ts) como vara de medir en módulos nuevos.

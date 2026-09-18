@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { Toaster } from "@/components/ui/sonner";
 import { BotonCerrarSesion } from "@/components/boton-cerrar-sesion";
 
 export default async function LayoutProtegido({
@@ -24,6 +25,7 @@ export default async function LayoutProtegido({
         <BotonCerrarSesion />
       </header>
       <main className="flex-1 p-6">{children}</main>
+      <Toaster />
     </div>
   );
 }
