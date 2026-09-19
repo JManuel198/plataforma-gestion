@@ -74,3 +74,37 @@ trabaje en este código.
   actions.ts y components/.
 - Los correlativos siguen el formato definido en config/clientes/*.json,
   nunca hardcodeado en el módulo.
+
+## Deuda técnica conocida
+- estado-formulario.ts está duplicado entre modules/servicios y
+  modules/ordenes-trabajo porque un módulo no puede importar de otro
+  (regla de Arquitectura). Unificar en core/ cuando haya tiempo fuera
+  de sprint.
+- El código de empresa "CCM" en el correlativo de OT vive en
+  modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
+  como dice la convención de Correlativos en AGENTS.md —
+  config/clientes/ no tiene ningún .json todavía. Decisión deliberada
+  para este sprint, no un descuido. Al mover el correlativo a
+  config/clientes/*.json hay que mover las CINCO constantes juntas
+  (PREFIJO_OT, CODIGO_EMPRESA, DIGITOS_CORRELATIVO, CORRELATIVO_INICIAL
+  y ZONA_HORARIA — esta última hoy en lib/fecha.ts), no solo
+  CODIGO_EMPRESA: si no, el archivo de cliente define el formato a
+  medias y el resto sigue fijo en el código.
+- No hay .env.example. DATABASE_URL_DIRECT (conexión directa de Neon
+  para migraciones, distinta de la pooled de runtime) solo está
+  documentada en el comentario de drizzle.config.ts, así que alguien
+  que clone el repo no sabe que existe.
+- Al crear una OT, si el Servicio de origen desaparece entre la
+  verificación y el INSERT, Postgres lanza un 23503 (FK violada) que
+  nadie traduce y llega al usuario como error 500 crudo — a diferencia
+  del 23505, que sí tiene mensaje. La ventana es mínima y la base nunca
+  queda inconsistente; es una aspereza, no un riesgo.
+- Las columnas de fecha (timestamp sin zona) dependen de dos ajustes de
+  node-postgres en db/index.ts: un type parser que lee el valor como UTC,
+  y parseInputDatesAsUTC, que hace que las fechas escritas por Node
+  (session.expires_at de Better Auth, los $onUpdate de updated_at) se
+  guarden también en UTC. Las dos van juntas: con solo una, un proceso
+  fuera de UTC guarda hora local y la relee como UTC, y la fecha vuelve
+  corrida. En Vercel el proceso ya corre en UTC y no cambian nada. El
+  arreglo de fondo es migrar esas columnas a timestamptz — no se hizo en
+  este sprint porque exige una migración de datos, no solo de código.

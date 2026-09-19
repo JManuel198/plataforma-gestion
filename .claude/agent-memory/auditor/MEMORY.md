@@ -1,3 +1,4 @@
-- [Verificación técnica en este repo](proyecto_verificacion-tecnica.md) — package.json solo tiene `lint`; usar `npx tsc --noEmit` como sustituto de typecheck.
+- [Verificación técnica en este repo](proyecto_verificacion-tecnica.md) — solo hay `lint`; `npx tsc --noEmit` suple el typecheck, y `node -e` con la URL pooled consulta Neon sin dejar scripts.
 - [Patrones ya validados](proyecto_patrones-establecidos.md) — conversión de dinero por string (dinero.ts) y re-chequeo de sesión dentro de Server Actions (actions.ts) como vara de medir en módulos nuevos.
+- [Fechas en columnas timestamp sin zona](proyecto_fechas-timestamp-sin-zona.md) — las que pone la base son UTC; las que escribe Node son hora local del proceso, y el type parser de db/index.ts las trata igual.
 - [Checkpoint con migración pendiente](proyecto_checkpoint-migracion-pendiente.md) — qué revisar cuando Drizzle ya tiene un tipo nuevo (ej. bigint) pero la migración no se aplicó aún; y revisar docs normativas (.claude/agents, SKILL.md) al tocar tipos de columna de dinero.

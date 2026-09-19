@@ -1,0 +1,18 @@
+/**
+ * Estado que devuelven las Server Actions al formulario y que consume
+ * `useActionState`.
+ *
+ * Vive fuera de actions.ts porque un archivo con `"use server"` solo puede
+ * exportar funciones asíncronas — un objeto exportado ahí rompe el build.
+ *
+ * Es gemelo del de modules/servicios/. Se duplica a propósito: un módulo de
+ * negocio no depende de otro (AGENTS.md, Arquitectura). Si un tercer módulo
+ * lo vuelve a necesitar, el sitio para unificarlo es core/, no un import
+ * cruzado entre módulos.
+ */
+export type EstadoFormulario = {
+  mensaje?: string;
+  errores?: Record<string, string[] | undefined>;
+};
+
+export const estadoFormularioInicial: EstadoFormulario = {};

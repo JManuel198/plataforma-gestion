@@ -3,8 +3,10 @@
 // cliente sin arrastrar Drizzle ni la conexión a la base de datos con él.
 //
 // Son las mismas listas que definen los enums de PostgreSQL en
-// db/schema/servicio.ts. modules/servicios/schema.ts verifica en tiempo de
-// compilación que no se desincronicen.
+// db/schema/servicio.ts. modules/servicios/schema.ts tiene un chequeo de
+// compilación, pero cubre solo una dirección: detecta un valor inventado
+// aquí, no uno que falte respecto al enum. Lee el comentario de
+// `_estadoCoincide` antes de confiarte.
 
 export const ESTADOS_SERVICIO = [
   "Activado",

@@ -80,9 +80,18 @@ export const estadoServicioSchema = z.enum(ESTADOS_SERVICIO, {
   error: "Selecciona uno de los estados válidos.",
 });
 
-// Chequeo en tiempo de compilación: si algún día se agrega un estado o una
-// moneda al enum de PostgreSQL y no a modules/servicios/constantes.ts (o al
-// revés), esto deja de compilar en vez de fallar en producción.
+// Chequeo en tiempo de compilación, con un alcance concreto — cubre una sola
+// dirección, aunque a primera vista parezcan dos:
+//
+// - SÍ detecta un estado o una moneda de más aquí: si constantes.ts inventa un
+//   valor que el enum de PostgreSQL no tiene, el build falla.
+// - NO detecta lo contrario: si un enum de PostgreSQL gana un valor y
+//   constantes.ts no, esto compila en silencio, y ese valor queda
+//   inseleccionable en el formulario e inválido al validar.
+//
+// O sea: protege contra inventar valores en el código, no contra olvidarse de
+// uno que ya existe en la base. Al agregar un valor a un enum, agrégalo aquí a
+// mano — el compilador no te va a avisar.
 const _monedaCoincide: z.ZodType<Servicio["moneda"]> = monedaSchema;
 const _estadoCoincide: z.ZodType<Servicio["estado"]> = estadoServicioSchema;
 void _monedaCoincide;

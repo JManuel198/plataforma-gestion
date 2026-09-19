@@ -10,6 +10,11 @@ export default defineConfig({
   out: "./db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // Neon separa dos cadenas: la *pooled* (`-pooler` en el host), que usa la
+    // aplicación en runtime, y la *directa*, que es la que quiere una
+    // migración. Migrar por el pooler es la causa más común de errores raros
+    // en drizzle-kit con este stack, así que si `DATABASE_URL_DIRECT` está
+    // definida se usa esa; si no, se cae a la de siempre.
+    url: process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL!,
   },
 });
