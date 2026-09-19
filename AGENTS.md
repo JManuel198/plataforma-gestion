@@ -111,15 +111,17 @@ trabaje en este código.
   corrida. En Vercel el proceso ya corre en UTC y no cambian nada. El
   arreglo de fondo es migrar esas columnas a timestamptz — no se hizo en
   este sprint porque exige una migración de datos, no solo de código.
-- node-postgres avisa al migrar que los modos SSL 'prefer', 'require' y
-  'verify-ca' se tratan hoy como alias de 'verify-full', pero que en
-  pg-connection-string v3 / pg v9 pasarán a la semántica de libpq, que
-  es más débil. Las dos cadenas de .env.local usan sslmode=require, así
-  que hoy validan el certificado completo y al actualizar pg dejarían de
-  hacerlo en silencio. Al subir esa dependencia: cambiar a
-  sslmode=verify-full para conservar el comportamiento actual, o a
-  uselibpqcompat=true&sslmode=require para adoptar el nuevo a
-  propósito. No es urgente — no cambia nada mientras pg siga en v8.
+- RESUELTO (2026-09-19): las dos cadenas de .env.local usan ahora
+  sslmode=verify-full explícito, no sslmode=require. Antes dependían de
+  que pg v8 tratara 'require' como alias de 'verify-full'; en
+  pg-connection-string v3 / pg v9 ese alias pasa a la semántica de
+  libpq (cifra pero no verifica el certificado), así que la cadena
+  habría dejado de validar en silencio al subir la dependencia. Se
+  descartó uselibpqcompat=true por ser justo la opción que baja la
+  verificación. Ojo al usar psql a mano: libpq, a diferencia de node-pg,
+  no usa el almacén de CA del sistema con verify-full — hay que añadir
+  &sslrootcert=system a la cadena o falla pidiendo ~/.postgresql/root.crt.
+  node-pg, drizzle-kit y la app no necesitan nada.
 - components/ui/dialog.tsx:112 usa render={<Button .../>} en el trigger
   de cierre — mismo patrón de render que el bug de nativeButton que se
   corrigió en los Links de navegación, pero Dialog no se usa en ninguna
