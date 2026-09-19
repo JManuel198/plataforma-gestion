@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Servicio } from "@/db/schema/servicio";
 import { formatearFecha } from "@/lib/fecha";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -83,20 +83,18 @@ export function TablaServicios({ servicios }: { servicios: Servicio[] }) {
               {/* La OT nace ya vinculada a este Servicio: el id viaja en la
                   URL y la pantalla de creación lo resuelve en el servidor,
                   así que el formulario nunca vuelve a pedirlo. */}
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<Link href={`/ordenes-trabajo/nueva?servicio=${fila.id}`} />}
+              <Link
+                href={`/ordenes-trabajo/nueva?servicio=${fila.id}`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
                 Crear OT
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<Link href={`/servicios/${fila.id}/editar`} />}
+              </Link>
+              <Link
+                href={`/servicios/${fila.id}/editar`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
                 Editar
-              </Button>
+              </Link>
             </TableCell>
           </TableRow>
         ))}

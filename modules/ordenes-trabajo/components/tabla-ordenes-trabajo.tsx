@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -89,13 +89,12 @@ export function TablaOrdenesTrabajo({
               </Badge>
             </TableCell>
             <TableCell className="text-right">
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<Link href={`/ordenes-trabajo/${fila.id}/editar`} />}
+              <Link
+                href={`/ordenes-trabajo/${fila.id}/editar`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
                 Editar
-              </Button>
+              </Link>
             </TableCell>
           </TableRow>
         ))}

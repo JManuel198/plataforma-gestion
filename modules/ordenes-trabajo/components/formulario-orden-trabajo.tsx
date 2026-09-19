@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import type { OrdenTrabajo } from "@/db/schema/orden-trabajo";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -170,9 +170,12 @@ export function FormularioOrdenTrabajo({
         <Button type="submit" disabled={enviando}>
           {enviando ? "Guardando…" : orden ? "Guardar cambios" : "Crear OT"}
         </Button>
-        <Button variant="outline" render={<Link href={urlCancelar} />}>
+        <Link
+          href={urlCancelar}
+          className={buttonVariants({ variant: "outline" })}
+        >
           Cancelar
-        </Button>
+        </Link>
       </div>
     </form>
   );

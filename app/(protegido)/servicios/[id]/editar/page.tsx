@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { editarServicio } from "@/modules/servicios/actions";
 import { FormularioServicio } from "@/modules/servicios/components/formulario-servicio";
 import { obtenerServicio } from "@/modules/servicios/queries";
@@ -32,12 +32,12 @@ export default async function PaginaEditarServicio({
             también de detalle: desde aquí se abre la OT ya vinculada a él.
             El id viaja en la URL y se resuelve en el servidor — el formulario
             de la OT nunca vuelve a pedir el servicio. */}
-        <Button
-          variant="outline"
-          render={<Link href={`/ordenes-trabajo/nueva?servicio=${servicio.id}`} />}
+        <Link
+          href={`/ordenes-trabajo/nueva?servicio=${servicio.id}`}
+          className={buttonVariants({ variant: "outline" })}
         >
           Crear OT
-        </Button>
+        </Link>
       </div>
 
       <FormularioServicio guardarAction={editarServicio} servicio={servicio} />

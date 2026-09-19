@@ -23,10 +23,24 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   de este proyecto es la que está documentada aquí.
 - El estilo instalado es `base-nova`, así que los componentes de
   `components/ui/` envuelven **Base UI** (`@base-ui/react`), no Radix. Eso
-  cambia dos cosas en la práctica: para que un botón sea un enlace se usa
-  `render={<Link href="..." />}` (no `asChild`), y `Select` acepta `name` y
-  publica un input oculto, así que funciona dentro de un `<form>` sin estado
-  controlado.
+  cambia dos cosas en la práctica:
+  - **Un enlace con aspecto de botón NO se hace con `Button`** — ni con
+    `asChild` (que es de Radix y aquí no existe), ni con
+    `render={<Link href="..." />}`. Se pone la clase sobre el `Link` plano:
+    `<Link href="..." className={buttonVariants({ variant: "outline", size: "sm" })}>`,
+    importando `buttonVariants` de `@/components/ui/button`.
+    La razón es concreta, no estética: cuando el elemento renderizado no es un
+    `<button>` nativo, Base UI le aplica `role="button"`
+    (`@base-ui/react/internals/use-button/useButton.js`, donde hace
+    `isNativeButton ? { type: 'button' } : { role: 'button' }`). Ese `role`
+    pisa la semántica nativa del `<a>`: para un lector de pantalla deja de
+    anunciarse como enlace, y el usuario pierde las acciones propias de un
+    enlace (abrir en pestaña nueva, copiar dirección) además de la activación
+    con Enter que se espera de él.
+    El botón de envío de un formulario sí es un botón de verdad y se queda
+    como `<Button type="submit">`.
+  - `Select` acepta `name` y publica un input oculto, así que funciona dentro
+    de un `<form>` sin estado controlado.
 
 ## Formularios
 

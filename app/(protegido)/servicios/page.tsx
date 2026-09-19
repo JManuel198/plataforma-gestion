@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { AvisoToast } from "@/modules/servicios/components/aviso-toast";
 import { FiltroEstado } from "@/modules/servicios/components/filtro-estado";
 import { TablaServicios } from "@/modules/servicios/components/tabla-servicios";
@@ -29,9 +29,9 @@ export default async function PaginaServicios({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold tracking-tight">Servicios</h1>
-        <Button render={<Link href="/servicios/nuevo" />}>
+        <Link href="/servicios/nuevo" className={buttonVariants()}>
           Nuevo Servicio
-        </Button>
+        </Link>
       </div>
 
       <FiltroEstado estado={estadoFiltrado} />

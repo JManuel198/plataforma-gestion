@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { crearOrdenTrabajo } from "@/modules/ordenes-trabajo/actions";
 import { FormularioOrdenTrabajo } from "@/modules/ordenes-trabajo/components/formulario-orden-trabajo";
 import { obtenerServicioOrigen } from "@/modules/ordenes-trabajo/queries";
@@ -30,7 +30,9 @@ export default async function PaginaNuevaOrdenTrabajo({
           Una OT se crea a partir de un Servicio existente. Elige el Servicio y
           usa su botón <span className="font-medium">Crear OT</span>.
         </p>
-        <Button render={<Link href="/servicios" />}>Ir a Servicios</Button>
+        <Link href="/servicios" className={buttonVariants()}>
+          Ir a Servicios
+        </Link>
       </div>
     );
   }

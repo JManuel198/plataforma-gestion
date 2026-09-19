@@ -108,3 +108,9 @@ trabaje en este código.
   corrida. En Vercel el proceso ya corre en UTC y no cambian nada. El
   arreglo de fondo es migrar esas columnas a timestamptz — no se hizo en
   este sprint porque exige una migración de datos, no solo de código.
+- components/ui/dialog.tsx:112 usa render={<Button .../>} en el trigger
+  de cierre — mismo patrón de render que el bug de nativeButton que se
+  corrigió en los Links de navegación, pero Dialog no se usa en ninguna
+  pantalla todavía y el caso puede ser distinto (Close no es un link).
+  Verificar en consola la primera vez que se use Dialog en una pantalla
+  real, antes de asumir que está bien o que hay que corregirlo.

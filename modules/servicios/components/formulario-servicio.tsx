@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import type { Servicio } from "@/db/schema/servicio";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -208,9 +208,12 @@ export function FormularioServicio({ guardarAction, servicio }: Props) {
         <Button type="submit" disabled={enviando}>
           {enviando ? "Guardando…" : servicio ? "Guardar cambios" : "Crear servicio"}
         </Button>
-        <Button variant="outline" render={<Link href="/servicios" />}>
+        <Link
+          href="/servicios"
+          className={buttonVariants({ variant: "outline" })}
+        >
           Cancelar
-        </Button>
+        </Link>
       </div>
     </form>
   );
