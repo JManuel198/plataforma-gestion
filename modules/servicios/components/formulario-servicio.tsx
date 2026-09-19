@@ -96,7 +96,7 @@ export function FormularioServicio({ guardarAction, servicio }: Props) {
             id="codigo_oc"
             name="codigo_oc"
             defaultValue={servicio?.codigo_oc ?? ""}
-            placeholder="Opcional — formato libre según el cliente"
+            placeholder="Opcional (formato libre según el cliente)"
             aria-invalid={Boolean(errores.codigo_oc)}
           />
           <MensajeError errores={errores.codigo_oc} />

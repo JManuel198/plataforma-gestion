@@ -98,7 +98,7 @@ export function FormularioOrdenTrabajo({
             id="codigo_oc"
             name="codigo_oc"
             defaultValue={orden?.codigo_oc ?? ""}
-            placeholder="Opcional — formato libre según el cliente"
+            placeholder="Opcional (formato libre según el cliente)"
             aria-invalid={Boolean(errores.codigo_oc)}
           />
           <MensajeError errores={errores.codigo_oc} />
