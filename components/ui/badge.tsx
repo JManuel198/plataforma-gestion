@@ -15,6 +15,17 @@ const badgeVariants = cva(
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline:
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+        // Añadidas a la variante original de shadcn/ui para que los seis
+        // estados de una OT se distingan entre sí (ver `variantePorEstado`
+        // en modules/ordenes-trabajo/components/tabla-ordenes-trabajo.tsx).
+        // `dashed` distingue por trazo, no por relleno, porque la rampa de
+        // grises del tema ya no daba más pasos legibles; `success` sigue
+        // exactamente el mismo patrón que `destructive` (tinte al 10/20%
+        // sobre texto del color), con el token --success de globals.css.
+        dashed:
+          "border-dashed border-muted-foreground/60 text-muted-foreground [a]:hover:bg-muted",
+        success:
+          "bg-success/10 text-success focus-visible:ring-success/20 dark:bg-success/20 dark:focus-visible:ring-success/40 [a]:hover:bg-success/20",
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",

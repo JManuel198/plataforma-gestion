@@ -14,15 +14,29 @@ import type { EstadoOt } from "../constantes";
 import { formatearMonto } from "../dinero";
 import type { FilaOrdenTrabajo } from "../queries";
 
+/**
+ * Un tono distinto por estado: con seis, dos que compartan variante dejan
+ * de comunicar nada. El eje es cuánto peso visual merece cada punto del
+ * ciclo, y `Facturado` no puede compartir tono con `Finalizada` — una es el
+ * cierre técnico (el trabajo terminó) y la otra el cierre comercial (se
+ * cobró), que es justo la distinción que el listado tiene que dejar ver.
+ *
+ * `dashed` y `success` se agregaron a components/ui/badge.tsx para esto: el
+ * tema es monocromo (solo `destructive` tenía color), así que seis rellenos
+ * de gris distinguibles no existían. `Pausada` pasa a distinguirse por
+ * trazo punteado — lo interrumpido se lee mejor así que como un gris más — y
+ * `Facturado` estrena el token `--success`, con el mismo patrón de tinte que
+ * `destructive`.
+ */
 const variantePorEstado: Record<
   EstadoOt,
-  "default" | "secondary" | "outline" | "destructive"
+  "default" | "secondary" | "outline" | "destructive" | "dashed" | "success"
 > = {
   Pendiente: "outline",
   "En ejecución": "default",
-  Pausada: "secondary",
+  Pausada: "dashed",
   Finalizada: "secondary",
-  Facturado: "secondary",
+  Facturado: "success",
   Cancelada: "destructive",
 };
 
