@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, bigint, timestamp, index } from "drizzle-orm/pg-core";
 
 // Los seis estados confirmados por el cliente en
 // docs/spec/alcance-v2-servicios-ot.md (Fase 2). Se guardan con la misma
@@ -37,10 +37,16 @@ export const servicio = pgTable(
     fecha: timestamp("fecha").defaultNow().notNull(),
     // Entero en la unidad mínima (céntimos), nunca float — regla 2 de AGENTS.md.
     // Siempre acompañado de su moneda, una sola por registro.
-    // Techo de `integer`: 2 147 483 647 céntimos = 21 474 836.47. El límite se
-    // valida en modules/servicios/schema.ts (PRECIO_MAXIMO_CENTIMOS); si hace
-    // falta cotizar por encima, esta columna tiene que pasar a `bigint`.
-    precio: integer("precio").notNull(),
+    // `bigint` con `mode: "number"` (no `mode: "bigint"`): la columna en
+    // Postgres es de 8 bytes, pero Drizzle la mapea a `number` de JS para no
+    // arrastrar `BigInt` por todo el código (dinero.ts, el formulario, JSON.
+    // stringify en las acciones) — coherente con cómo ya se trabaja el resto
+    // del monto. El techo real deja de ser el de Postgres y pasa a ser
+    // Number.MAX_SAFE_INTEGER (2^53 - 1); el límite de negocio efectivo se
+    // valida en modules/servicios/schema.ts (PRECIO_MAXIMO_CENTIMOS), fijado
+    // muy por debajo de ese techo técnico. Decisión registrada en
+    // docs/spec/preguntas-abiertas.md (supuesto 3, resuelto 2026-09-18).
+    precio: bigint("precio", { mode: "number" }).notNull(),
     moneda: monedaEnum("moneda").notNull(),
     estado: servicioEstadoEnum("estado").notNull().default("Activado"),
     comentarios: text("comentarios"),

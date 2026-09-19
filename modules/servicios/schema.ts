@@ -23,14 +23,27 @@ const textoOpcional = (max = 200) =>
     .transform((valor) => (valor === "" ? null : valor));
 
 /**
- * Techo del tipo `integer` de PostgreSQL (2^31 - 1) expresado en céntimos:
- * 21 474 836.47 como monto. Se valida aquí para que un monto mayor devuelva
- * un mensaje al usuario en vez de un error crudo de la base de datos.
+ * Techo de negocio para `precio`, expresado en céntimos. La columna es
+ * `bigint` con `mode: "number"` (ver db/schema/servicio.ts), así que el
+ * techo técnico real es `Number.MAX_SAFE_INTEGER` (2^53 - 1) — por encima de
+ * eso `aCentimos` puede perder precisión en la conversión. Este valor NO es
+ * ese techo técnico: es el máximo que `montoSchema` deja escribir en el
+ * formulario, `999 999 999 999.99`, que es exactamente lo mayor que puede
+ * producir la regex de abajo (12 dígitos enteros + 2 decimales). Se fija así
+ * a propósito — no en `Number.MAX_SAFE_INTEGER` directamente — para que el
+ * techo que se valida aquí y el que de verdad se puede escribir en el
+ * formulario sean el mismo número; si uno se toca sin el otro, un monto
+ * queda rechazado por el formato (regex) en vez de por este mensaje, o
+ * viceversa, y el error deja de decir la verdad.
  *
- * Si algún día hace falta cotizar por encima de eso, la columna `precio`
- * tiene que pasar a `bigint` — y esta constante con ella.
+ * Se valida aquí para que un monto mayor devuelva un mensaje al usuario en
+ * vez de un error crudo de la base de datos.
+ *
+ * Decisión (supuesto 3 de docs/spec/preguntas-abiertas.md, resuelta
+ * 2026-09-18): sí hace falta cotizar por encima del viejo techo de
+ * `integer` (S/ 21 474 836.47), así que `precio` pasó a `bigint`.
  */
-export const PRECIO_MAXIMO_CENTIMOS = 2_147_483_647;
+export const PRECIO_MAXIMO_CENTIMOS = 99_999_999_999_999;
 
 /**
  * El formulario acepta un monto normal ("150.50"); aquí se convierte al entero
@@ -42,9 +55,15 @@ export const montoSchema = z
   .string()
   .trim()
   .min(1, "El precio es obligatorio.")
+  // 12 dígitos enteros + 2 decimales: el máximo que produce este formato en
+  // céntimos es exactamente PRECIO_MAXIMO_CENTIMOS (ver el comentario de esa
+  // constante). No son dos límites independientes — son el mismo, escrito en
+  // dos sitios porque uno es un patrón de texto y el otro un número.
   .regex(
     /^\d{1,12}([.,]\d{1,2})?$/,
-    "Escribe un monto positivo con hasta dos decimales (ej. 150.50).",
+    // El máximo sale de la constante, no escrito a mano: si el techo cambia,
+    // el mensaje cambia con él en vez de quedarse mintiendo.
+    `Escribe un monto positivo con hasta dos decimales (ej. 150.50), como máximo ${aMontoDecimal(PRECIO_MAXIMO_CENTIMOS)}.`,
   )
   .transform(aCentimos)
   .refine((centimos) => centimos > 0, "El precio debe ser mayor que cero.")

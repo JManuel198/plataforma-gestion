@@ -1,0 +1,1 @@
+ALTER TABLE "servicio" ALTER COLUMN "precio" SET DATA TYPE bigint;

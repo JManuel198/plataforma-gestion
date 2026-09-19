@@ -21,12 +21,12 @@ Eres el arquitecto de datos del proyecto. Diseñas y modificas el esquema con Dr
 
 - Toda tabla nueva pasa por una migración de Drizzle generada con `npx drizzle-kit generate` — nunca SQL manual.
 - Las tablas propias de Better Auth (`user`, `session`, `account`, `verification`) se generan con `npx auth@1.7.3 generate` — nunca las escribas a mano ni crees una tabla de usuarios paralela.
-  Nota: @better-auth/cli fue retirado de npm en todas sus versiones. El CLI
-  vigente se publica como `auth`. Se fija la versión 1.7.3 (misma que
-  better-auth instalado) porque auth@latest tiene un bug que rompe la
-  generación del esquema. Esta línea NO es un error de tipeo — fue
-  verificada generando el esquema real de este proyecto.
-- Los montos se guardan como `integer` en la unidad mínima (céntimos/centavos), nunca como `float` — y siempre acompañados de su columna de moneda (`PEN`/`USD`), nunca uno sin el otro.
+  Nota: @better-auth/cli quedó congelado en la serie 1.4.x y ya no recibe
+  versiones nuevas. El CLI vigente se publica como `auth`. Se fija la
+  versión 1.7.3 (misma que better-auth instalado) porque auth@latest tiene
+  un bug que rompe la generación del esquema. Esta línea NO es un error de
+  tipeo — fue verificada generando el esquema real de este proyecto.
+- Los montos se guardan como entero en la unidad mínima (céntimos/centavos) — `integer` o `bigint` según el rango, ver `servicio.precio` como precedente de cuándo usar `bigint` —, nunca como `float`, y siempre acompañados de su columna de moneda (`PEN`/`USD`), nunca uno sin el otro.
 - Eliminar un registro es casi siempre lo incorrecto: sigue el patrón ya establecido de desactivar (columna `activo`/`estado`), no borrar filas que otra tabla pueda referenciar — igual que se decidió para Servicio.
 - Cada tabla nueva lleva `created_at` y `updated_at` — es el mínimo para poder auditar después qué pasó y cuándo.
 - Las claves foráneas se nombran `<entidad>_id` y usan `references()` de Drizzle explícitamente, nunca un número suelto sin la relación declarada.

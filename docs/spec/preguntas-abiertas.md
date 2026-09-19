@@ -27,13 +27,23 @@ formulario lo preselecciona y el usuario puede cambiarlo antes de guardar.
 **Si se confirma distinto:** cambiar el `.default()` de la columna `estado`
 y el `defaultValue` del Select en el formulario.
 
-### 3. ¿Hace falta cotizar por encima de S/ 21 474 836.47?
-El tipo `integer` en céntimos topa ahí.
+### 3. ¿Hace falta cotizar por encima de S/ 21 474 836.47? — **Resuelto (2026-09-18)**
+El tipo `integer` en céntimos topaba ahí.
 
-**Asumido:** no hace falta; montos mayores se rechazan con un mensaje claro
-en vez de fallar contra la base de datos.
-**Si se confirma que sí:** la columna `precio` pasa a `bigint` y
-`PRECIO_MAXIMO_CENTIMOS` sube con ella.
+**Decisión:** sí, se pidió levantar el techo. La columna `precio` pasó de
+`integer` a `bigint` (migración `db/migrations/0002_fair_franklin_storm.sql`,
+generada — su aplicación contra la base de datos queda pendiente de
+confirmación aparte). En Drizzle se usa `mode: "number"` (no `mode:
+"bigint"`) para no arrastrar `BigInt` por el resto del código, así que el
+techo técnico real quedó en `Number.MAX_SAFE_INTEGER`, no en el máximo de
+`bigint` de PostgreSQL. `PRECIO_MAXIMO_CENTIMOS`
+(`modules/servicios/schema.ts`) subió a `99_999_999_999_999` — el monto
+máximo que puede escribir el usuario según la regex de `montoSchema` (12
+dígitos enteros + 2 decimales), no el techo técnico, para que el número que
+se valida y el que se comunica en el mensaje de error sean siempre el mismo.
+**Si hiciera falta más adelante:** subir el límite de dígitos de la regex en
+`montoSchema` junto con `PRECIO_MAXIMO_CENTIMOS` a la vez — nunca uno sin el
+otro, o uno queda rechazando montos que el otro dice permitir.
 
 ### 4. ¿Se puede eliminar un Servicio?
 El documento solo pide crear, editar y listar.

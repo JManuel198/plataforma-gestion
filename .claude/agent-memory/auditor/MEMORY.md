@@ -1,2 +1,3 @@
 - [Verificación técnica en este repo](proyecto_verificacion-tecnica.md) — package.json solo tiene `lint`; usar `npx tsc --noEmit` como sustituto de typecheck.
 - [Patrones ya validados](proyecto_patrones-establecidos.md) — conversión de dinero por string (dinero.ts) y re-chequeo de sesión dentro de Server Actions (actions.ts) como vara de medir en módulos nuevos.
+- [Checkpoint con migración pendiente](proyecto_checkpoint-migracion-pendiente.md) — qué revisar cuando Drizzle ya tiene un tipo nuevo (ej. bigint) pero la migración no se aplicó aún; y revisar docs normativas (.claude/agents, SKILL.md) al tocar tipos de columna de dinero.

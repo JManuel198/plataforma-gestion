@@ -20,7 +20,7 @@ tabla `servicio`. Origen: `alcance-v2-servicios-ot.md`, Fase 2.
 | `servicio` | `text` | sí | manual — descripción del trabajo |
 | `cliente` | `text` | sí | manual — texto libre, sin tabla de Clientes todavía |
 | `fecha` | `timestamp` | sí | **automática** (`DEFAULT now()`) — nunca se pide al usuario |
-| `precio` | `integer` | sí | manual — **céntimos**, nunca decimal |
+| `precio` | `bigint` (`mode: "number"` en Drizzle) | sí | manual — **céntimos**, nunca decimal |
 | `moneda` | `moneda` (enum) | sí | manual — `PEN` o `USD`, una sola por registro |
 | `estado` | `servicio_estado` (enum) | sí | manual — 6 valores, por defecto `Activado` |
 | `comentarios` | `text` | **no** | manual |
@@ -33,9 +33,19 @@ tabla `servicio`. Origen: `alcance-v2-servicios-ot.md`, Fase 2.
 **Precio.** Se guarda como entero en céntimos (regla 2 de AGENTS.md): el
 formulario acepta `150.50` y el servidor guarda `15050`. La conversión vive
 en `modules/servicios/dinero.ts` y se hace partiendo la cadena en texto, no
-multiplicando en coma flotante. Techo del tipo `integer`: 21 474 836.47 —
-validado en `modules/servicios/schema.ts`; superarlo exigiría pasar la
-columna a `bigint`.
+multiplicando en coma flotante.
+
+La columna es `bigint` (migración `0002_fair_franklin_storm.sql`, resuelve el
+supuesto 3 de `preguntas-abiertas.md`), pero con `mode: "number"` de Drizzle:
+en JS sigue siendo un `number` normal, no `BigInt`, para no arrastrar ese
+tipo por `dinero.ts`, el formulario y las acciones. Eso mueve el techo
+técnico real a `Number.MAX_SAFE_INTEGER` (2^53 - 1), no al de `bigint` de
+PostgreSQL. El techo de negocio que de verdad se valida y se comunica al
+usuario es `PRECIO_MAXIMO_CENTIMOS` en `modules/servicios/schema.ts`:
+`999 999 999 999.99`, fijado ahí porque es exactamente lo máximo que la
+regex de `montoSchema` deja escribir (12 dígitos enteros + 2 decimales) —
+muy por debajo del techo técnico, así que la conversión en `dinero.ts` nunca
+pierde precisión antes de llegar a ese límite.
 
 **Índices.** `servicio_estado_idx` sobre `estado`, para el filtro del listado.
 
