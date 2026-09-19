@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { formatearFecha } from "@/lib/fecha";
 import type { EstadoOt } from "../constantes";
+import { formatearMonto } from "../dinero";
 import type { FilaOrdenTrabajo } from "../queries";
 
 const variantePorEstado: Record<
@@ -21,6 +22,7 @@ const variantePorEstado: Record<
   "En ejecución": "default",
   Pausada: "secondary",
   Finalizada: "secondary",
+  Facturado: "secondary",
   Cancelada: "destructive",
 };
 
@@ -32,7 +34,7 @@ export function TablaOrdenesTrabajo({
   if (ordenes.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No hay órdenes de trabajo que mostrar. Se crean desde un Servicio.
+        No hay órdenes de trabajo que mostrar.
       </p>
     );
   }
@@ -43,11 +45,12 @@ export function TablaOrdenesTrabajo({
         <TableRow>
           <TableHead>OT</TableHead>
           <TableHead>COT.</TableHead>
+          <TableHead>REV.</TableHead>
           <TableHead>Asunto</TableHead>
           <TableHead>OC</TableHead>
           <TableHead>Cliente</TableHead>
+          <TableHead className="text-right">Precio</TableHead>
           <TableHead>Responsable</TableHead>
-          <TableHead>Servicio de origen</TableHead>
           <TableHead>Creación</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="sr-only">Acciones</TableHead>
@@ -60,26 +63,18 @@ export function TablaOrdenesTrabajo({
               {fila.codigo_ot}
             </TableCell>
             <TableCell>{fila.codigo_cotizacion}</TableCell>
+            <TableCell>{fila.codigo_revision ?? "—"}</TableCell>
             <TableCell className="max-w-64 truncate" title={fila.asunto}>
               {fila.asunto}
             </TableCell>
             <TableCell>{fila.codigo_oc ?? "—"}</TableCell>
             <TableCell>{fila.cliente}</TableCell>
-            <TableCell>{fila.responsable ?? "—"}</TableCell>
-            <TableCell
-              className="max-w-48 truncate"
-              title={fila.servicio_descripcion}
-            >
-              {/* La única relación real con el Servicio. Los demás campos que
-                  se parecen a los suyos se escribieron a mano y pueden no
-                  coincidir — es lo decidido, no un error. */}
-              <Link
-                href={`/servicios/${fila.servicio_id}/editar`}
-                className="underline underline-offset-4"
-              >
-                {fila.servicio_descripcion}
-              </Link>
+            {/* El monto se guarda en céntimos y solo se formatea aquí: el
+                frontend muestra, no calcula (regla 1 de AGENTS.md). */}
+            <TableCell className="text-right whitespace-nowrap">
+              {formatearMonto(fila.precio, fila.moneda)}
             </TableCell>
+            <TableCell>{fila.responsable ?? "—"}</TableCell>
             <TableCell className="whitespace-nowrap">
               {formatearFecha(fila.fecha_creacion)}
             </TableCell>

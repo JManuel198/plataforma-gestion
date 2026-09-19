@@ -76,10 +76,12 @@ trabaje en este código.
   nunca hardcodeado en el módulo.
 
 ## Deuda técnica conocida
-- estado-formulario.ts está duplicado entre modules/servicios y
-  modules/ordenes-trabajo porque un módulo no puede importar de otro
-  (regla de Arquitectura). Unificar en core/ cuando haya tiempo fuera
-  de sprint.
+- RESUELTO (fusión Servicio + OT): estado-formulario.ts ya no está
+  duplicado. Vive solo en modules/ordenes-trabajo/, porque
+  modules/servicios/ desapareció al fusionarse ambas entidades en una.
+  No se unificó en core/: no hacía falta, dejó de haber un segundo
+  módulo con el que duplicarse. Si un módulo futuro lo necesita, core/
+  sigue siendo el sitio — nunca un import cruzado entre módulos.
 - El código de empresa "CCM" en el correlativo de OT vive en
   modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
   como dice la convención de Correlativos en AGENTS.md —
@@ -94,11 +96,12 @@ trabaje en este código.
   para migraciones, distinta de la pooled de runtime) solo está
   documentada en el comentario de drizzle.config.ts, así que alguien
   que clone el repo no sabe que existe.
-- Al crear una OT, si el Servicio de origen desaparece entre la
-  verificación y el INSERT, Postgres lanza un 23503 (FK violada) que
-  nadie traduce y llega al usuario como error 500 crudo — a diferencia
-  del 23505, que sí tiene mensaje. La ventana es mínima y la base nunca
-  queda inconsistente; es una aspereza, no un riesgo.
+- RESUELTO (fusión Servicio + OT): la carrera del 23503 al crear una OT
+  ya no existe. Nacía de la FK a servicio, que se eliminó junto con la
+  tabla: una OT ya no depende de ninguna fila externa, así que no hay
+  verificación previa que pueda quedar obsoleta antes del INSERT. El
+  23505 sobre codigo_ot sigue traducido en actions.ts, que es el único
+  que queda.
 - Las columnas de fecha (timestamp sin zona) dependen de dos ajustes de
   node-postgres en db/index.ts: un type parser que lee el valor como UTC,
   y parseInputDatesAsUTC, que hace que las fechas escritas por Node
@@ -108,6 +111,15 @@ trabaje en este código.
   corrida. En Vercel el proceso ya corre en UTC y no cambian nada. El
   arreglo de fondo es migrar esas columnas a timestamptz — no se hizo en
   este sprint porque exige una migración de datos, no solo de código.
+- node-postgres avisa al migrar que los modos SSL 'prefer', 'require' y
+  'verify-ca' se tratan hoy como alias de 'verify-full', pero que en
+  pg-connection-string v3 / pg v9 pasarán a la semántica de libpq, que
+  es más débil. Las dos cadenas de .env.local usan sslmode=require, así
+  que hoy validan el certificado completo y al actualizar pg dejarían de
+  hacerlo en silencio. Al subir esa dependencia: cambiar a
+  sslmode=verify-full para conservar el comportamiento actual, o a
+  uselibpqcompat=true&sslmode=require para adoptar el nuevo a
+  propósito. No es urgente — no cambia nada mientras pg siga en v8.
 - components/ui/dialog.tsx:112 usa render={<Button .../>} en el trigger
   de cierre — mismo patrón de render que el bug de nativeButton que se
   corrigió en los Links de navegación, pero Dialog no se usa en ninguna

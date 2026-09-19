@@ -22,12 +22,6 @@ export default async function LayoutProtegido({
       <header className="flex items-center justify-between gap-4 border-b px-6 py-3">
         <nav className="flex items-center gap-4 text-sm">
           <Link
-            href="/servicios"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Servicios
-          </Link>
-          <Link
             href="/ordenes-trabajo"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >

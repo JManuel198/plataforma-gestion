@@ -5,11 +5,13 @@ metadata:
   type: project
 ---
 
-Del Bloque 2 (entidad Servicio, Fase 2, auditado 2026-09-18 — sin hallazgos)
-quedaron estos patrones ya validados en el código, útiles como vara de medir
-en módulos futuros que toquen dinero o Server Actions:
+Validados primero en la entidad Servicio (Fase 2, auditado 2026-09-18 — sin
+hallazgos) y reverificados el 2026-09-19 tras fusionarse Servicio y OT en una
+sola entidad: los dos archivos se movieron a `modules/ordenes-trabajo/`, el de
+dinero sin un solo byte de cambio. Siguen siendo la vara de medir en módulos
+futuros que toquen dinero o Server Actions:
 
-- **Conversión monto → céntimos**: en `modules/servicios/dinero.ts`, la
+- **Conversión monto → céntimos**: en `modules/ordenes-trabajo/dinero.ts`, la
   función `aCentimos` parte la cadena de texto (enteros/decimales) en vez de
   multiplicar por 100 en coma flotante, evitando el clásico error de
   redondeo (`150.50 * 100 = 15050.000000000002`). El input llega ya
@@ -19,7 +21,7 @@ en módulos futuros que toquen dinero o Server Actions:
   proyectos), comparar contra este patrón en vez de aceptar
   `Number(x) * 100`.
 - **Server Actions con sesión re-verificada dentro de la función**: en
-  `modules/servicios/actions.ts` hay un `exigirSesion()` que se llama al
+  `modules/ordenes-trabajo/actions.ts` hay un `exigirSesion()` que se llama al
   inicio de cada action, con el comentario explícito de que una Server
   Action se puede invocar por POST directo sin pasar por el layout. Este es
   el patrón esperado en todo módulo nuevo — si una action nueva confía solo

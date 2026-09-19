@@ -1,19 +1,21 @@
 ---
-name: servicio-precio-bigint
-description: Por qué precio de servicio es bigint con mode "number" y cómo se fijó PRECIO_MAXIMO_CENTIMOS tras la migración 0002
+name: precio-bigint
+description: Por qué la columna precio es bigint con mode "number" y cómo se fijó PRECIO_MAXIMO_CENTIMOS (decidido en servicio.precio, hoy vive en orden_trabajo.precio)
 metadata:
   type: project
 ---
 
-`servicio.precio` pasó de `integer` a `bigint` el 2026-09-18 (migración
-`db/migrations/0002_fair_franklin_storm.sql`, **generada pero no aplicada**
-en esa sesión — confirmar con el usuario antes de `migrate`/`push`). Resuelve
-el supuesto 3 de `docs/spec/preguntas-abiertas.md`.
+La columna de dinero pasó de `integer` a `bigint` el 2026-09-18 (migración
+`db/migrations/0002_fair_franklin_storm.sql`). Se decidió sobre
+`servicio.precio`; esa tabla se eliminó el 2026-09-19 al fusionarse Servicio
+y OT, y la columna se conservó tal cual en **`orden_trabajo.precio`** (ver
+[[fusion-servicio-ot]]). Todo lo de abajo sigue vigente, solo cambió dónde
+vive. Resuelve el supuesto 3 de `docs/spec/preguntas-abiertas.md`.
 
 **Decisión de modelado: `bigint("precio", { mode: "number" })`, no
 `mode: "bigint"`.**
 
-Por qué: todo el código existente (`modules/servicios/dinero.ts`,
+Por qué: todo el código existente (`modules/ordenes-trabajo/dinero.ts`,
 `schema.ts`, el formulario) trabaja con `number` de JS. Usar
 `mode: "bigint"` habría obligado a propagar `BigInt` por `aCentimos`,
 `aMontoDecimal`, `formatearMonto`, el JSX del formulario y cualquier
@@ -22,7 +24,7 @@ un replacer). `mode: "number"` mapea a la clase interna `PgBigInt53` de
 Drizzle — el propio nombre confirma que el límite real deja de ser el de
 Postgres (2^63-1) y pasa a ser `Number.MAX_SAFE_INTEGER` (2^53-1).
 
-**`PRECIO_MAXIMO_CENTIMOS` (en `modules/servicios/schema.ts`, NO en
+**`PRECIO_MAXIMO_CENTIMOS` (en `modules/ordenes-trabajo/schema.ts`, NO en
 `constantes.ts` — el usuario tiende a asumir que está en `constantes.ts`,
 verificar siempre antes de asumir) se fijó en `99_999_999_999_999`, no en
 `Number.MAX_SAFE_INTEGER` directamente.**

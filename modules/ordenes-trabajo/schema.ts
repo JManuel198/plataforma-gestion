@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { OrdenTrabajo } from "@/db/schema/orden-trabajo";
-import { AVISOS, ESTADOS_OT } from "./constantes";
+import { AVISOS, ESTADOS_OT, MONEDAS } from "./constantes";
+import { aCentimos, aMontoDecimal } from "./dinero";
 
 // Nada que venga de un formulario toca la base de datos sin pasar por aquí
 // (regla 1 de AGENTS.md: la validación y el cálculo viven en el backend).
@@ -21,6 +22,61 @@ const textoOpcional = (max = 200) =>
     .max(max, `No puede pasar de ${max} caracteres.`)
     .transform((valor) => (valor === "" ? null : valor));
 
+/**
+ * Techo de negocio para `precio`, expresado en céntimos. La columna es
+ * `bigint` con `mode: "number"` (ver db/schema/orden-trabajo.ts), así que el
+ * techo técnico real es `Number.MAX_SAFE_INTEGER` (2^53 - 1) — por encima de
+ * eso `aCentimos` puede perder precisión en la conversión. Este valor NO es
+ * ese techo técnico: es el máximo que `montoSchema` deja escribir en el
+ * formulario, `999 999 999 999.99`, que es exactamente lo mayor que puede
+ * producir la regex de abajo (12 dígitos enteros + 2 decimales). Se fija así
+ * a propósito — no en `Number.MAX_SAFE_INTEGER` directamente — para que el
+ * techo que se valida aquí y el que de verdad se puede escribir en el
+ * formulario sean el mismo número; si uno se toca sin el otro, un monto
+ * queda rechazado por el formato (regex) en vez de por este mensaje, o
+ * viceversa, y el error deja de decir la verdad.
+ *
+ * Se valida aquí para que un monto mayor devuelva un mensaje al usuario en
+ * vez de un error crudo de la base de datos.
+ *
+ * Viene de Servicio sin cambios en la fusión: es el mismo techo que ya estaba
+ * acordado (supuesto 3 de docs/spec/preguntas-abiertas.md, resuelto
+ * 2026-09-18 — sí hace falta cotizar por encima del viejo techo de `integer`,
+ * S/ 21 474 836.47, y por eso `precio` es `bigint`).
+ */
+export const PRECIO_MAXIMO_CENTIMOS = 99_999_999_999_999;
+
+/**
+ * El formulario acepta un monto normal ("150.50"); aquí se convierte al entero
+ * en céntimos que exige la regla 2 de AGENTS.md. Como máximo dos decimales:
+ * un tercer decimal sería un céntimo que la base de datos no puede guardar, y
+ * redondearlo en silencio es peor que rechazarlo.
+ */
+export const montoSchema = z
+  .string()
+  .trim()
+  .min(1, "El precio es obligatorio.")
+  // 12 dígitos enteros + 2 decimales: el máximo que produce este formato en
+  // céntimos es exactamente PRECIO_MAXIMO_CENTIMOS (ver el comentario de esa
+  // constante). No son dos límites independientes — son el mismo, escrito en
+  // dos sitios porque uno es un patrón de texto y el otro un número.
+  .regex(
+    /^\d{1,12}([.,]\d{1,2})?$/,
+    // El máximo sale de la constante, no escrito a mano: si el techo cambia,
+    // el mensaje cambia con él en vez de quedarse mintiendo.
+    `Escribe un monto positivo con hasta dos decimales (ej. 150.50), como máximo ${aMontoDecimal(PRECIO_MAXIMO_CENTIMOS)}.`,
+  )
+  .transform(aCentimos)
+  .refine((centimos) => centimos > 0, "El precio debe ser mayor que cero.")
+  .refine(
+    (centimos) => centimos <= PRECIO_MAXIMO_CENTIMOS,
+    `El precio no puede pasar de ${aMontoDecimal(PRECIO_MAXIMO_CENTIMOS)}.`,
+  );
+
+export const monedaSchema = z.enum(MONEDAS, {
+  error: "La moneda debe ser PEN o USD.",
+});
+
 export const estadoOtSchema = z.enum(ESTADOS_OT, {
   error: "Selecciona uno de los estados válidos.",
 });
@@ -28,16 +84,18 @@ export const estadoOtSchema = z.enum(ESTADOS_OT, {
 // Chequeo en tiempo de compilación, con un alcance concreto — cubre una sola
 // dirección, aunque a primera vista parezcan dos:
 //
-// - SÍ detecta un estado de más aquí: si constantes.ts inventa un valor que el
-//   enum de PostgreSQL no tiene, el build falla.
-// - NO detecta lo contrario: si el enum de PostgreSQL gana un valor y
-//   constantes.ts no, esto compila en silencio, y ese estado queda
+// - SÍ detecta un estado o una moneda de más aquí: si constantes.ts inventa un
+//   valor que el enum de PostgreSQL no tiene, el build falla.
+// - NO detecta lo contrario: si un enum de PostgreSQL gana un valor y
+//   constantes.ts no, esto compila en silencio, y ese valor queda
 //   inseleccionable en el formulario e inválido al validar.
 //
-// O sea: protege contra inventar estados en el código, no contra olvidarse de
-// uno que ya existe en la base. Al agregar un valor al enum, agrégalo aquí a
+// O sea: protege contra inventar valores en el código, no contra olvidarse de
+// uno que ya existe en la base. Al agregar un valor a un enum, agrégalo aquí a
 // mano — el compilador no te va a avisar.
+const _monedaCoincide: z.ZodType<OrdenTrabajo["moneda"]> = monedaSchema;
 const _estadoCoincide: z.ZodType<OrdenTrabajo["estado"]> = estadoOtSchema;
+void _monedaCoincide;
 void _estadoCoincide;
 
 /**
@@ -46,34 +104,34 @@ void _estadoCoincide;
  * No aparecen a propósito, y no deben aparecer nunca:
  * - `codigo_ot` — lo genera el servidor (OT.CCM.AAAA.NNNN).
  * - `fecha_creacion` — la pone la base de datos al insertar.
- * - `servicio_id` — viaja fuera del formulario, atado a la Server Action con
- *   `.bind()`, para que no se pueda cambiar desde el navegador.
  *
- * Los campos que se ven repetidos respecto al Servicio (cotización, OC,
- * cliente) se escriben a mano y NO se sincronizan — decisión cerrada del
- * alcance v2.
+ * Tras la fusión con Servicio ya no hay `servicio_id`: la OT es autónoma y no
+ * nace de ninguna otra fila, así que no hay nada que atar a la acción con
+ * `.bind()` ni que verificar antes de insertar.
  */
 export const otCrearSchema = z.object({
   codigo_cotizacion: textoObligatorio("El código de cotización", 50),
+  // Nullable en la base, y por tanto opcional aquí: a diferencia de Servicio,
+  // donde era obligatorio, la revisión puede llegar después del registro —
+  // mismo criterio que `codigo_oc` (ver db/schema/orden-trabajo.ts).
+  codigo_revision: textoOpcional(50),
   asunto: textoObligatorio("El asunto", 300),
   codigo_oc: textoOpcional(100),
   cliente: textoObligatorio("El cliente", 200),
+  precio: montoSchema,
+  moneda: monedaSchema,
   estado: estadoOtSchema,
   responsable: textoOpcional(200),
+  comentarios: textoOpcional(2000),
 });
 
 /**
- * Al editar tampoco viajan `servicio_id` ni `codigo_ot`: el origen de una OT
- * y su número no cambian una vez emitida.
+ * Al editar tampoco viaja `codigo_ot`: el número de una OT no cambia una vez
+ * emitida.
  */
 export const otEditarSchema = otCrearSchema.extend({
   id: z.string().trim().min(1, "Falta el identificador de la orden de trabajo."),
 });
-
-export const idServicioSchema = z
-  .string()
-  .trim()
-  .min(1, "Falta el servicio de origen.");
 
 export const filtroEstadoSchema = estadoOtSchema.optional().catch(undefined);
 

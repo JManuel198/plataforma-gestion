@@ -5,10 +5,10 @@
  * Vive fuera de actions.ts porque un archivo con `"use server"` solo puede
  * exportar funciones asíncronas — un objeto exportado ahí rompe el build.
  *
- * Es gemelo del de modules/servicios/. Se duplica a propósito: un módulo de
- * negocio no depende de otro (AGENTS.md, Arquitectura). Si un tercer módulo
- * lo vuelve a necesitar, el sitio para unificarlo es core/, no un import
- * cruzado entre módulos.
+ * Ya no tiene gemelo: modules/servicios/ desapareció al fusionarse Servicio y
+ * OT en una sola entidad, así que este es el único. Si otro módulo lo vuelve
+ * a necesitar, el sitio para unificarlo es core/, no un import cruzado entre
+ * módulos (AGENTS.md, Arquitectura).
  */
 export type EstadoFormulario = {
   mensaje?: string;

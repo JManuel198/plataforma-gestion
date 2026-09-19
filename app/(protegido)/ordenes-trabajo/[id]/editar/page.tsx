@@ -22,7 +22,7 @@ export default async function PaginaEditarOrdenTrabajo({
           Editar Orden de Trabajo
         </h1>
         {/* El código se muestra, no se edita: una OT emitida conserva su
-            número y su Servicio de origen. */}
+            número. */}
         <p className="text-sm text-muted-foreground">
           {orden.codigo_ot} · {orden.cliente}
         </p>

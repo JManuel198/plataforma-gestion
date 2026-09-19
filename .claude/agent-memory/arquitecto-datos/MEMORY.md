@@ -1,3 +1,4 @@
-- [servicio.precio → bigint](servicio_precio_bigint.md) — mode "number" vs "bigint", por qué PRECIO_MAXIMO_CENTIMOS quedó en 99_999_999_999_999 y no en MAX_SAFE_INTEGER
+- [precio → bigint](precio_bigint.md) — mode "number" vs "bigint", por qué PRECIO_MAXIMO_CENTIMOS quedó en 99_999_999_999_999 y no en MAX_SAFE_INTEGER (decidido en servicio.precio, hoy orden_trabajo.precio)
 - [Generar no es aplicar](feedback_generar_no_aplicar.md) — el usuario separa siempre "generar migración" de "aplicarla", incluso si el agente ve el cambio como seguro
 - [Correlativo de OT por año](ot_correlativo.md) — por qué tabla contadora con upsert atómico y no MAX+1 ni sequence; supuestos 5-9 de la Fase 3
+- [Fusión Servicio + OT](fusion_servicio_ot.md) — servicio desapareció (2026-09-19); se partió en 2 migraciones por bug CASCADE/DROP CONSTRAINT; truco de enum compartido para generar en pasos; receta pexpect sin TTY

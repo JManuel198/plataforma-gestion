@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { AvisoToast } from "@/modules/ordenes-trabajo/components/aviso-toast";
 import { FiltroEstado } from "@/modules/ordenes-trabajo/components/filtro-estado";
 import { TablaOrdenesTrabajo } from "@/modules/ordenes-trabajo/components/tabla-ordenes-trabajo";
@@ -29,12 +31,14 @@ export default async function PaginaOrdenesTrabajo({
         <h1 className="text-xl font-semibold tracking-tight">
           Órdenes de Trabajo
         </h1>
-        {/* No hay botón de "Nueva OT" aquí a propósito: una OT nace de un
-            Servicio ya creado (Fase 3 del alcance), así que se abre desde el
-            listado de Servicios o desde el Servicio mismo. */}
-        <p className="text-sm text-muted-foreground">
-          Se crean desde un Servicio.
-        </p>
+        {/* Un Link con `buttonVariants`, no un Button con `render`: el
+            patrón de `render` en un elemento de navegación es el que provocó
+            el aviso de accesibilidad de Base UI que ya se corrigió (commit
+            4bc1270). Aquí es un enlace de verdad, así que se escribe como
+            enlace. */}
+        <Link href="/ordenes-trabajo/nueva" className={buttonVariants()}>
+          Nueva OT
+        </Link>
       </div>
 
       <FiltroEstado estado={estadoFiltrado} />

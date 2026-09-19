@@ -6,7 +6,13 @@ poder revertirla sin arqueología.
 
 ---
 
-## Servicio (Fase 2)
+## Servicio (Fase 2) — entidad fusionada en OT el 2026-09-19
+
+Esta sección es **registro histórico**: la entidad Servicio dejó de existir
+(ver la sección "Fusión Servicio + OT" al final). Se conserva para poder
+reconstruir por qué se decidió cada cosa, pero ninguno de estos supuestos
+describe el sistema de hoy. Donde la sustancia sobrevivió, cada uno dice a
+qué supuesto de OT mirar en su lugar.
 
 ### 1. ¿Qué campos son obligatorios al crear un Servicio?
 La tabla de `alcance-v2-servicios-ot.md` dice cómo se llena cada campo, pero
@@ -15,17 +21,18 @@ no cuáles pueden quedar vacíos.
 **Asumido:** `codigo_oc` y `comentarios` son opcionales — la orden de compra
 suele llegar después de registrar el servicio, y un comentario vacío es
 normal. Todos los demás son obligatorios.
-**Si se confirma distinto:** cambiar el campo en
-`modules/servicios/schema.ts` y quitar/poner `.notNull()` en
-`db/schema/servicio.ts` (requiere migración).
+**OBSOLETO por la fusión.** El criterio sobrevivió sin cambios en la OT
+(`codigo_oc` y `comentarios` opcionales): ver el **supuesto 7**, que es el
+que hay que tocar hoy.
 
 ### 2. ¿Con qué estado nace un Servicio nuevo?
 El documento lista los seis estados pero no dice cuál es el inicial.
 
 **Asumido:** `Activado`, por ser el primero de la lista confirmada. El
 formulario lo preselecciona y el usuario puede cambiarlo antes de guardar.
-**Si se confirma distinto:** cambiar el `.default()` de la columna `estado`
-y el `defaultValue` del Select en el formulario.
+**OBSOLETO por la fusión.** `Activado` ya no existe: se descartó al unificar
+las dos listas de estados (ver **supuesto 12**). Una OT nace `Pendiente`, por
+el `.default()` de la columna en `db/schema/orden-trabajo.ts`.
 
 ### 3. ¿Hace falta cotizar por encima de S/ 21 474 836.47? — **Resuelto (2026-09-18)**
 El tipo `integer` en céntimos topaba ahí.
@@ -33,11 +40,13 @@ El tipo `integer` en céntimos topaba ahí.
 **Decisión:** sí, se pidió levantar el techo. La columna `precio` pasó de
 `integer` a `bigint` (migración `db/migrations/0002_fair_franklin_storm.sql`,
 aplicada — verificado contra la base de datos el 2026-09-18:
-`servicio.precio` es `bigint`). En Drizzle se usa `mode: "number"` (no `mode:
+`servicio.precio` era `bigint`). La decisión sigue vigente: la columna se
+conservó tal cual al fusionarse en `orden_trabajo.precio` (migración
+`0004_elite_wind_dancer.sql`). En Drizzle se usa `mode: "number"` (no `mode:
 "bigint"`) para no arrastrar `BigInt` por el resto del código, así que el
 techo técnico real quedó en `Number.MAX_SAFE_INTEGER`, no en el máximo de
 `bigint` de PostgreSQL. `PRECIO_MAXIMO_CENTIMOS`
-(`modules/servicios/schema.ts`) subió a `99_999_999_999_999` — el monto
+(hoy en `modules/ordenes-trabajo/schema.ts`) subió a `99_999_999_999_999` — el monto
 máximo que puede escribir el usuario según la regex de `montoSchema` (12
 dígitos enteros + 2 decimales), no el techo técnico, para que el número que
 se valida y el que se comunica en el mensaje de error sean siempre el mismo.
@@ -50,6 +59,10 @@ El documento solo pide crear, editar y listar.
 
 **Asumido:** no se elimina. Un servicio que no va se marca `Rechazado`.
 Esto además protege la relación que la OT de la Fase 3 tendrá con él.
+**OBSOLETO por la fusión.** `Rechazado` desapareció con la lista de estados de
+Servicio (**supuesto 12**), y ya no hay relación que proteger. El criterio
+equivalente y vigente es el **supuesto 9**: una OT no se elimina, se marca
+`Cancelada`.
 
 ---
 
@@ -87,8 +100,10 @@ Mismo vacío que el supuesto 1 para Servicio.
 
 **Asumido:** `codigo_oc` es opcional (la orden de compra llega después,
 idéntico criterio que en Servicio); `codigo_cotizacion`, `asunto` y `cliente`
-son obligatorios. `codigo_ot`, `fecha_creacion` y `servicio_id` no se
-preguntan: son automáticos.
+son obligatorios. Tras la fusión se suman `precio` y `moneda`, también
+obligatorios (**supuesto 13**), y `codigo_revision`, que quedó opcional con el
+mismo criterio que `codigo_oc` — en Servicio era obligatorio. `codigo_ot` y
+`fecha_creacion` no se preguntan: son automáticos.
 **Si se confirma distinto:** cambiar el campo en
 `modules/ordenes-trabajo/schema.ts` y quitar/poner `.notNull()` en
 `db/schema/orden-trabajo.ts` (requiere migración).
@@ -100,9 +115,9 @@ cardinalidad.
 **Asumido:** uno a muchos — un Servicio puede tener varias OT, y ninguna OT
 existe sin Servicio (`servicio_id` es `NOT NULL`). No hay `UNIQUE` sobre
 `servicio_id`.
-**Si se confirma una sola OT por Servicio:** agregar un índice único sobre
-`servicio_id` (migración), que además sirve como control real, no solo como
-validación en pantalla.
+**OBSOLETO por la fusión.** La pregunta desapareció con la relación: no hay
+dos entidades entre las que definir cardinalidad. La columna `servicio_id` y
+su FK se eliminaron en la migración `0004_elite_wind_dancer.sql`.
 
 ### 9. ¿Se puede eliminar una OT?
 El documento solo pide crear, editar y listar.
@@ -114,23 +129,72 @@ la tabla no tiene columna `activo`: el estado ya cumple ese papel.
 Ni el alcance ni `entidades.md` acotan los campos: en la base son `text`, sin
 límite. Los topes viven hoy solo en las validaciones de Zod.
 
-**Asumido** (Servicio, `modules/servicios/schema.ts`): código de cotización
-50, código de revisión 50, OC 100, descripción del servicio 1000, cliente 200,
-comentarios 2000.
-**Asumido** (OT, `modules/ordenes-trabajo/schema.ts`): código de cotización
-50, asunto 300, OC 100, cliente 200, responsable 200.
+**Asumido** (OT fusionada, `modules/ordenes-trabajo/schema.ts`): código de
+cotización 50, código de revisión 50, asunto 300, OC 100, cliente 200,
+responsable 200, comentarios 2000. Los cuatro primeros valores venían de
+Servicio y se conservaron sin cambios al fusionar; `asunto` (300) es el de la
+OT, que reemplaza a la descripción del servicio (1000).
 Salieron de lo que se ve razonable en el Excel actual, no de una regla dada.
 **Si se confirma distinto:** cambiar el número en el `schema.ts` del módulo.
 No requiere migración — las columnas son `text` y no tienen límite propio.
 
 ### 11. ¿Se puede crear una OT desde un Servicio Rechazado o Facturado?
-El alcance dice que la OT "nace de un Servicio ya creado", pero no acota desde
-qué estados.
+**OBSOLETO por la fusión Servicio + OT (2026-09-19).** La pregunta no tiene
+sujeto: una OT ya no nace de un Servicio, se crea desde su propio listado, y
+no hay estado externo que consultar antes de insertar.
 
-**Asumido:** desde cualquiera. Hoy el código no restringe: el botón "Crear OT"
-aparece en toda fila del listado y `crearOrdenTrabajo` solo verifica que el
-Servicio exista, no en qué estado está.
-**Si se confirma restringido:** la comprobación va en `crearOrdenTrabajo`
-(`modules/ordenes-trabajo/actions.ts`), no solo ocultando el botón — la Server
-Action se puede invocar con un POST directo. Ocultar el botón en
-`tabla-servicios.tsx` sería el complemento visual, nunca el control.
+**Queda vivo un residuo, que sí hay que confirmar:** `Facturado` y `Cancelada`
+son ahora estados de la propia OT, y hoy nada impide devolver una OT desde
+cualquiera de los dos a `Pendiente` o `En ejecución` editándola.
+**Asumido:** se puede, sin restricción — el formulario ofrece los seis estados
+siempre.
+**Si se confirma restringido:** la comprobación va en `editarOrdenTrabajo`
+(`modules/ordenes-trabajo/actions.ts`), no solo limitando el `Select` — la
+Server Action se puede invocar con un POST directo.
+
+---
+
+## Fusión Servicio + OT (2026-09-19)
+
+El cliente confirmó que Servicio y Orden de Trabajo son la misma entidad
+para él y pidió que `orden_trabajo` absorba todo. La fusión de esquema
+(migraciones `0004_elite_wind_dancer.sql` y `0005_smiling_sway.sql`, partidas
+en dos por un problema de orden entre `DROP TABLE ... CASCADE` y un `DROP
+CONSTRAINT` explícito) resuelve la relación de los supuestos 5-9
+de arriba (ya no aplica un `servicio_id`), pero abre dos preguntas nuevas.
+
+### 12. ¿Cuáles son los 6 estados definitivos de la OT fusionada?
+El alcance solo tenía confirmados los 6 estados de Servicio (comerciales) y
+los 5 de OT (ejecución en campo), como listas separadas y con propósitos
+distintos. La fusión obliga a tener una sola lista, y no hay una reunión
+donde el cliente haya validado cuál debe ser.
+
+**Asumido:** `Pendiente` · `En ejecución` · `Pausada` · `Finalizada` ·
+`Facturado` · `Cancelada` — los 5 de OT más `Facturado` de Servicio insertado
+antes de `Cancelada`, para poder cerrar el ciclo comercial (facturar) sin
+tener que reintroducir un estado comercial aparte. Se descartaron
+`Activado`, `En espera` y `Rechazado` de Servicio por redundar con
+`Pendiente`/`Pausada`/`Cancelada` de OT.
+**Si se confirma distinto:** cambiar `ESTADOS_OT` en
+`db/schema/orden-trabajo.ts` y generar una nueva migración — si además se
+elimina algún valor ya usado por una fila existente, esa migración necesita
+primero reasignar esas filas a un estado válido (Postgres no permite borrar
+un valor de un enum con filas que lo usan).
+
+### 13. ¿`precio`/`moneda` de la OT fusionada siguen siendo obligatorios?
+El cliente pidió la fusión pero no habló explícitamente de si el precio se
+sigue exigiendo, ni mencionó la columna `moneda` en absoluto — es una
+consecuencia de que `precio` nunca se guarda sin su moneda (regla del
+esquema, no pedida aparte).
+
+**Asumido:** sí, `precio` y `moneda` son `NOT NULL` en `orden_trabajo`,
+igual que lo eran en `servicio` — la OT fusionada es ahora también el
+registro comercial, así que hereda esa obligatoriedad. `moneda` viaja
+siempre junto a `precio` aunque el cliente no la haya mencionado, porque un
+monto sin su moneda no es un dato completo (mismo criterio que ya regía en
+Servicio).
+**Si se confirma que el precio es opcional en la OT** (por ejemplo, porque
+se crea antes de cotizar): quitar `.notNull()` de ambas columnas en
+`db/schema/orden-trabajo.ts` y generar una nueva migración — segura de
+aplicar aunque haya filas, porque relajar `NOT NULL` nunca rompe datos
+existentes.

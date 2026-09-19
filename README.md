@@ -62,17 +62,20 @@ de código que sigue este proyecto (y que sigue Claude Code al trabajar aquí).
 
 ## Estado del proyecto
 
-MVP v2 en construcción: sprint de 3 días enfocado en Servicios y
-Órdenes de Trabajo (OT), según alcance confirmado directamente con
-el cliente. La visión completa (CRM, cotizador, kanban, aprobaciones)
+MVP v2 en construcción: sprint de 3 días enfocado en las Órdenes de
+Trabajo (OT), según alcance confirmado directamente con el cliente.
+La visión completa (CRM, cotizador, kanban, aprobaciones)
 queda documentada como versión futura en docs/spec/, no se pierde,
 solo se pospone.
 
 ## Alcance actual (v2)
 
 - Login de un solo usuario, rutas protegidas
-- Servicios: registro de trabajos contratados
-- Órdenes de Trabajo (OT): documento de ejecución generado desde un Servicio
+- Órdenes de Trabajo (OT): entidad única que es a la vez el registro
+  comercial del trabajo contratado (cotización, revisión, precio) y su
+  documento de ejecución. El alcance original las trataba como dos
+  entidades, Servicio y OT; el cliente confirmó el 2026-09-19 que para
+  él son la misma, y se fusionaron en `orden_trabajo`.
 - Diferido a versiones futuras: pantalla de Clientes/Contactos, Personal
   con acceso al sistema, catálogo de servicios reutilizable, cotización
   formal con PDF, kanban de oportunidades, aprobaciones

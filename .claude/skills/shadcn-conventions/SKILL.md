@@ -1,6 +1,6 @@
 ---
 name: shadcn-conventions
-description: Convenciones de formularios, tablas y componentes shadcn/ui para plataforma-gestion — Server Actions con useActionState + Zod en el servidor, tablas, filtros por URL, confirmación antes de desactivar, formato de fechas con dayjs y de montos en céntimos. Úsalo al construir cualquier pantalla CRUD (crear, editar, listar): Servicios, Órdenes de Trabajo, y las que sigan.
+description: Convenciones de formularios, tablas y componentes shadcn/ui para plataforma-gestion — Server Actions con useActionState + Zod en el servidor, tablas, filtros por URL, confirmación antes de desactivar, formato de fechas con dayjs y de montos en céntimos. Úsalo al construir cualquier pantalla CRUD (crear, editar, listar): Órdenes de Trabajo, y las que sigan.
 paths: modules/**, components/**, app/**
 ---
 
@@ -46,8 +46,8 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
 
 **Patrón estándar: Server Action + `useActionState`, validado con Zod en el
 servidor.** La referencia a copiar es
-`modules/servicios/components/formulario-servicio.tsx` junto con
-`modules/servicios/actions.ts` y `modules/servicios/schema.ts`.
+`modules/ordenes-trabajo/components/formulario-orden-trabajo.tsx` junto con
+`modules/ordenes-trabajo/actions.ts` y `modules/ordenes-trabajo/schema.ts`.
 
 - El formulario es un Client Component con campos **no controlados**: cada uno
   lleva `name` y `defaultValue`, y el envío va por `<form action={accion}>`.
@@ -70,7 +70,7 @@ servidor.** La referencia a copiar es
   exportar un objeto ahí rompe el build.
 - Toda Server Action **re-verifica la sesión dentro de la función**, no solo
   confía en que el layout protegió la ruta: una action es invocable con un POST
-  directo. Ver `exigirSesion()` en `modules/servicios/actions.ts`.
+  directo. Ver `exigirSesion()` en `modules/ordenes-trabajo/actions.ts`.
 - Mientras el envío está en curso, el botón de submit se deshabilita con el
   tercer valor de `useActionState` (`disabled={enviando}`) — sin spinner
   custom.
@@ -91,13 +91,15 @@ servidor.** La referencia a copiar es
 - El filtro (por estado, por cliente) se resuelve en la **consulta del
   servidor**, no filtrando en el cliente un arreglo ya traído completo. El
   filtro vive en el `searchParams` de la URL, para que sea compartible y
-  sobreviva un refresh. Ver `modules/servicios/components/filtro-estado.tsx`
-  con `modules/servicios/queries.ts`.
+  sobreviva un refresh. Ver
+  `modules/ordenes-trabajo/components/filtro-estado.tsx` con
+  `modules/ordenes-trabajo/queries.ts`.
 - Todo valor que venga de `searchParams` se valida con Zod antes de usarse. El
   patrón es `.optional().catch(undefined)`: un parámetro inventado, repetido o
   ausente no debe reventar la pantalla, solo ignorarse.
 - Lista vacía: un mensaje simple en un recuadro punteado, como el de
-  `tabla-servicios.tsx` ("No hay servicios que mostrar."), sin skeletons ni
+  `tabla-ordenes-trabajo.tsx` ("No hay órdenes de trabajo que mostrar."), sin
+  skeletons ni
   spinners elaborados — es una herramienta interna de un solo usuario, no
   necesita ese nivel de pulido todavía.
 
@@ -127,17 +129,18 @@ servidor.** La referencia a copiar es
   desactivar).
 - **Cómo llega el toast después de un redirect**: la Server Action termina en
   `redirect()`, así que el aviso viaja en la URL destino
-  (`/servicios?aviso=creado`) y un Client Component lo dispara al montar y
+  (`/ordenes-trabajo?aviso=creada`) y un Client Component lo dispara al montar y
   limpia el parámetro con `router.replace` para que un refresh no lo repita.
   El valor de `?aviso=` se valida con Zod como cualquier otro `searchParam`.
-  Ver `modules/servicios/components/aviso-toast.tsx`.
+  Ver `modules/ordenes-trabajo/components/aviso-toast.tsx`.
 
 ## Estructura
 
 - Todo componente de una entidad vive en `modules/<entidad>/components/`, junto
   a su `schema.ts` y `actions.ts` — nunca suelto en una carpeta compartida
   genérica.
-- El módulo de Servicios es la referencia completa del reparto de archivos:
+- El módulo de Órdenes de Trabajo es la referencia completa del reparto de
+  archivos:
   `constantes.ts` (listas sin imports, seguras para el cliente), `dinero.ts`
   (conversión de montos), `schema.ts` (Zod), `estado-formulario.ts` (tipo del
   estado de `useActionState`), `actions.ts` (`"use server"`), `queries.ts`

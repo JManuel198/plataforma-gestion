@@ -18,14 +18,16 @@ import {
   estadoFormularioInicial,
   type EstadoFormulario,
 } from "../estado-formulario";
-import { ESTADOS_OT } from "../constantes";
+import { ESTADOS_OT, MONEDAS } from "../constantes";
+import { aMontoDecimal } from "../dinero";
 
 type Props = {
   /**
-   * Server Action que guarda el formulario. Al crear llega ya atada al
-   * Servicio de origen con `.bind()`, así que su firma es la misma en los dos
-   * casos. El sufijo `Action` es la convención de Next para las acciones que
-   * viajan como prop a un Client Component.
+   * Server Action que guarda el formulario — `crearOrdenTrabajo` o
+   * `editarOrdenTrabajo`. Desde la fusión con Servicio las dos tienen la
+   * misma firma sin necesidad de `.bind()`: crear una OT ya no depende de
+   * ningún id externo. El sufijo `Action` es la convención de Next para las
+   * acciones que viajan como prop a un Client Component.
    */
   guardarAction: (
     estadoPrevio: EstadoFormulario,
@@ -48,12 +50,8 @@ function MensajeError({ errores }: { errores?: string[] }) {
 }
 
 /**
- * Solo los campos manuales del documento. `codigo_ot`, `fecha_creacion` y
- * `servicio_id` no aparecen ni como campo oculto: los pone el servidor.
- *
- * Los campos que se ven repetidos respecto al Servicio (cotización, OC,
- * cliente) se escriben a mano y no se sincronizan — decisión cerrada del
- * alcance v2.
+ * Solo los campos manuales del documento. `codigo_ot` y `fecha_creacion` no
+ * aparecen ni como campo oculto: los pone el servidor.
  */
 export function FormularioOrdenTrabajo({
   guardarAction,
@@ -93,6 +91,18 @@ export function FormularioOrdenTrabajo({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="codigo_revision">Revisión (REV.)</Label>
+          <Input
+            id="codigo_revision"
+            name="codigo_revision"
+            defaultValue={orden?.codigo_revision ?? ""}
+            placeholder="Opcional (ej. REV01)"
+            aria-invalid={Boolean(errores.codigo_revision)}
+          />
+          <MensajeError errores={errores.codigo_revision} />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="codigo_oc">Orden de compra (OC)</Label>
           <Input
             id="codigo_oc"
@@ -102,6 +112,18 @@ export function FormularioOrdenTrabajo({
             aria-invalid={Boolean(errores.codigo_oc)}
           />
           <MensajeError errores={errores.codigo_oc} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="responsable">Responsable</Label>
+          <Input
+            id="responsable"
+            name="responsable"
+            defaultValue={orden?.responsable ?? ""}
+            placeholder="Opcional — nombre del técnico a cargo"
+            aria-invalid={Boolean(errores.responsable)}
+          />
+          <MensajeError errores={errores.responsable} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -130,18 +152,46 @@ export function FormularioOrdenTrabajo({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="responsable">Responsable</Label>
+          <Label htmlFor="precio">Precio</Label>
           <Input
-            id="responsable"
-            name="responsable"
-            defaultValue={orden?.responsable ?? ""}
-            placeholder="Opcional — nombre del técnico a cargo"
-            aria-invalid={Boolean(errores.responsable)}
+            id="precio"
+            name="precio"
+            // El usuario escribe un monto normal (150.50); el servidor lo
+            // convierte a céntimos antes de guardarlo.
+            inputMode="decimal"
+            placeholder="150.50"
+            defaultValue={orden ? aMontoDecimal(orden.precio) : ""}
+            required
+            aria-invalid={Boolean(errores.precio)}
           />
-          <MensajeError errores={errores.responsable} />
+          <MensajeError errores={errores.precio} />
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="moneda">Moneda</Label>
+          <Select
+            name="moneda"
+            defaultValue={orden?.moneda ?? "PEN"}
+            items={MONEDAS.map((moneda) => ({
+              label: moneda,
+              value: moneda,
+            }))}
+          >
+            <SelectTrigger id="moneda" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONEDAS.map((moneda) => (
+                <SelectItem key={moneda} value={moneda}>
+                  {moneda}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <MensajeError errores={errores.moneda} />
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="estado">Estado</Label>
           <Select
             name="estado"
@@ -163,6 +213,18 @@ export function FormularioOrdenTrabajo({
             </SelectContent>
           </Select>
           <MensajeError errores={errores.estado} />
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="comentarios">Comentarios</Label>
+          <Textarea
+            id="comentarios"
+            name="comentarios"
+            defaultValue={orden?.comentarios ?? ""}
+            rows={3}
+            aria-invalid={Boolean(errores.comentarios)}
+          />
+          <MensajeError errores={errores.comentarios} />
         </div>
       </div>
 

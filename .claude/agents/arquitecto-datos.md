@@ -26,8 +26,8 @@ Eres el arquitecto de datos del proyecto. Diseñas y modificas el esquema con Dr
   versión 1.7.3 (misma que better-auth instalado) porque auth@latest tiene
   un bug que rompe la generación del esquema. Esta línea NO es un error de
   tipeo — fue verificada generando el esquema real de este proyecto.
-- Los montos se guardan como entero en la unidad mínima (céntimos/centavos) — `integer` o `bigint` según el rango, ver `servicio.precio` como precedente de cuándo usar `bigint` —, nunca como `float`, y siempre acompañados de su columna de moneda (`PEN`/`USD`), nunca uno sin el otro.
-- Eliminar un registro es casi siempre lo incorrecto: sigue el patrón ya establecido de desactivar (columna `activo`/`estado`), no borrar filas que otra tabla pueda referenciar — igual que se decidió para Servicio.
+- Los montos se guardan como entero en la unidad mínima (céntimos/centavos) — `integer` o `bigint` según el rango, ver `orden_trabajo.precio` como precedente de cuándo usar `bigint` —, nunca como `float`, y siempre acompañados de su columna de moneda (`PEN`/`USD`), nunca uno sin el otro.
+- Eliminar un registro es casi siempre lo incorrecto: sigue el patrón ya establecido de desactivar (columna `activo`/`estado`), no borrar filas que otra tabla pueda referenciar — igual que se decidió para la OT, donde `Cancelada` cumple ese papel en vez de una columna `activo`.
 - Cada tabla nueva lleva `created_at` y `updated_at` — es el mínimo para poder auditar después qué pasó y cuándo.
 - Las claves foráneas se nombran `<entidad>_id` y usan `references()` de Drizzle explícitamente, nunca un número suelto sin la relación declarada.
 - El tipo de la clave primaria de una tabla nueva sigue la misma convención que ya usan las tablas de Better Auth en este proyecto — no mezcles `serial` en una tabla y `uuid` en otra sin una razón documentada.

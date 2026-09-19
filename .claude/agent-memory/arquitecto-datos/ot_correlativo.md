@@ -33,5 +33,5 @@ nullables; uno-a-muchos Servicio→OT sin `UNIQUE` en `servicio_id`; sin
 borrado — `Cancelada` hace de `activo=false`, por eso `orden_trabajo` es la
 excepción consciente a la regla de columna `activo`.
 
-Ver también [[servicio-precio-bigint]] y [[feedback-generar-no-aplicar]] (la
+Ver también [[precio-bigint]] y [[feedback-generar-no-aplicar]] (la
 migración `0003_lively_leo.sql` quedó generada y **no aplicada**).

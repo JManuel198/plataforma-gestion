@@ -1,23 +1,25 @@
 # modules/ordenes-trabajo/
 
-Fase 3 del alcance v2: el documento de ejecución que nace de un Servicio.
+La Orden de Trabajo, entidad única del sistema tras fusionarse con Servicio:
+es a la vez el documento de ejecución en campo y el registro comercial
+(cotización, revisión, precio). No nace de ninguna otra entidad.
 
-- `constantes.ts` — estados, piezas del código `OT.CCM.AAAA.NNNN`, zona
-  horaria del negocio. Sin imports: puede viajar al cliente.
+- `constantes.ts` — estados, monedas y piezas del código `OT.CCM.AAAA.NNNN`.
+  Sin imports: puede viajar al cliente.
 - `codigo.ts` — formateo del código y año vigente del correlativo.
 - `correlativo.ts` — reserva atómica del `NNNN`. Lee su comentario antes de
   tocarlo: ahí está por qué no es `MAX(...) + 1`.
+- `dinero.ts` — conversión entre el monto que escribe el usuario y los
+  céntimos que se guardan (regla 2 de AGENTS.md). Venía de `modules/servicios/`.
 - `schema.ts` — validaciones Zod. Todo lo que llega del formulario pasa por
-  aquí. `codigo_ot`, `fecha_creacion` y `servicio_id` nunca están.
+  aquí. `codigo_ot` y `fecha_creacion` nunca están.
 - `actions.ts` — Server Actions de crear y editar. Verifican sesión.
-- `queries.ts` — lecturas (listado con filtro por estado, detalle, servicio
-  de origen).
+- `queries.ts` — lecturas (listado con filtro por estado, detalle).
 - `components/` — formulario, tabla, filtro y toast.
 
-La OT no se crea desde su propio listado: se abre desde un Servicio
-(`/ordenes-trabajo/nueva?servicio=<id>`), y el servicio se ata a la Server
-Action con `.bind()`, nunca como campo del formulario.
+La OT se crea desde su propio listado (`Nueva OT` →
+`/ordenes-trabajo/nueva`), sin id externo atado a la Server Action.
 
 Pantallas en `app/(protegido)/ordenes-trabajo/`. Entidad documentada en
-`docs/spec/entidades.md`; supuestos 5 a 9 en
+`docs/spec/entidades.md`; supuestos 5 a 9 y 12 a 13 en
 `docs/spec/preguntas-abiertas.md`.

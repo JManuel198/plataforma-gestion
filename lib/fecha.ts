@@ -11,8 +11,9 @@ dayjs.extend(timezone);
  * muestra cualquier fecha. Si estas dos dejan de coincidir, una OT puede
  * quedar numerada con un año y mostrada con otro.
  *
- * Vive aquí, fuera de los dos módulos, porque Servicios y Órdenes de Trabajo
- * la necesitan por igual y ninguno debe importar del otro.
+ * Vive aquí, fuera de los módulos de negocio, y no dentro de
+ * modules/ordenes-trabajo/: es transversal, y cualquier módulo futuro que
+ * muestre fechas la necesita sin tener que importar de otro módulo.
  */
 export const ZONA_HORARIA = "America/Lima";
 

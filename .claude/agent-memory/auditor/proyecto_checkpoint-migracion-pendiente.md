@@ -5,8 +5,9 @@ metadata:
   type: project
 ---
 
-Patrón visto el 2026-09-18 auditando el cambio de `servicio.precio` de
-`integer` a `bigint` (migración `0002_fair_franklin_storm.sql` generada, no
+Patrón visto el 2026-09-18 auditando el cambio de la columna de precio de
+`integer` a `bigint` (entonces `servicio.precio`; esa tabla se fusionó en
+`orden_trabajo` el 2026-09-19 y la columna es hoy `orden_trabajo.precio`) (migración `0002_fair_franklin_storm.sql` generada, no
 aplicada — confirmado contra Neon por el usuario). En este tipo de checkpoint
 la desincronización entre el esquema de Drizzle y la BD real es intencional
 y no es en sí un hallazgo, pero sí hay que revisar dos ventanas de riesgo
@@ -34,7 +35,13 @@ sin arrastrar `BigInt` por el resto del código.
 
 **Ojo con documentación normativa que queda desactualizada por este tipo de
 cambio**: `.claude/agents/arquitecto-datos.md` seguía diciendo "los montos se
-guardan como `integer`" después de que `servicio.precio` pasara a `bigint`
-por una necesidad real de negocio — nadie actualizó esa línea en el mismo
-commit. Revisar ese archivo (y `.claude/skills/*/SKILL.md`) en cada auditoría
-que toque un tipo de columna de dinero, no solo `docs/spec/`.
+guardan como `integer`" después de que la columna pasara a `bigint` por una
+necesidad real de negocio — nadie actualizó esa línea en el mismo commit. Lo
+mismo volvió a pasar en la fusión Servicio + OT del 2026-09-19: ese archivo,
+`.claude/skills/shadcn-conventions/SKILL.md`, el `README.md` y varios
+supuestos de `docs/spec/preguntas-abiertas.md` seguían apuntando a
+`modules/servicios/` y a `servicio.precio` con el módulo ya borrado, y ni
+`tsc`, ni `eslint`, ni `next build` lo detectan. Revisar esos archivos (y
+`.claude/agent-memory/` — esta misma memoria se quedó obsoleta) en cada
+auditoría que toque tipos de columna de dinero o que elimine un módulo, no
+solo `docs/spec/`.

@@ -1,17 +1,25 @@
-import { pgEnum, pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, integer, bigint, timestamp, index } from "drizzle-orm/pg-core";
 
-import { servicio } from "./servicio";
+// Fusión Servicio + OT: el cliente confirmó que son la misma entidad para él
+// y que `orden_trabajo` absorbe todo (ver docs/spec/preguntas-abiertas.md).
+// La tabla `servicio` y su enum `servicio_estado` desaparecen; `moneda` se
+// muda aquí porque `orden_trabajo.precio` es ahora quien la necesita.
+export const MONEDAS = ["PEN", "USD"] as const;
 
-// Los cinco estados propuestos en docs/spec/alcance-v2-servicios-ot.md
-// (Fase 3). Son de ejecución en campo, a propósito distintos de los de
-// Servicio, que son administrativos/comerciales. El cliente autorizó esta
-// lista como propuesta temporal; queda pendiente de validación definitiva
-// (sección 6 del alcance). Se guardan con la misma grafía que ve el usuario.
+export const monedaEnum = pgEnum("moneda", MONEDAS);
+
+// Seis estados: los cinco de ejecución en campo que ya tenía la OT, más
+// `Facturado` (tomado de los estados de Servicio) para poder cerrar el
+// ciclo comercial ahora que no existe una tabla Servicio aparte. Lista
+// propuesta, pendiente de confirmar con el cliente — supuesto nuevo en
+// docs/spec/preguntas-abiertas.md. Se guardan con la misma grafía que ve el
+// usuario.
 export const ESTADOS_OT = [
   "Pendiente",
   "En ejecución",
   "Pausada",
   "Finalizada",
+  "Facturado",
   "Cancelada",
 ] as const;
 
@@ -23,22 +31,6 @@ export const ordenTrabajo = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    // Única dependencia real con Servicio. El resto de los campos que se ven
-    // repetidos (cotización, OC, cliente) se escriben a mano y NO se
-    // sincronizan — decisión cerrada del alcance v2, para ir rápido ahora.
-    // Teniendo la relación guardada, sincronizarlos después es un cambio
-    // contenido, no una reconstrucción.
-    //
-    // `onDelete: "restrict"` explícito: los servicios no se borran nunca
-    // (supuesto 4 de docs/spec/preguntas-abiertas.md — se cierran pasando a
-    // `Rechazado`), así que el comportamiento correcto si alguien intenta
-    // borrar uno con OT colgando es que la base de datos lo impida. Se
-    // escribe aunque PostgreSQL ya haga NO ACTION por defecto, porque aquí
-    // la intención importa: nunca `cascade`, que silenciosamente se llevaría
-    // las OT por delante.
-    servicio_id: text("servicio_id")
-      .notNull()
-      .references(() => servicio.id, { onDelete: "restrict" }),
     // Formato OT.CCM.AAAA.NNNN, autogenerado — el usuario nunca lo escribe.
     // `CCM` es constante del proyecto y vive en
     // modules/ordenes-trabajo/constantes.ts, no aquí.
@@ -47,8 +39,13 @@ export const ordenTrabajo = pgTable(
     // abajo): aunque un error futuro se salte el contador, la base de datos
     // no deja entrar dos OT con el mismo código.
     codigo_ot: text("codigo_ot").notNull().unique(),
-    // Copiado a mano desde el Servicio, a propósito NO sincronizado.
+    // Ya no se "copia a mano desde el Servicio": la OT es autónoma, no nace
+    // de otra tabla (fusión Servicio + OT, confirmada por el cliente).
     codigo_cotizacion: text("codigo_cotizacion").notNull(),
+    // Ex `servicio.codigo_revision`. Ahí era `NOT NULL`; aquí queda nullable
+    // a propósito, con el mismo criterio que `codigo_oc` (llega después del
+    // registro) — decisión explícita de esta fusión, no un descuido.
+    codigo_revision: text("codigo_revision"),
     asunto: text("asunto").notNull(),
     // Nullable por el mismo criterio que `servicio.codigo_oc`: la orden de
     // compra suele llegar después del registro (supuesto 1 de
@@ -56,6 +53,18 @@ export const ordenTrabajo = pgTable(
     codigo_oc: text("codigo_oc"),
     // Texto libre mientras no exista pantalla propia de Clientes (Fase 5).
     cliente: text("cliente").notNull(),
+    // Ex `servicio.precio` / `servicio.moneda`. Entero en la unidad mínima
+    // (céntimos), nunca float — regla 2 de AGENTS.md — y siempre con su
+    // columna de moneda al lado. Mismo `bigint` con `mode: "number"` que
+    // tenía Servicio: la columna en Postgres es de 8 bytes, pero Drizzle la
+    // mapea a `number` de JS para no arrastrar `BigInt` por el código
+    // (dinero.ts, formularios, `JSON.stringify` en las acciones). El techo
+    // real pasa a ser `Number.MAX_SAFE_INTEGER`; el límite de negocio se
+    // valida en el `schema.ts` del módulo (ver `PRECIO_MAXIMO_CENTIMOS` de
+    // Servicio como precedente). `NOT NULL` porque toda OT es ahora también
+    // el registro comercial que antes era el Servicio.
+    precio: bigint("precio", { mode: "number" }).notNull(),
+    moneda: monedaEnum("moneda").notNull(),
     // No hay columna `activo`: `Cancelada` ya cumple ese papel. Es una
     // excepción consciente al patrón general de "desactivar, no borrar" —
     // el estado ya lo implementa, una segunda bandera sería redundante y
@@ -70,16 +79,15 @@ export const ordenTrabajo = pgTable(
     // se exige primero en el Zod de modules/ordenes-trabajo/schema.ts y solo
     // después se endurece la columna con una migración.
     responsable: text("responsable"),
+    // Ex `servicio.comentarios`. Texto libre, nullable, mismo patrón.
+    comentarios: text("comentarios"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [
-    index("orden_trabajo_estado_idx").on(table.estado),
-    index("orden_trabajo_servicio_id_idx").on(table.servicio_id),
-  ],
+  (table) => [index("orden_trabajo_estado_idx").on(table.estado)],
 );
 
 /**

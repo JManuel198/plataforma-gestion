@@ -17,7 +17,8 @@ const TODOS = "todos";
 /**
  * El estado elegido viaja en la URL (`/ordenes-trabajo?estado=Pausada`) y el
  * filtrado ocurre en la consulta del servidor — este componente solo navega.
- * Mismo patrón que el filtro de Servicios.
+ * Es el patrón de filtro por URL de referencia del proyecto (ver
+ * .claude/skills/shadcn-conventions/SKILL.md).
  */
 export function FiltroEstado({ estado }: { estado?: EstadoOt }) {
   const router = useRouter();

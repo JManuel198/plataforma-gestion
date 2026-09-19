@@ -8,7 +8,6 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
-import { servicio } from "@/db/schema/servicio";
 import { anioVigente, formatearCodigoOt } from "./codigo";
 import { reservarCorrelativo } from "./correlativo";
 import type { EstadoFormulario } from "./estado-formulario";
@@ -44,16 +43,11 @@ function esCodigoDuplicado(error: unknown): boolean {
 }
 
 /**
- * Crea una OT a partir de un Servicio existente.
- *
- * `servicioId` no viaja en el formulario: se ata a la acción con `.bind()` en
- * la pantalla (ver app/(protegido)/ordenes-trabajo/nueva/page.tsx). Next lo
- * envía codificado, no como un campo del HTML, así que no se puede cambiar
- * desde el navegador — que es justamente lo que un `<input type="hidden">` sí
- * permitiría.
+ * Crea una OT. Desde la fusión con Servicio es una creación autónoma: no nace
+ * de ninguna otra fila, así que no hay id externo que atar con `.bind()` ni
+ * clave foránea que verificar antes de insertar.
  */
 export async function crearOrdenTrabajo(
-  servicioId: string,
   _estadoPrevio: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
@@ -68,19 +62,6 @@ export async function crearOrdenTrabajo(
     };
   }
 
-  // El Servicio de origen se vuelve a verificar aquí: la pantalla ya lo
-  // resolvió, pero entre que se abrió el formulario y se envió pudo dejar de
-  // existir, y `servicio_id` es una clave foránea real.
-  const [origen] = await db
-    .select({ id: servicio.id })
-    .from(servicio)
-    .where(eq(servicio.id, servicioId))
-    .limit(1);
-
-  if (!origen) {
-    return { mensaje: "El servicio de origen ya no existe." };
-  }
-
   // Un solo año para todo: el que numera el correlativo y el que se escribe
   // en el código. Calcularlo dos veces es cómo se consigue una OT
   // `OT.CCM.2027.0001` contando sobre el correlativo de 2026.
@@ -93,11 +74,10 @@ export async function crearOrdenTrabajo(
     await db.transaction(async (tx) => {
       const correlativo = await reservarCorrelativo(tx, anio);
 
-      // `fecha_creacion` no se envía: la pone la base de datos (DEFAULT now())
-      // al insertar, igual que la `fecha` de Servicio.
+      // `fecha_creacion` no se envía: la pone la base de datos
+      // (DEFAULT now()) al insertar.
       await tx.insert(ordenTrabajo).values({
         ...resultado.data,
-        servicio_id: servicioId,
         codigo_ot: formatearCodigoOt(anio, correlativo),
       });
     });
@@ -144,10 +124,9 @@ export async function editarOrdenTrabajo(
 
   const { id, ...campos } = resultado.data;
 
-  // `codigo_ot`, `servicio_id` y `fecha_creacion` no están en `campos` y no
-  // deben estarlo: el número de una OT y el Servicio del que nació no cambian
-  // una vez emitida. `updatedAt` sí se actualiza sola ($onUpdate en el
-  // esquema).
+  // `codigo_ot` y `fecha_creacion` no están en `campos` y no deben estarlo:
+  // el número de una OT no cambia una vez emitida. `updatedAt` sí se
+  // actualiza sola ($onUpdate en el esquema).
   const actualizadas = await db
     .update(ordenTrabajo)
     .set(campos)
