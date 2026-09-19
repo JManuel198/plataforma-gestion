@@ -2,3 +2,4 @@
 - [Patrones ya validados](proyecto_patrones-establecidos.md) — conversión de dinero por string (dinero.ts) y re-chequeo de sesión dentro de Server Actions (actions.ts) como vara de medir en módulos nuevos.
 - [Fechas en columnas timestamp sin zona](proyecto_fechas-timestamp-sin-zona.md) — las que pone la base son UTC; las que escribe Node son hora local del proceso, y el type parser de db/index.ts las trata igual.
 - [Checkpoint con migración pendiente](proyecto_checkpoint-migracion-pendiente.md) — qué revisar cuando Drizzle ya tiene un tipo nuevo (ej. bigint) pero la migración no se aplicó aún; y revisar docs normativas (.claude/agents, SKILL.md) al tocar tipos de columna de dinero.
+- [ESTADOS_OT duplicado](proyecto_estados-ot-duplicados.md) — el array de 6 estados vive repetido en db/schema/orden-trabajo.ts y modules/ordenes-trabajo/constantes.ts desde la fusión Servicio+OT; revisar en cambios al enum de estado.

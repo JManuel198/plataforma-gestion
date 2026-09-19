@@ -53,6 +53,11 @@ Servicio (de donde viene `Facturado`) con los estados de ejecución en campo
 que ya tenía la OT. **Pendiente de confirmar con el cliente** — ver supuesto
 nuevo en `preguntas-abiertas.md`.
 
+Desde 2026-09-19, `modules/ordenes-trabajo/constantes.ts` es la única fuente
+de esta lista y también de `MONEDAS`: `db/schema/orden-trabajo.ts` importa los
+dos arrays de ahí para construir sus `pgEnum`, ya no declara los suyos. No
+queda ninguna lista de valores de enum duplicada entre el módulo y el esquema.
+
 **Sin `servicio_id`.** La FK a `servicio` (con `ON DELETE RESTRICT`) se
 eliminó junto con la tabla: una OT ya no depende de ningún otro registro para
 existir. Los "campos duplicados a propósito" que describía esta sección ya

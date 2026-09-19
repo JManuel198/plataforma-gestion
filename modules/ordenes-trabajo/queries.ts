@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lt, or } from "drizzle-orm";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
-import type { EstadoOt } from "./constantes";
+import { inicioDelDia, inicioDelDiaSiguiente } from "@/lib/fecha";
+import type { FiltrosOt } from "./filtros";
 
 /**
  * Las columnas que muestra el listado. Desde la fusión con Servicio salen
@@ -25,15 +26,61 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista las órdenes de trabajo, opcionalmente filtradas por estado. El filtro
- * se resuelve en la consulta, no en el navegador: la pantalla solo recibe las
- * filas que va a mostrar.
+ * Convierte el texto del buscador en el patrón de un `ILIKE`.
+ *
+ * El valor viaja parametrizado, así que no hay inyección posible; lo que sí
+ * hay que neutralizar son los comodines del propio `LIKE`: sin esto, buscar
+ * "50%" traería todo lo que empiece por "50", y un "_" casaría con cualquier
+ * carácter. El escape es `\`, que es el que PostgreSQL usa por defecto en
+ * `LIKE`/`ILIKE` (no hace falta cláusula `ESCAPE`).
  */
-export async function listarOrdenesTrabajo(estado?: EstadoOt) {
+function patronParcial(texto: string): string {
+  return `%${texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
+}
+
+/**
+ * Lista las órdenes de trabajo aplicando los filtros que vengan.
+ *
+ * Todo se resuelve en la consulta, nunca en el navegador: la pantalla recibe
+ * solo las filas que va a mostrar (regla de tablas de
+ * .claude/skills/shadcn-conventions/SKILL.md).
+ *
+ * Los filtros se combinan con AND entre sí — poner una fecha no borra el
+ * estado ni la búsqueda. Dentro de la búsqueda, en cambio, los tres campos van
+ * con OR: basta con que coincida uno.
+ */
+export async function listarOrdenesTrabajo(filtros: FiltrosOt = {}) {
+  const { estado, busqueda, desde, hasta } = filtros;
+  const patron = busqueda ? patronParcial(busqueda) : null;
+
+  const condiciones = [
+    estado ? eq(ordenTrabajo.estado, estado) : undefined,
+    patron
+      ? or(
+          ilike(ordenTrabajo.codigo_ot, patron),
+          ilike(ordenTrabajo.cliente, patron),
+          ilike(ordenTrabajo.asunto, patron),
+        )
+      : undefined,
+    // `fecha_creacion` es `timestamp` sin zona guardado en UTC (ver
+    // db/index.ts), así que los límites se calculan con la zona del negocio en
+    // lib/fecha.ts en vez de comparar contra el texto "2026-09-19" pelado, que
+    // cortaría por las 00:00 UTC — cinco horas antes de que empiece el día en
+    // Lima.
+    desde ? gte(ordenTrabajo.fecha_creacion, inicioDelDia(desde)) : undefined,
+    // `<` contra el inicio del día siguiente, no `<=` contra el inicio de
+    // `hasta`: "hasta el 19" incluye todo el 19, no solo su medianoche.
+    hasta
+      ? lt(ordenTrabajo.fecha_creacion, inicioDelDiaSiguiente(hasta))
+      : undefined,
+  ];
+
   return db
     .select(columnasListado)
     .from(ordenTrabajo)
-    .where(estado ? eq(ordenTrabajo.estado, estado) : undefined)
+    // `and()` ignora los `undefined`, y devuelve `undefined` si no queda
+    // ninguna condición — que es exactamente "sin WHERE".
+    .where(and(...condiciones))
     .orderBy(desc(ordenTrabajo.fecha_creacion), desc(ordenTrabajo.createdAt));
 }
 

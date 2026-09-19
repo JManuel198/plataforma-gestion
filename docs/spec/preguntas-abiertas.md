@@ -176,10 +176,12 @@ tener que reintroducir un estado comercial aparte. Se descartaron
 `Activado`, `En espera` y `Rechazado` de Servicio por redundar con
 `Pendiente`/`Pausada`/`Cancelada` de OT.
 **Si se confirma distinto:** cambiar `ESTADOS_OT` en
-`db/schema/orden-trabajo.ts` y generar una nueva migración — si además se
-elimina algún valor ya usado por una fila existente, esa migración necesita
-primero reasignar esas filas a un estado válido (Postgres no permite borrar
-un valor de un enum con filas que lo usan).
+`modules/ordenes-trabajo/constantes.ts` (fuente de verdad única desde
+2026-09-19; `db/schema/orden-trabajo.ts` la importa de ahí para construir el
+`pgEnum`, ya no declara su propia lista) y generar una nueva migración — si
+además se elimina algún valor ya usado por una fila existente, esa migración
+necesita primero reasignar esas filas a un estado válido (Postgres no permite
+borrar un valor de un enum con filas que lo usan).
 
 ### 13. ¿`precio`/`moneda` de la OT fusionada siguen siendo obligatorios?
 El cliente pidió la fusión pero no habló explícitamente de si el precio se

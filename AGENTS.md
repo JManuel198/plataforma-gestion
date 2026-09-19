@@ -128,3 +128,12 @@ trabaje en este código.
   pantalla todavía y el caso puede ser distinto (Close no es un link).
   Verificar en consola la primera vez que se use Dialog en una pantalla
   real, antes de asumir que está bien o que hay que corregirlo.
+- db/schema/ importa listas compartidas (ESTADOS_OT, MONEDAS) desde
+  modules/ordenes-trabajo/constantes.ts: ese archivo es la fuente de
+  verdad única de ambas y db/schema/orden-trabajo.ts solo las consume
+  para construir sus pgEnum. La dirección va de la capa de datos hacia
+  un módulo de negocio, al revés de lo habitual, y funciona bien con un
+  solo módulo. Si un segundo módulo necesita definir su propio enum
+  compartido con el esquema, mover estas listas a core/ — neutral para
+  ambos lados — en vez de que db/schema/ termine importando de varios
+  módulos de negocio.

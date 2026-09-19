@@ -32,3 +32,44 @@ export const ZONA_HORARIA = "America/Lima";
 export function formatearFecha(fecha: Date, formato = "DD/MM/YYYY"): string {
   return dayjs(fecha).tz(ZONA_HORARIA).format(formato);
 }
+
+/**
+ * Hoy, en la zona del negocio, con el formato que espera un
+ * `<input type="date">` (`YYYY-MM-DD`).
+ *
+ * Se calcula en el servidor y viaja como prop al formulario: si lo calculara
+ * el navegador, un usuario con el reloj en otra zona vería un día distinto al
+ * que la base de datos va a escribir con `DEFAULT now()`, y además habría
+ * desajuste de hidratación (el HTML del servidor y el del cliente no
+ * coincidirían).
+ */
+export function hoyIso(): string {
+  return dayjs().tz(ZONA_HORARIA).format("YYYY-MM-DD");
+}
+
+/**
+ * El instante en que empieza ese día en la zona del negocio.
+ *
+ * Existe para los filtros por fecha del listado. La columna `fecha_creacion`
+ * es `timestamp` sin zona y se guarda en UTC (ver db/index.ts), así que
+ * comparar contra el texto crudo "2026-09-19" filtraría desde las 00:00 UTC —
+ * cinco horas antes de que empiece el día en Lima, y por tanto arrastrando OT
+ * de la tarde del día anterior.
+ *
+ * `fechaIso` tiene que venir ya validada como fecha real (`z.iso.date()` en
+ * schema.ts); aquí no se vuelve a comprobar.
+ */
+export function inicioDelDia(fechaIso: string): Date {
+  return dayjs.tz(fechaIso, ZONA_HORARIA).startOf("day").toDate();
+}
+
+/**
+ * El instante en que empieza el día SIGUIENTE, en la zona del negocio.
+ *
+ * Es lo que usa el filtro `hasta`, con un `<` en vez de un `<=`: el usuario
+ * espera que "hasta el 19" incluya todo el 19, y un `<=` contra el inicio del
+ * 19 dejaría fuera cualquier OT creada después de medianoche.
+ */
+export function inicioDelDiaSiguiente(fechaIso: string): Date {
+  return dayjs.tz(fechaIso, ZONA_HORARIA).startOf("day").add(1, "day").toDate();
+}

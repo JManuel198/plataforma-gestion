@@ -1,7 +1,5 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -10,7 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ESTADOS_OT, type EstadoOt } from "../constantes";
+import { ESTADOS_OT } from "../constantes";
+import type { FiltrosOt } from "../filtros";
+import { useFiltros } from "./use-filtros";
 
 const TODOS = "todos";
 
@@ -19,10 +19,13 @@ const TODOS = "todos";
  * filtrado ocurre en la consulta del servidor — este componente solo navega.
  * Es el patrón de filtro por URL de referencia del proyecto (ver
  * .claude/skills/shadcn-conventions/SKILL.md).
+ *
+ * Recibe los filtros completos, no solo el suyo, porque la URL que construye
+ * tiene que conservar la búsqueda y las fechas: los tres filtros se aplican
+ * juntos.
  */
-export function FiltroEstado({ estado }: { estado?: EstadoOt }) {
-  const router = useRouter();
-  const [navegando, iniciarNavegacion] = useTransition();
+export function FiltroEstado({ filtros }: { filtros: FiltrosOt }) {
+  const { navegar, navegando } = useFiltros(filtros);
 
   const opciones = [
     { label: "Todos los estados", value: TODOS },
@@ -30,19 +33,21 @@ export function FiltroEstado({ estado }: { estado?: EstadoOt }) {
   ];
 
   function filtrarPor(valor: string | null) {
-    const destino =
-      valor && valor !== TODOS
-        ? `/ordenes-trabajo?estado=${encodeURIComponent(valor)}`
-        : "/ordenes-trabajo";
-
-    iniciarNavegacion(() => router.push(destino));
+    // `TODOS` no es un estado: es la ausencia de filtro, y por eso sale de la
+    // URL en vez de escribirse en ella.
+    navegar({
+      estado:
+        valor && valor !== TODOS
+          ? ESTADOS_OT.find((estado) => estado === valor)
+          : undefined,
+    });
   }
 
   return (
     <div className="flex items-center gap-2">
       <Label htmlFor="filtro-estado">Estado</Label>
       <Select
-        value={estado ?? TODOS}
+        value={filtros.estado ?? TODOS}
         onValueChange={filtrarPor}
         items={opciones}
         disabled={navegando}

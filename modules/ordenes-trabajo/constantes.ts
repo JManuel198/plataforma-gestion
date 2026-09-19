@@ -3,11 +3,15 @@
 // puede viajar al cliente sin arrastrar Drizzle ni la conexión a la base de
 // datos con él.
 //
-// Los estados y las monedas son los mismos que definen los enums de PostgreSQL
-// en db/schema/orden-trabajo.ts. modules/ordenes-trabajo/schema.ts tiene un
-// chequeo de compilación, pero cubre solo una dirección: detecta un valor
-// inventado aquí, no uno que falte respecto al enum. Lee el comentario de
-// `_estadoCoincide` antes de confiarte.
+// ESTADOS_OT y MONEDAS son la fuente de verdad única de los enums `ot_estado`
+// y `moneda`: db/schema/orden-trabajo.ts importa los dos arrays de aquí para
+// construir sus `pgEnum`, así que no hay segundas listas que puedan
+// desincronizarse. Por eso modules/ordenes-trabajo/schema.ts ya no tiene los
+// chequeos de compilación que las ataban (ver el comentario que dejaron).
+//
+// Si tocas cualquiera de las dos listas, estás cambiando el enum de PostgreSQL:
+// hace falta una migración (npx drizzle-kit generate), y quitar un valor que
+// alguna fila ya use exige reasignar esas filas primero.
 
 /**
  * Los seis estados de la OT tras la fusión con Servicio: los cinco de

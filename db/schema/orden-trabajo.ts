@@ -1,11 +1,16 @@
 import { pgEnum, pgTable, text, integer, bigint, timestamp, index } from "drizzle-orm/pg-core";
+import { ESTADOS_OT, MONEDAS } from "@/modules/ordenes-trabajo/constantes";
 
 // Fusión Servicio + OT: el cliente confirmó que son la misma entidad para él
 // y que `orden_trabajo` absorbe todo (ver docs/spec/preguntas-abiertas.md).
 // La tabla `servicio` y su enum `servicio_estado` desaparecen; `moneda` se
 // muda aquí porque `orden_trabajo.precio` es ahora quien la necesita.
-export const MONEDAS = ["PEN", "USD"] as const;
-
+//
+// Igual que `ESTADOS_OT` (abajo), la lista NO vive aquí:
+// `modules/ordenes-trabajo/constantes.ts` es la fuente de verdad única, porque
+// el formulario la necesita en el cliente y ese archivo no arrastra Drizzle.
+// Aquí solo se importa para construir el `pgEnum` — nunca declares un segundo
+// array literal con estos mismos valores.
 export const monedaEnum = pgEnum("moneda", MONEDAS);
 
 // Seis estados: los cinco de ejecución en campo que ya tenía la OT, más
@@ -14,15 +19,11 @@ export const monedaEnum = pgEnum("moneda", MONEDAS);
 // propuesta, pendiente de confirmar con el cliente — supuesto nuevo en
 // docs/spec/preguntas-abiertas.md. Se guardan con la misma grafía que ve el
 // usuario.
-export const ESTADOS_OT = [
-  "Pendiente",
-  "En ejecución",
-  "Pausada",
-  "Finalizada",
-  "Facturado",
-  "Cancelada",
-] as const;
-
+//
+// La lista en sí YA NO vive aquí: `modules/ordenes-trabajo/constantes.ts` es
+// la fuente de verdad única (la necesita el formulario en el cliente, sin
+// arrastrar Drizzle). Aquí solo se importa para construir el `pgEnum` —
+// nunca declares un segundo array literal con estos mismos valores.
 export const otEstadoEnum = pgEnum("ot_estado", ESTADOS_OT);
 
 export const ordenTrabajo = pgTable(

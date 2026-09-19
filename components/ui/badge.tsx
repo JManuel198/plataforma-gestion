@@ -17,7 +17,8 @@ const badgeVariants = cva(
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         // Añadidas a la variante original de shadcn/ui para que los seis
         // estados de una OT se distingan entre sí (ver `variantePorEstado`
-        // en modules/ordenes-trabajo/components/tabla-ordenes-trabajo.tsx).
+        // en modules/ordenes-trabajo/components/selector-estado-fila.tsx,
+        // donde el Badge se pinta dentro del Select de la celda de estado).
         // `dashed` distingue por trazo, no por relleno, porque la rampa de
         // grises del tema ya no daba más pasos legibles; `success` sigue
         // exactamente el mismo patrón que `destructive` (tinte al 10/20%

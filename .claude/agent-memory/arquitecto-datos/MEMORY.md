@@ -2,3 +2,4 @@
 - [Generar no es aplicar](feedback_generar_no_aplicar.md) — el usuario separa siempre "generar migración" de "aplicarla", incluso si el agente ve el cambio como seguro
 - [Correlativo de OT por año](ot_correlativo.md) — por qué tabla contadora con upsert atómico y no MAX+1 ni sequence; supuestos 5-9 de la Fase 3
 - [Fusión Servicio + OT](fusion_servicio_ot.md) — servicio desapareció (2026-09-19); se partió en 2 migraciones por bug CASCADE/DROP CONSTRAINT; truco de enum compartido para generar en pasos; receta pexpect sin TTY
+- [ESTADOS_OT fuente única](estados_ot_fuente_unica.md) — (2026-09-19) db/schema importa el array desde modules/ordenes-trabajo/constantes.ts; MONEDAS queda con el mismo problema, sin tocar a propósito

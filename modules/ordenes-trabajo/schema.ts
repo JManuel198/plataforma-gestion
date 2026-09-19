@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { OrdenTrabajo } from "@/db/schema/orden-trabajo";
 import { AVISOS, ESTADOS_OT, MONEDAS } from "./constantes";
 import { aCentimos, aMontoDecimal } from "./dinero";
 
@@ -81,22 +80,24 @@ export const estadoOtSchema = z.enum(ESTADOS_OT, {
   error: "Selecciona uno de los estados válidos.",
 });
 
-// Chequeo en tiempo de compilación, con un alcance concreto — cubre una sola
-// dirección, aunque a primera vista parezcan dos:
+// Aquí hubo dos chequeos en tiempo de compilación, `_monedaCoincide` y
+// `_estadoCoincide`, que ataban estos enums de Zod a los de PostgreSQL. Los
+// dos se eliminaron, y por el mismo motivo: ya no hay nada que atar.
 //
-// - SÍ detecta un estado o una moneda de más aquí: si constantes.ts inventa un
-//   valor que el enum de PostgreSQL no tiene, el build falla.
-// - NO detecta lo contrario: si un enum de PostgreSQL gana un valor y
-//   constantes.ts no, esto compila en silencio, y ese valor queda
-//   inseleccionable en el formulario e inválido al validar.
+// Existían porque `MONEDAS` y `ESTADOS_OT` estaban escritos como array literal
+// en dos archivos a la vez (aquí vía constantes.ts, y otra vez en
+// db/schema/orden-trabajo.ts), así que podían desincronizarse. Y ni siquiera
+// cubrían el caso peligroso: detectaban un valor inventado de más en
+// constantes.ts, pero no uno que faltara respecto al enum de la base.
 //
-// O sea: protege contra inventar valores en el código, no contra olvidarse de
-// uno que ya existe en la base. Al agregar un valor a un enum, agrégalo aquí a
-// mano — el compilador no te va a avisar.
-const _monedaCoincide: z.ZodType<OrdenTrabajo["moneda"]> = monedaSchema;
-const _estadoCoincide: z.ZodType<OrdenTrabajo["estado"]> = estadoOtSchema;
-void _monedaCoincide;
-void _estadoCoincide;
+// Desde que db/schema/orden-trabajo.ts importa las DOS listas de
+// constantes.ts en vez de declararlas, hay una sola fuente de cada una: si el
+// array cambia, el `pgEnum` cambia con él automáticamente y no existe forma de
+// que diverjan. Un chequeo de tipos sería redundante con el propio import.
+//
+// Si algún día alguien vuelve a escribir un array literal de monedas o de
+// estados en db/schema/, ese chequeo hace falta de nuevo — pero lo correcto
+// entonces es borrar el literal, no reponer el chequeo.
 
 /**
  * Campos que el usuario llena a mano.
@@ -133,7 +134,49 @@ export const otEditarSchema = otCrearSchema.extend({
   id: z.string().trim().min(1, "Falta el identificador de la orden de trabajo."),
 });
 
+/**
+ * Cambio de estado desde el listado. Es un esquema aparte del de edición y
+ * más pequeño a propósito: la acción que lo usa escribe una sola columna, así
+ * que nada más puede viajar con él aunque alguien invoque la acción por POST
+ * directo. `estado` sale del mismo `estadoOtSchema` que el formulario, y no
+ * hay ninguna otra lista de estados en el proyecto que mantener sincronizada:
+ * `ESTADOS_OT` vive solo en constantes.ts (que sigue sin importar nada, para
+ * poder viajar al cliente sin arrastrar Drizzle) y db/schema/orden-trabajo.ts
+ * importa ese mismo array para construir el `pgEnum`.
+ */
+export const otCambioEstadoSchema = z.object({
+  id: z.string().trim().min(1, "Falta el identificador de la orden de trabajo."),
+  estado: estadoOtSchema,
+});
+
+// --- Filtros del listado -------------------------------------------------
+//
+// Los tres se leen de `searchParams`, o sea que son input del usuario como
+// cualquier otro. Todos siguen el mismo patrón `.optional().catch(undefined)`:
+// un parámetro inventado, repetido (llega como arreglo) o vacío no revienta la
+// pantalla, simplemente se ignora y ese filtro no se aplica.
+
 export const filtroEstadoSchema = estadoOtSchema.optional().catch(undefined);
+
+/**
+ * Texto de búsqueda. El tope de 200 no es una regla de negocio: evita mandar a
+ * la base de datos un `ILIKE '%...%'` con una cadena enorme desde la URL.
+ */
+export const filtroBusquedaSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .catch(undefined);
+
+/**
+ * `desde` / `hasta` del filtro por fecha, en el `YYYY-MM-DD` que produce un
+ * `<input type="date">`. `z.iso.date()` comprueba que sea una fecha real, no
+ * solo que tenga la forma: `inicioDelDia()` (lib/fecha.ts) da por hecho que lo
+ * que recibe ya pasó por aquí.
+ */
+export const filtroFechaSchema = z.iso.date().optional().catch(undefined);
 
 // `?aviso=` es input del cliente como cualquier otro: si viene inventado o
 // repetido se ignora, no se muestra un toast con lo que diga la URL.

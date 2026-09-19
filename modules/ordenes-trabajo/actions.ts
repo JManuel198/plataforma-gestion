@@ -9,9 +9,11 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
 import { anioVigente, formatearCodigoOt } from "./codigo";
+import type { EstadoOt } from "./constantes";
 import { reservarCorrelativo } from "./correlativo";
 import type { EstadoFormulario } from "./estado-formulario";
-import { otCrearSchema, otEditarSchema } from "./schema";
+import type { ResultadoAccion } from "./resultado-accion";
+import { otCambioEstadoSchema, otCrearSchema, otEditarSchema } from "./schema";
 
 /**
  * Una Server Action se puede invocar con un POST directo, sin pasar por la
@@ -140,4 +142,57 @@ export async function editarOrdenTrabajo(
   revalidatePath("/ordenes-trabajo");
   revalidatePath(`/ordenes-trabajo/${id}/editar`);
   redirect("/ordenes-trabajo?aviso=editada");
+}
+
+/**
+ * Cambia SOLO el estado de una OT. Es la acción que dispara el Select de la
+ * celda de estado del listado.
+ *
+ * Deliberadamente no reutiliza `editarOrdenTrabajo`: esa recibe el formulario
+ * entero y escribe las diez columnas, así que invocarla desde el listado
+ * significaría mandar de vuelta valores que esa pantalla no muestra ni tiene
+ * — precio, cliente, comentarios — y cualquier desajuste los sobrescribiría.
+ * Aquí el UPDATE toca `estado` y nada más (`updated_at` se actualiza sola por
+ * el `$onUpdate` del esquema).
+ *
+ * No hay control de transiciones válidas a propósito: el supuesto 11 de
+ * docs/spec/preguntas-abiertas.md dice que hoy se permite cualquier cambio de
+ * estado, en cualquier dirección. Si el negocio confirma lo contrario, la
+ * comprobación va aquí dentro — no solo limitando las opciones del Select,
+ * que es cliente y se puede saltar con un POST directo.
+ *
+ * Recibe argumentos sueltos, no un `FormData`: no nace de un `<form>`.
+ */
+export async function actualizarEstadoOrdenTrabajo(
+  id: string,
+  nuevoEstado: EstadoOt,
+): Promise<ResultadoAccion> {
+  await exigirSesion();
+
+  // El tipo `EstadoOt` del parámetro no protege nada en runtime — una Server
+  // Action es un endpoint y puede llegar cualquier cosa. La garantía es este
+  // parse, contra el mismo enum de Zod que usa el formulario.
+  const resultado = otCambioEstadoSchema.safeParse({ id, estado: nuevoEstado });
+
+  if (!resultado.success) {
+    return { ok: false, mensaje: "Ese estado no es válido." };
+  }
+
+  const actualizadas = await db
+    .update(ordenTrabajo)
+    .set({ estado: resultado.data.estado })
+    .where(eq(ordenTrabajo.id, resultado.data.id))
+    .returning({ id: ordenTrabajo.id });
+
+  if (actualizadas.length === 0) {
+    return { ok: false, mensaje: "Esa orden de trabajo ya no existe." };
+  }
+
+  // Sin `redirect()`: el usuario se queda en el listado. Se invalida el cache
+  // del servidor y el componente pide un `router.refresh()` para traer la fila
+  // ya actualizada sin recargar la página.
+  revalidatePath("/ordenes-trabajo");
+  revalidatePath(`/ordenes-trabajo/${resultado.data.id}/editar`);
+
+  return { ok: true };
 }

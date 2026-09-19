@@ -15,8 +15,9 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   primitivo, instálalo con `npx shadcn@latest add <componente>` — nunca lo
   construyas a mano, y nunca escribas CSS custom sin justificarlo en el propio
   archivo (regla 5 de AGENTS.md).
-- Instalados hoy: `badge`, `button`, `card`, `dialog`, `input`, `label`,
-  `select`, `sonner`, `table`, `textarea`. Cualquier otro hay que agregarlo.
+- Instalados hoy: `alert-dialog`, `badge`, `button`, `card`, `dialog`,
+  `input`, `label`, `select`, `sonner`, `table`, `textarea`. Cualquier otro
+  hay que agregarlo.
 - **No existe un primitivo `Form`/`FormField`/`Field` en este proyecto**, y no
   hace falta: el patrón de formulario es el de abajo, con `<form action={...}>`
   nativo. No lo instales para "seguir la convención de shadcn" — la convención
@@ -80,16 +81,21 @@ servidor.** La referencia a copiar es
   `modules/<entidad>/dinero.ts`, nunca repartida entre componentes, y nunca
   multiplicando por 100 en coma flotante. Para mostrar, se divide entre 100 de
   vuelta.
-- **Campos automáticos** (fecha de creación, correlativos) no aparecen en el
-  formulario ni en el schema de creación: los pone la base de datos o el
-  backend.
+- **Campos automáticos** (fecha de creación, correlativos) no se piden nunca:
+  los pone la base de datos o el backend, y no están en el schema de creación.
+  Pueden *mostrarse* en el formulario de creación si el usuario espera verlos,
+  siempre sin posibilidad de escribirlos: el correlativo, como texto
+  deshabilitado y sin `name` (no hay número que enseñar hasta guardar); la
+  fecha, como `<input type="date">` con `readOnly` — el valor que llegue al
+  servidor se descarta igual al validar. Ver
+  `formulario-orden-trabajo.tsx`, bloque "Campos automáticos".
 
 ## Tablas y listas
 
 - `components/ui/table` para cualquier listado — nunca un grid armado con
   `<div>`.
-- El filtro (por estado, por cliente) se resuelve en la **consulta del
-  servidor**, no filtrando en el cliente un arreglo ya traído completo. El
+- El filtro (por estado, por texto, por fecha) se resuelve en la **consulta
+  del servidor**, no filtrando en el cliente un arreglo ya traído completo. El
   filtro vive en el `searchParams` de la URL, para que sea compartible y
   sobreviva un refresh. Ver
   `modules/ordenes-trabajo/components/filtro-estado.tsx` con
@@ -97,6 +103,33 @@ servidor.** La referencia a copiar es
 - Todo valor que venga de `searchParams` se valida con Zod antes de usarse. El
   patrón es `.optional().catch(undefined)`: un parámetro inventado, repetido o
   ausente no debe reventar la pantalla, solo ignorarse.
+- **Varios filtros a la vez**: se combinan, no se pisan. Cada control recibe
+  los filtros completos y navega con `{ ...filtros, loQueCambia }`; la URL la
+  construye una sola función (`urlListado` en `modules/<entidad>/filtros.ts`) y
+  la navegación compartida vive en un hook (`use-filtros.ts`). En la consulta
+  se unen con `and(...)`, que ignora los `undefined`. Ojo: el hook tiene que
+  llamarse `useAlgo` aunque el resto del módulo esté en español —
+  `react-hooks/rules-of-hooks` reconoce los hooks por ese prefijo.
+- **Búsqueda de texto**: `ILIKE '%…%'` en el servidor, con `or(...)` entre las
+  columnas buscables. Escapa `\`, `%` y `_` del texto del usuario antes de
+  armar el patrón (`patronParcial` en `queries.ts`), o un `%` escrito en el
+  buscador actúa como comodín. El input lleva su propio estado local y navega
+  con `router.replace` tras una pausa de tecleo, para no llenar el historial.
+- **Filtros por fecha**: los dos extremos son inclusivos para el usuario. Se
+  traducen a `>=` contra `inicioDelDia(desde)` y `<` contra
+  `inicioDelDiaSiguiente(hasta)` (`lib/fecha.ts`), nunca comparando contra el
+  texto `YYYY-MM-DD` pelado: las columnas son `timestamp` en UTC y el corte
+  tiene que hacerse en la zona del negocio.
+- **Editar un campo desde la propia fila** (el Select de estado en
+  `selector-estado-fila.tsx`): Server Action **propia y mínima**, que escribe
+  solo esa columna — nunca la acción de guardar el formulario entero, que
+  sobrescribiría campos que el listado no muestra. La acción recibe argumentos
+  sueltos en vez de `FormData`, devuelve un `ResultadoAccion`
+  (`{ ok: true } | { ok: false, mensaje }`) en vez de un `EstadoFormulario`, y
+  el componente pinta el cambio con `useOptimistic` + `useTransition`, avisa
+  con un toast y llama a `router.refresh()` para traer la fila real sin
+  recargar la pantalla. Si el valor elegido exige confirmación, nada de eso
+  arranca hasta que el usuario acepte el `alert-dialog` (ver más abajo).
 - Lista vacía: un mensaje simple en un recuadro punteado, como el de
   `tabla-ordenes-trabajo.tsx` ("No hay órdenes de trabajo que mostrar."), sin
   skeletons ni
@@ -108,10 +141,22 @@ servidor.** La referencia a copiar es
 - "Eliminar" casi nunca existe de verdad en este proyecto — es desactivar o
   mover a un estado final (`Rechazado`, `Finalizado`). No se borran filas que
   otra tabla pueda referenciar.
-- Para confirmar antes de desactivar, usa `alert-dialog` — **todavía no está
-  instalado**; agrégalo con `npx shadcn@latest add alert-dialog` la primera vez
-  que haga falta. Nunca el `confirm()` nativo del navegador, que además bloquea
-  la página.
+- Para confirmar antes de una acción de cierre, usa `alert-dialog` (ya
+  instalado). Nunca el `confirm()` nativo del navegador, que además bloquea la
+  página. La referencia es
+  `modules/ordenes-trabajo/components/selector-estado-fila.tsx`.
+- **Qué se confirma y qué no**: solo lo que cierra un ciclo o significa algo
+  fuera del sistema (`Facturado`, `Cancelada`). Los pasos reversibles del
+  trabajo en curso se aplican directos — confirmar todo entrena al usuario a
+  aceptar sin leer y deja el aviso sin valor donde sí importa.
+- **Confirmar sobre un control ya cambiado** (un Select, un Switch): el control
+  va **controlado** por el valor confirmado, y lo elegido se guarda aparte
+  hasta que el usuario confirme. En Base UI eso alcanza — `useControlled`
+  ignora el setter interno mientras venga un `value` de fuera — y además el
+  segundo argumento de `onValueChange` trae un `cancel()` que rechaza el
+  cambio. Cancelar no tiene entonces nada que revertir. Ojo: `cancel()` sobre
+  el evento del *valor* no impide que el desplegable se cierre; son dos objetos
+  de evento distintos.
 
 ## Fechas
 

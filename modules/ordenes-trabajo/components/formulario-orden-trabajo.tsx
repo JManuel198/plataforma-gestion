@@ -33,11 +33,30 @@ type Props = {
     estadoPrevio: EstadoFormulario,
     formData: FormData,
   ) => Promise<EstadoFormulario>;
-  /** OT existente cuando se está editando; ausente al crear. */
-  orden?: OrdenTrabajo;
   /** A dónde vuelve el botón Cancelar. */
   urlCancelar: string;
-};
+} & (
+  | {
+      /** OT existente: se está editando. */
+      orden: OrdenTrabajo;
+      fechaHoy?: never;
+    }
+  | {
+      orden?: undefined;
+      /**
+       * Hoy en `YYYY-MM-DD`, calculado en el servidor con `hoyIso()`
+       * (lib/fecha.ts) y pasado como prop. Solo existe al crear, y por eso el
+       * tipo lo exige justo ahí y lo prohíbe al editar.
+       *
+       * No se calcula en este componente aunque sea trivial: en el navegador
+       * saldría del reloj del usuario, que puede estar en otra zona que la del
+       * negocio — vería un día distinto del que la base de datos va a escribir
+       * — y además el HTML del servidor y el del cliente no coincidirían al
+       * hidratar.
+       */
+      fechaHoy: string;
+    }
+);
 
 function MensajeError({ errores }: { errores?: string[] }) {
   if (!errores?.length) return null;
@@ -50,12 +69,17 @@ function MensajeError({ errores }: { errores?: string[] }) {
 }
 
 /**
- * Solo los campos manuales del documento. `codigo_ot` y `fecha_creacion` no
- * aparecen ni como campo oculto: los pone el servidor.
+ * Solo los campos manuales del documento: `codigo_ot` y `fecha_creacion` los
+ * sigue poniendo el servidor, y no hay forma de escribirlos desde aquí.
+ *
+ * Al crear sí se muestran los dos, pero como información, no como campos que
+ * el usuario llene (ver el bloque "Campos automáticos" más abajo). Al editar
+ * no aparecen en absoluto, igual que antes.
  */
 export function FormularioOrdenTrabajo({
   guardarAction,
   orden,
+  fechaHoy,
   urlCancelar,
 }: Props) {
   const [estado, accion, enviando] = useActionState(
@@ -78,6 +102,50 @@ export function FormularioOrdenTrabajo({
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
+        {/* Campos automáticos — solo al crear.
+            El número de OT y la fecha no son decisiones del usuario: el
+            correlativo lo reserva el servidor al guardar (correlativo.ts) y la
+            fecha la escribe la base de datos con su `DEFAULT now()`. Se
+            enseñan de todos modos porque quien llena el papel espera verlos en
+            el formulario; lo que no pueden es ser editables. */}
+        {orden ? null : (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="codigo_ot">Orden de trabajo (OT)</Label>
+              {/* Deshabilitado y sin `name`: no viaja en el envío, y no hay
+                  ningún número que enseñar todavía — el correlativo se reserva
+                  dentro de la transacción del INSERT, así que cualquier valor
+                  que se mostrara aquí antes de guardar sería una adivinanza
+                  que otra OT creada mientras tanto dejaría falsa. */}
+              <Input
+                id="codigo_ot"
+                placeholder="Se genera automáticamente al guardar"
+                disabled
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fecha_creacion">Fecha de creación</Label>
+              {/* `readOnly`, no `disabled`: el atributo impide escribir encima
+                  pero el campo se envía con el formulario, que es lo pedido.
+                  El valor que de verdad se guarda lo sigue poniendo la base de
+                  datos (`DEFAULT now()`), y `otCrearSchema` ni siquiera
+                  declara `fecha_creacion`, así que lo que llegue aquí se
+                  descarta al validar — el campo es fiel a lo que se va a
+                  escribir porque `hoyIso()` usa la misma zona horaria que
+                  `now()` en la base, no porque el servidor le haga caso. */}
+              <Input
+                id="fecha_creacion"
+                name="fecha_creacion"
+                type="date"
+                defaultValue={fechaHoy}
+                readOnly
+                aria-readonly
+              />
+            </div>
+          </>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="codigo_cotizacion">Cotización (COT.)</Label>
           <Input
