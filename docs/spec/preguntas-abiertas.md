@@ -200,3 +200,40 @@ se crea antes de cotizar): quitar `.notNull()` de ambas columnas en
 `db/schema/orden-trabajo.ts` y generar una nueva migración — segura de
 aplicar aunque haya filas, porque relajar `NOT NULL` nunca rompe datos
 existentes.
+
+## Personal (módulo nuevo, 2026-09-20)
+
+No hay nada sobre Personal en la especificación: quedó diferido en la
+sección 5 de `alcance-v2-servicios-ot.md`. El módulo se construyó igualmente
+a pedido del cliente, así que estos supuestos se tomaron para poder avanzar y
+**ninguno está confirmado**. Cada uno dice dónde se cambia.
+
+1. **Formato del DNI: ocho dígitos exactos.** Es el DNI peruano, pero no se
+   preguntó si hay o habrá personal extranjero — un carné de extranjería tiene
+   nueve dígitos y un pasaporte es alfanumérico. Si los hay, la fila no se
+   puede registrar hoy. Se cambia en `dniSchema`
+   (`modules/personal/schema.ts`), y el `UNIQUE` de la columna no estorba: ya
+   es `text`.
+2. **El DNI es único y no cambia de dueño.** El `UNIQUE` impide reutilizar un
+   DNI aunque la persona esté dada de baja. Es lo correcto si el DNI
+   identifica a la persona; sería un problema si el negocio espera "borrar" a
+   alguien y volver a darlo de alta desde cero. Hoy la salida es reactivar la
+   ficha existente, no crear otra.
+3. **El cargo es texto libre.** Sin catálogo ni lista cerrada, así que "Técnico
+   electricista" y "Tecnico Electricista" son dos cargos distintos para
+   cualquier futuro agrupado o informe. Si el cliente quiere filtrar o contar
+   por cargo, esto necesita una tabla de catálogo (iría en `core/`, como el
+   resto de catálogos maestros según AGENTS.md).
+4. **No hay edad mínima validada.** El esquema solo rechaza fechas futuras y
+   de hace más de 120 años, que son topes de cordura, no reglas laborales. Si
+   el negocio exige una edad mínima para dar de alta a alguien, va en
+   `fechaNacimientoSchema`.
+5. **Una persona de Personal no es un usuario del sistema.** No hay relación
+   con la tabla `user` de Better Auth: registrar a alguien aquí no le da
+   acceso. Es deliberado —son conceptos distintos— pero conviene confirmarlo
+   antes de que alguien lo dé por hecho al asignar trabajo.
+6. **`orden_trabajo.responsable` sigue siendo texto libre.** No se conectó a
+   esta tabla en este sprint. Mientras siga así, el nombre escrito en una OT
+   y la ficha de esa persona pueden no coincidir, y dar de baja a alguien no
+   afecta a sus OT. Conectarlos es una migración aparte y hay que decidir
+   antes qué pasa con las OT que hoy tienen un nombre que no casa con nadie.

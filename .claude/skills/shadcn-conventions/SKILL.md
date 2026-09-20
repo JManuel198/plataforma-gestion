@@ -16,8 +16,12 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   construyas a mano, y nunca escribas CSS custom sin justificarlo en el propio
   archivo (regla 5 de AGENTS.md).
 - Instalados hoy: `alert-dialog`, `badge`, `button`, `card`, `dialog`,
-  `input`, `label`, `select`, `sonner`, `table`, `textarea`. Cualquier otro
-  hay que agregarlo.
+  `input`, `label`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`,
+  `sonner`, `table`, `textarea`, `tooltip`. Cualquier otro hay que agregarlo.
+  Los cinco últimos en llegar (`sidebar` y sus dependencias `separator`,
+  `sheet`, `skeleton`, `tooltip`, más el hook `hooks/use-mobile.ts`) entraron
+  de una sola vez con `npx shadcn@latest add sidebar`, para la barra lateral
+  del layout protegido.
 - **No existe un primitivo `Form`/`FormField`/`Field` en este proyecto**, y no
   hace falta: el patrón de formulario es el de abajo, con `<form action={...}>`
   nativo. No lo instales para "seguir la convención de shadcn" — la convención
@@ -40,8 +44,77 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
     con Enter que se espera de él.
     El botón de envío de un formulario sí es un botón de verdad y se queda
     como `<Button type="submit">`.
+    **La regla de verdad, precisada dos veces ya**: no es "nunca `render`",
+    ni "nunca en componentes con `useButton`". Es que **el elemento que se
+    renderiza al final tiene que coincidir con lo que declara la prop
+    `nativeButton`**, que vale `true` por defecto. En `useButton.js:183` la
+    rama es `isNativeButton ? { type: 'button' } : { role: 'button', ... }`,
+    y en modo desarrollo avisa por consola cuando no coinciden. De ahí salen
+    los tres casos vistos:
+    - `Button` + `render={<Link/>}` → sale un `<a>` con el flag en `true`:
+      **mal**, el `role` pisa la semántica del enlace. Este es el bug que se
+      corrigió en los Links de navegación.
+    - `SidebarMenuButton` + `render={<Link/>}` → ese componente no pasa por
+      `useButton`, solo por `useRender`: **bien**, sale un `<a>` limpio (ver
+      `components/barra-lateral.tsx`, donde además da gratis el tooltip de la
+      barra colapsada).
+    - `Dialog.Close`/`DialogTrigger` + `render={<Button/>}` → sí pasa por
+      `useButton`, pero el `Button` renderiza un `<button>` nativo y el flag
+      es `true`: **bien**, solo añade `type="button"`. Verificado al montar
+      el modal de OT.
+
+    Antes de dar por bueno o por prohibido un `render`, mira qué elemento
+    acaba en el DOM, no qué componente lo envuelve.
   - `Select` acepta `name` y publica un input oculto, así que funciona dentro
     de un `<form>` sin estado controlado.
+
+## Color y tema
+
+- El tema es **verde corporativo sobre neutros**, y vive entero en las
+  variables de `app/globals.css`. **Ningún componente lleva una clase de color
+  suelta** (nada de `bg-green-700`): si hace falta un color nuevo, se agrega un
+  token ahí y se usa por su nombre.
+- El verde de marca es `--primary` (`oklch(0.512 0.115 158.3)`, ≈ `#0F7A4D`),
+  desaturado a propósito para que no compita con los colores que sí significan
+  algo. Se ve en botones primarios, `--ring` (el anillo de foco de todos los
+  campos) y el módulo activo de la barra (`--sidebar-accent` +
+  `--sidebar-accent-foreground`). `--accent` es la versión clara (`#ECFDF5`)
+  para fondos sutiles.
+- **Los colores de estado NO siguen a la marca.** `--success`, `--info` y
+  `--destructive` son la distinción entre los siete estados de una OT y se
+  eligen por legibilidad entre ellos, no por identidad visual. Cambiar el verde
+  de marca no debe tocarlos nunca.
+- Por eso existe **`--chip-neutral`**: la variante `default` del Badge tiraba de
+  `--primary`, y `variantePorEstado` le da esa variante a `En ejecución`, que
+  con el primario en verde chocaba con `Facturado` (`--success`). Ese token vale
+  lo que valía `--primary` antes del tema verde. Si ves `bg-primary` en
+  `badge.tsx`, es una regresión.
+- Todo cambio de color se comprueba contra **WCAG AA** (4.5:1 en texto de
+  cuerpo, 3:1 en texto grande y componentes) **antes** de aplicarlo, en claro y
+  en oscuro. El modo oscuro no reusa el mismo verde: sube a
+  `oklch(0.7 0.13 158.3)` (≈ `#49B77F`) con texto oscuro encima, porque el de
+  marca sobre fondo casi negro no llega a 4.5:1.
+
+## Navegación
+
+- La navegación entre módulos vive en la **barra lateral izquierda**
+  (`components/barra-lateral.tsx`), montada por `app/(protegido)/layout.tsx`.
+  No hay cabecera de navegación: la única cabecera que queda es una franja con
+  el `SidebarTrigger`, que en móvil es lo que abre el cajón.
+- **Agregar un módulo es agregar una entrada al array `MODULOS`** de
+  `barra-lateral.tsx` (`{ href, etiqueta, Icono }`, iconos de `lucide-react`).
+  No se toca el layout. Ese array terminará en `config/clientes/*.json`
+  ("módulos activos") cuando exista el primer archivo de cliente.
+- El módulo activo se marca comparando `usePathname()` con `href`, contando
+  también las rutas hijas (`/ordenes-trabajo/nueva` marca Órdenes de Trabajo).
+- El nombre del usuario y `BotonCerrarSesion` van en el **pie de la barra**
+  (`SidebarFooter`). La sesión se lee en el Server Component del layout y
+  llega a la barra por prop — la barra es cliente solo por `usePathname()`.
+- `hooks/use-mobile.ts` está **modificado respecto al catálogo**: la versión
+  original hace `setState` dentro de un `useEffect` y el lint del proyecto lo
+  rechaza (`react-hooks/set-state-in-effect`, error). Se reescribió con
+  `useSyncExternalStore`. Si se reinstala con `--overwrite`, hay que volver a
+  aplicarlo.
 
 ## Formularios
 
@@ -120,6 +193,22 @@ servidor.** La referencia a copiar es
   `inicioDelDiaSiguiente(hasta)` (`lib/fecha.ts`), nunca comparando contra el
   texto `YYYY-MM-DD` pelado: las columnas son `timestamp` en UTC y el corte
   tiene que hacerse en la zona del negocio.
+- **Crear o editar sin salir del listado (el modal de OT)**: el formulario
+  vive en un `Dialog` sobre la tabla (`dialogo-orden-trabajo.tsx`) y las
+  pantallas propias siguen existiendo. Eso obliga a dos remates de la misma
+  Server Action: el núcleo (sesión, Zod, escritura, `revalidatePath`) devuelve
+  `{ ok: true }` o el error, y encima hay un envoltorio que termina en
+  `redirect()` —para la pantalla— y otro que simplemente devuelve —para el
+  modal. Nunca se duplica la validación: ver `guardarOtNueva` y sus dos
+  remates en `actions.ts`.
+  El modal **no usa `useActionState`** aunque sea el patrón estándar: necesita
+  reaccionar al resultado (cerrar, avisar, refrescar), y leerlo con
+  `useActionState` obligaría a un `useEffect` con `setState`, que el lint
+  rechaza. Usa `useTransition` y maneja el resultado donde se produce, igual
+  que el cambio de estado en línea.
+  Los campos se comparten entre pantalla y modal en un componente sin `<form>`
+  (`campos-orden-trabajo.tsx`): lo único que cambia entre los dos envoltorios
+  es cómo se envía y a dónde se va después.
 - **Editar un campo desde la propia fila** (el Select de estado en
   `selector-estado-fila.tsx`): Server Action **propia y mínima**, que escribe
   solo esa columna — nunca la acción de guardar el formulario entero, que

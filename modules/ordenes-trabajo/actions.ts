@@ -11,8 +11,8 @@ import { ordenTrabajo } from "@/db/schema/orden-trabajo";
 import { anioVigente, formatearCodigoOt } from "./codigo";
 import type { EstadoOt } from "./constantes";
 import { reservarCorrelativo } from "./correlativo";
-import type { EstadoFormulario } from "./estado-formulario";
-import type { ResultadoAccion } from "./resultado-accion";
+import type { EstadoFormulario } from "@/core/estado-formulario";
+import type { ResultadoAccion } from "@/core/resultado-accion";
 import { otCambioEstadoSchema, otCrearSchema, otEditarSchema } from "./schema";
 
 /**
@@ -45,12 +45,27 @@ function esCodigoDuplicado(error: unknown): boolean {
 }
 
 /**
+ * Lo único que ve el usuario cuando algo falla de una forma que no sabemos
+ * traducir. No intenta explicar la causa —no la conocemos en ese punto, y
+ * adivinarla en pantalla sería mentir—: el error real, entero, va al log del
+ * servidor con `console.error`, que es donde se diagnostica.
+ */
+const MENSAJE_FALLO_GUARDADO = "No se pudo guardar. Intenta de nuevo.";
+
+/**
  * Crea una OT. Desde la fusión con Servicio es una creación autónoma: no nace
  * de ninguna otra fila, así que no hay id externo que atar con `.bind()` ni
  * clave foránea que verificar antes de insertar.
+ *
+ * Este es el NÚCLEO: valida, escribe e invalida el cache, y devuelve el
+ * resultado en vez de decidir a dónde va el usuario. Los dos remates de abajo
+ * —`crearOrdenTrabajo`, que redirige, y `crearOrdenTrabajoEnModal`, que no—
+ * se diferencian solo en eso. Toda la lógica vive aquí y no se duplica.
+ *
+ * No lleva `export`: no es una Server Action invocable desde el cliente, sino
+ * la parte común de las dos que sí lo son.
  */
-export async function crearOrdenTrabajo(
-  _estadoPrevio: EstadoFormulario,
+async function guardarOtNueva(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   await exigirSesion();
@@ -100,17 +115,57 @@ export async function crearOrdenTrabajo(
       };
     }
 
-    throw error;
+    // Antes esto era `throw error`, y ahí empezaba el problema: el error subía
+    // sin traducir hasta el cliente, que no lo recogía — ni mensaje ni aviso,
+    // la pantalla quieta. Un ETIMEDOUT de Neon entra justo por aquí.
+    console.error("[OT] fallo inesperado al crear la orden de trabajo", error);
+    return { mensaje: MENSAJE_FALLO_GUARDADO };
   }
 
   revalidatePath("/ordenes-trabajo");
-  // El aviso viaja en la URL: el toast se muestra ya en el listado, después
-  // de la navegación (ver components/aviso-toast.tsx).
+
+  return { ok: true };
+}
+
+/**
+ * Crear desde las pantallas /ordenes-trabajo/nueva: al terminar se abandona
+ * la pantalla, y el aviso viaja en la URL porque el toast tiene que
+ * sobrevivir a la navegación (ver components/aviso-toast.tsx).
+ */
+export async function crearOrdenTrabajo(
+  _estadoPrevio: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const resultado = await guardarOtNueva(formData);
+
+  if (!resultado.ok) {
+    return resultado;
+  }
+
   redirect("/ordenes-trabajo?aviso=creada");
 }
 
-export async function editarOrdenTrabajo(
-  _estadoPrevio: EstadoFormulario,
+/**
+ * Crear desde el modal del listado: no se navega a ninguna parte, así que el
+ * resultado vuelve al componente, que cierra la ventana, lanza el toast y
+ * pide un `router.refresh()`. Mismo trato que
+ * `actualizarEstadoOrdenTrabajo`, y por el mismo motivo.
+ *
+ * Recibe solo el `FormData` —sin el `estadoPrevio` que exige
+ * `useActionState`— porque el modal no usa ese hook: necesita reaccionar al
+ * resultado, no solo mostrarlo.
+ */
+export async function crearOrdenTrabajoEnModal(
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  return guardarOtNueva(formData);
+}
+
+/**
+ * Núcleo de la edición, con el mismo reparto que `guardarOtNueva`: aquí la
+ * lógica, en los remates de abajo a dónde va el usuario después.
+ */
+async function guardarOtExistente(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   await exigirSesion();
@@ -126,22 +181,54 @@ export async function editarOrdenTrabajo(
 
   const { id, ...campos } = resultado.data;
 
-  // `codigo_ot` y `fecha_creacion` no están en `campos` y no deben estarlo:
-  // el número de una OT no cambia una vez emitida. `updatedAt` sí se
-  // actualiza sola ($onUpdate en el esquema).
-  const actualizadas = await db
-    .update(ordenTrabajo)
-    .set(campos)
-    .where(eq(ordenTrabajo.id, id))
-    .returning({ id: ordenTrabajo.id });
+  // El `try` empieza AQUÍ y no antes a propósito: `exigirSesion()` termina en
+  // `redirect()` si no hay sesión, y Next documenta que `redirect()` se llama
+  // fuera del `try` porque funciona lanzando
+  // (dist/docs/01-app/03-api-reference/04-functions/redirect.md:51). Metido
+  // dentro, este catch se comería la navegación al login.
+  try {
+    // `codigo_ot` y `fecha_creacion` no están en `campos` y no deben estarlo:
+    // el número de una OT no cambia una vez emitida. `updatedAt` sí se
+    // actualiza sola ($onUpdate en el esquema).
+    const actualizadas = await db
+      .update(ordenTrabajo)
+      .set(campos)
+      .where(eq(ordenTrabajo.id, id))
+      .returning({ id: ordenTrabajo.id });
 
-  if (actualizadas.length === 0) {
-    return { mensaje: "Esa orden de trabajo ya no existe." };
+    if (actualizadas.length === 0) {
+      return { mensaje: "Esa orden de trabajo ya no existe." };
+    }
+  } catch (error) {
+    console.error("[OT] fallo inesperado al editar la orden de trabajo", error);
+    return { mensaje: MENSAJE_FALLO_GUARDADO };
   }
 
   revalidatePath("/ordenes-trabajo");
   revalidatePath(`/ordenes-trabajo/${id}/editar`);
+
+  return { ok: true };
+}
+
+/** Editar desde /ordenes-trabajo/[id]/editar: se abandona la pantalla. */
+export async function editarOrdenTrabajo(
+  _estadoPrevio: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const resultado = await guardarOtExistente(formData);
+
+  if (!resultado.ok) {
+    return resultado;
+  }
+
   redirect("/ordenes-trabajo?aviso=editada");
+}
+
+/** Editar desde el modal del listado: el usuario se queda donde estaba. */
+export async function editarOrdenTrabajoEnModal(
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  return guardarOtExistente(formData);
 }
 
 /**
@@ -178,14 +265,21 @@ export async function actualizarEstadoOrdenTrabajo(
     return { ok: false, mensaje: "Ese estado no es válido." };
   }
 
-  const actualizadas = await db
-    .update(ordenTrabajo)
-    .set({ estado: resultado.data.estado })
-    .where(eq(ordenTrabajo.id, resultado.data.id))
-    .returning({ id: ordenTrabajo.id });
+  // Mismo reparto que en `guardarOtExistente`: `exigirSesion()` y su
+  // `redirect()` quedan fuera del `try`; aquí dentro solo la escritura.
+  try {
+    const actualizadas = await db
+      .update(ordenTrabajo)
+      .set({ estado: resultado.data.estado })
+      .where(eq(ordenTrabajo.id, resultado.data.id))
+      .returning({ id: ordenTrabajo.id });
 
-  if (actualizadas.length === 0) {
-    return { ok: false, mensaje: "Esa orden de trabajo ya no existe." };
+    if (actualizadas.length === 0) {
+      return { ok: false, mensaje: "Esa orden de trabajo ya no existe." };
+    }
+  } catch (error) {
+    console.error("[OT] fallo inesperado al cambiar el estado", error);
+    return { ok: false, mensaje: "No se pudo cambiar el estado. Intenta de nuevo." };
   }
 
   // Sin `redirect()`: el usuario se queda en el listado. Se invalida el cache

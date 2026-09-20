@@ -36,22 +36,24 @@ campos absorbidos de Servicio, Fase 2.
 | `codigo_ot` | `text` (**UNIQUE**) | sí | **automático** — formato `OT.CCM.AAAA.NNNN`, el usuario nunca lo escribe |
 | `codigo_cotizacion` | `text` | sí | manual |
 | `codigo_revision` | `text` | **no** | manual — ex `servicio.codigo_revision` (ahí era obligatorio; aquí queda opcional, mismo criterio que `codigo_oc`) |
-| `asunto` | `text` | sí | manual |
+| `servicio` | `text` | sí | manual — ex `asunto`, renombrada a pedido del cliente (2026-09-20), misma naturaleza |
 | `codigo_oc` | `text` | **no** | manual — formato libre por cliente, suele llegar después |
 | `cliente` | `text` | sí | manual — texto libre, sin tabla de Clientes todavía |
 | `precio` | `bigint` (`mode: "number"` en Drizzle) | sí | manual — ex `servicio.precio`, **céntimos**, nunca decimal |
 | `moneda` | `moneda` (enum) | sí | manual — ex `servicio.moneda`, `PEN` o `USD`, una sola por registro |
-| `estado` | `ot_estado` (enum) | sí | manual — 6 valores, por defecto `Pendiente` |
+| `estado` | `ot_estado` (enum) | sí | manual — 7 valores, por defecto `Pendiente` |
 | `fecha_creacion` | `timestamp` | sí | **automática** (`DEFAULT now()`) — nunca se pide al usuario |
 | `responsable` | `text` | **no** | manual — nombre del técnico, texto libre (no hay tabla de Personal) |
 | `comentarios` | `text` | **no** | manual — ex `servicio.comentarios` |
 | `created_at` / `updated_at` | `timestamp` | sí | automáticos |
 
-**Estados** (enum `ot_estado`): `Pendiente` · `En ejecución` · `Pausada` ·
-`Finalizada` · `Facturado` · `Cancelada`. Lista propuesta al fusionar
-Servicio (de donde viene `Facturado`) con los estados de ejecución en campo
-que ya tenía la OT. **Pendiente de confirmar con el cliente** — ver supuesto
-nuevo en `preguntas-abiertas.md`.
+**Estados** (enum `ot_estado`): `Pendiente` · `Aceptada` · `En ejecución` ·
+`Pausada` · `Finalizada` · `Facturado` · `Cancelada`. Lista propuesta al
+fusionar Servicio (de donde viene `Facturado`) con los estados de ejecución
+en campo que ya tenía la OT, más `Aceptada` (pedida por el cliente el
+2026-09-20, entre `Pendiente` y `En ejecución`: marca que la OT ya tiene el
+visto bueno para arrancar pero todavía no se trabaja en campo). **Pendiente
+de confirmar con el cliente** — ver supuesto nuevo en `preguntas-abiertas.md`.
 
 Desde 2026-09-19, `modules/ordenes-trabajo/constantes.ts` es la única fuente
 de esta lista y también de `MONEDAS`: `db/schema/orden-trabajo.ts` importa los
@@ -124,3 +126,54 @@ códigos iguales aunque la aplicación se equivoque.
 una en su propia conexión y transacción, devolvieron `OT.CCM.2026.0001` a
 `0006`: seis códigos distintos, correlativos y sin huecos. Los datos de prueba
 se borraron después.
+
+---
+
+## Personal
+
+Primera tabla del nuevo módulo Personal (`modules/personal/`, en desarrollo
+en paralelo). Definida en `db/schema/personal.ts`, tabla `personal`. No tiene
+relación (todavía) con `user` de Better Auth: `user` es quién puede iniciar
+sesión en la plataforma, `personal` es a quién se puede asignar trabajo — son
+conceptos distintos aunque una misma persona pudiera algún día tener fila en
+ambas.
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `nombre` | `text` | sí | manual |
+| `apellido` | `text` | sí | manual |
+| `cargo` | `text` | sí | manual — texto libre, no hay catálogo de cargos todavía |
+| `dni` | `text` (**UNIQUE**) | sí | manual — identificador, no numérico: no se suma, puede llevar ceros a la izquierda y tiene longitud fija |
+| `fecha_nacimiento` | `date` (mode `"string"` en Drizzle) | sí | manual — `YYYY-MM-DD` literal, sin hora |
+| `activo` | `boolean`, default `true` | sí | automático al crear; manual al dar de baja |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**No existe columna `edad`.** Se calcula al mostrarla, a partir de
+`fecha_nacimiento` — una columna `edad` quedaría desactualizada sola con el
+paso del tiempo. Si una pantalla necesita ordenar o filtrar por edad, el
+cálculo va en el backend a partir de `fecha_nacimiento`, nunca se persiste.
+
+**`fecha_nacimiento` es `date`, no `timestamp`.** Una fecha de nacimiento no
+tiene hora, y `timestamp` la habría metido en el problema de zonas horarias
+que ya documenta AGENTS.md (el type parser y `parseInputDatesAsUTC` de
+`db/index.ts`, que existen porque las columnas `timestamp` sin zona se corren
+de día si el proceso no corre en UTC). Con `date` y `mode: "string"` el valor
+entra y sale como `YYYY-MM-DD` literal — lo mismo que produce y consume un
+`<input type="date">` — sin pasar por ninguna conversión.
+
+**`activo` es baja lógica, no borrado.** Mismo criterio que `Cancelada` en
+`orden_trabajo`, pero aquí sí es la bandera `activo` (no un enum de estado)
+porque Personal no tiene un ciclo de estados propio que ya cumpla ese papel.
+Dar de baja a alguien pone `activo = false`; nunca se borra la fila. Motivo
+concreto: si `orden_trabajo.responsable` (hoy texto libre) llega a
+convertirse algún día en FK a esta tabla, un DELETE real dejaría referencias
+rotas.
+
+**Índices.** `personal_activo_idx` sobre `activo`, mismo criterio que
+`orden_trabajo_estado_idx`: el listado filtra por `activo` en la consulta por
+defecto.
+
+**Consume:** nada. **Consumida por:** `modules/personal/` (en desarrollo). Sin
+relación todavía con `orden_trabajo.responsable`, que sigue siendo texto
+libre — ver deuda técnica en AGENTS.md sobre esa columna.

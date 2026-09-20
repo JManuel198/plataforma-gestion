@@ -13,7 +13,7 @@ export const RUTA_LISTADO = "/ordenes-trabajo";
 
 export type FiltrosOt = {
   estado?: EstadoOt;
-  /** Texto libre: casa parcialmente con codigo_ot, cliente o asunto. */
+  /** Texto libre: casa parcialmente con codigo_ot, cliente o servicio. */
   busqueda?: string;
   /** `YYYY-MM-DD`, ya validada (ver `filtroFechaSchema` en schema.ts). */
   desde?: string;

@@ -14,7 +14,7 @@ const columnasListado = {
   codigo_ot: ordenTrabajo.codigo_ot,
   codigo_cotizacion: ordenTrabajo.codigo_cotizacion,
   codigo_revision: ordenTrabajo.codigo_revision,
-  asunto: ordenTrabajo.asunto,
+  servicio: ordenTrabajo.servicio,
   codigo_oc: ordenTrabajo.codigo_oc,
   cliente: ordenTrabajo.cliente,
   precio: ordenTrabajo.precio,
@@ -59,7 +59,7 @@ export async function listarOrdenesTrabajo(filtros: FiltrosOt = {}) {
       ? or(
           ilike(ordenTrabajo.codigo_ot, patron),
           ilike(ordenTrabajo.cliente, patron),
-          ilike(ordenTrabajo.asunto, patron),
+          ilike(ordenTrabajo.servicio, patron),
         )
       : undefined,
     // `fecha_creacion` es `timestamp` sin zona guardado en UTC (ver

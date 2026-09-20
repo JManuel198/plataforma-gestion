@@ -28,6 +28,9 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-info: var(--info);
+  --color-chip-neutral: var(--chip-neutral);
+  --color-chip-neutral-foreground: var(--chip-neutral-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -56,13 +59,21 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Verde de marca. Es el ÚNICO sitio donde se decide: ningún componente
+     lleva una clase de color verde suelta. Desaturado a propósito (croma
+     0.115, no 0.2+): tiene que leerse como color corporativo, no como
+     semáforo, y no competir con --success/--destructive, que sí significan
+     algo. Texto blanco encima da 5.15:1, por encima del 4.5:1 de AA. */
+  --primary: oklch(0.512 0.115 158.3); /* #0F7A4D */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  /* Fondo sutil de marca (la opción resaltada de un Select, por ejemplo).
+     El texto se queda casi negro y NO pasa a verde: en una lista de opciones
+     manda la legibilidad (≈17:1), y el tinte de fondo ya señala el resalte. */
+  --accent: oklch(0.979 0.021 166.1); /* #ECFDF5 */
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   /* Segundo (y único otro) token con color en un tema deliberadamente
@@ -74,9 +85,29 @@
      `destructive` es rojo. Si se agrega otro estado con color, que sea
      otro token aquí, nunca una clase de color suelta en un componente. */
   --success: oklch(0.55 0.13 152);
+  /* Tercer token con color, agregado siguiendo al pie de la letra la nota de
+     arriba: `Aceptada` es el séptimo estado de la OT y la rampa de grises
+     sigue agotada. Azul por convención de "confirmado/aprobado", y elegido
+     para que no se confunda con el verde de `Facturado`: los dos son buenas
+     noticias, pero uno es el visto bueno del cliente y el otro el cobro.
+     Mismo croma y misma claridad que `--success` para que ningún estado pese
+     más que otro en el listado. */
+  --info: oklch(0.55 0.13 250);
+  /* El relleno de la variante `default` del Badge. Existe para que ese chip
+     NO cuelgue de --primary: `variantePorEstado` le da esa variante a
+     `En ejecución`, y con el primario en verde ese estado competiría con
+     `Facturado` (--success), que también es verde. Este valor es exactamente
+     el --primary que el tema tenía antes del verde, así que el badge se ve
+     hoy igual que ayer. Los estados de OT se distinguen entre sí por su
+     propio criterio y no siguen a la marca — si algún día cambia el verde,
+     esto no se toca. */
+  --chip-neutral: oklch(0.205 0 0);
+  --chip-neutral-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Anillo de foco de inputs, textarea, select y botones. Sobre fondo blanco
+     da 5.37:1, muy por encima del 3:1 que AA pide a un componente de UI. */
+  --ring: oklch(0.512 0.115 158.3);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -85,12 +116,16 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.512 0.115 158.3);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  /* Módulo activo de la barra: fondo verde claro y texto verde de marca,
+     5.10:1. El peso de la fuente (`data-active:font-medium`) sigue haciendo
+     de segunda señal, porque el tinte por sí solo apenas se separa del fondo
+     de la barra. */
+  --sidebar-accent: oklch(0.979 0.021 166.1);
+  --sidebar-accent-foreground: oklch(0.512 0.115 158.3);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.512 0.115 158.3);
 }
 
 .dark {
@@ -100,19 +135,28 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  /* Más claro que el verde del modo claro y con el texto oscuro encima
+     (7.14:1). El #0F7A4D de marca sobre un fondo casi negro no llega al
+     contraste de texto de cuerpo, así que en oscuro sube de luminosidad en
+     vez de mantenerse idéntico. */
+  --primary: oklch(0.7 0.13 158.3); /* #49B77F */
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.32 0.05 158.3); /* verde muy apagado, no un gris */
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.7 0.14 152);
+  --info: oklch(0.7 0.14 250);
+  /* Mismo papel que en claro: el chip `default` del Badge, con el valor que
+     --primary tenía en oscuro antes del verde. */
+  --chip-neutral: oklch(0.922 0 0);
+  --chip-neutral-foreground: oklch(0.205 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.7 0.13 158.3);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -120,12 +164,14 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.7 0.13 158.3);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  /* Activo en oscuro: verde profundo de fondo con texto claro (11.82:1). Al
+     revés que en claro, donde el color lo lleva el texto. */
+  --sidebar-accent: oklch(0.32 0.05 158.3);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.7 0.13 158.3);
 }
 
 @layer base {

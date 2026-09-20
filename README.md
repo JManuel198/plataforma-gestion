@@ -1,10 +1,10 @@
 # Plataforma de Gestión Integral
 
 Plataforma de gestión empresarial construida como base escalable y
-personalizable por cliente. Empezando por gestión de Órdenes de Trabajo;
-CRM, cotizaciones, proyectos, logística y asistencias son el alcance
-completo hacia el que escala — ver `docs/spec/` para el detalle de qué
-está construido y qué está diferido.
+personalizable por cliente. Hoy cubre Órdenes de Trabajo y Personal; CRM,
+cotizaciones, proyectos, logística y asistencias son el alcance completo hacia
+el que escala — ver `docs/spec/` para el detalle de qué está construido y qué
+está diferido.
 
 ## Stack
 
@@ -20,10 +20,17 @@ está construido y qué está diferido.
 ## Estructura del proyecto
 
 - `app/` — rutas y páginas (App Router)
-- `core/` — auth, roles, catálogos maestros, motor de precios, PDF, auditoría
-- `modules/ordenes-trabajo/` — único módulo de negocio construido hasta
-  ahora (incluye lo que originalmente iba a ser un módulo `servicios/`
-  aparte, fusionado en este tras el primer ensayo con el cliente)
+- `core/` — código transversal compartido entre módulos. Hoy contiene
+  `estado-formulario.ts` y `resultado-accion.ts`, los tipos que devuelven las
+  Server Actions; a futuro, roles, catálogos maestros, motor de precios, PDF y
+  auditoría
+- `modules/ordenes-trabajo/` — Órdenes de Trabajo (incluye lo que
+  originalmente iba a ser un módulo `servicios/` aparte, fusionado en este
+  tras el primer ensayo con el cliente)
+- `modules/personal/` — Personal
+- `components/` — lo transversal a la interfaz: barra lateral de navegación,
+  botón de cerrar sesión y `ui/` con los primitivos de shadcn. Lo específico
+  de una entidad vive en `modules/<entidad>/components/`, nunca aquí
 - `config/clientes/` — configuración por cliente (branding, campos, flujos).
   Vacío por ahora: hoy corre una sola instancia compartida, sin `.json`
   de cliente todavía
@@ -84,12 +91,53 @@ de código que sigue este proyecto (y que sigue Claude Code al trabajar aquí).
 
 ## Estado del proyecto
 
-Órdenes de Trabajo (OT) funcional de punta a punta: login con rutas
-protegidas, esquema con correlativo atómico (`OT.CCM.AAAA.NNNN`),
-formulario y listado con búsqueda, filtro por estado y filtro por rango
-de fechas. Servicio y Orden de Trabajo se diseñaron como entidades
-separadas y se fusionaron en una sola tras el primer ensayo con el
-cliente. Próximo módulo planeado: Personal.
+Dos módulos completos y en uso: Órdenes de Trabajo y Personal, con navegación
+por barra lateral y tema visual verde. Listo para la siguiente revisión con el
+cliente.
+
+El siguiente módulo planeado es Clientes/Empresas, con autocompletado de datos
+por RUC contra una API peruana — el proveedor está por elegir.
+
+## Alcance actual
+
+- Login, rutas protegidas en el servidor (`app/(protegido)/layout.tsx` verifica
+  la sesión contra la base) más un chequeo optimista en `proxy.ts` que solo
+  comprueba que la cookie exista, para no renderizar pantallas privadas de más
+- Navegación: barra lateral izquierda, colapsable a iconos, que en pantallas
+  angostas se convierte en un cajón y no ocupa ancho
+- Tema: verde corporativo aplicado con variables CSS en `app/globals.css`,
+  nunca con clases de color sueltas en los componentes
+
+### Órdenes de Trabajo
+
+Entidad única, fusión de lo que originalmente eran Servicio y OT por separado.
+Cada OT lleva código autogenerado con correlativo atómico
+(`OT.CCM.AAAA.NNNN`), cotización y revisión, servicio, orden de compra,
+cliente, precio (entero en céntimos) con su moneda, estado, fecha de creación,
+responsable y comentarios.
+
+Siete estados, en orden del ciclo: Pendiente → Aceptada → En ejecución →
+Pausada → Finalizada → Facturado → Cancelada.
+
+Crear y editar se hacen en una ventana modal sobre el listado, sin salir de la
+pantalla. El listado combina búsqueda de texto (código, cliente o servicio),
+filtro por estado y filtro por rango de fechas: los tres se acumulan en la URL
+en vez de pisarse. El estado también se cambia desde la propia fila, y pasar a
+Facturado o Cancelada pide confirmación.
+
+### Personal
+
+CRUD con baja lógica: dar de baja pone la columna `activo` en false y la
+persona desaparece del listado, pero la fila nunca se borra. DNI único
+garantizado por la base, no solo por el formulario. La edad no se almacena —
+se calcula al mostrarla a partir de la fecha de nacimiento, porque guardada
+quedaría desactualizada sola. Búsqueda por nombre, apellido, DNI o cargo, y un
+interruptor para ver también a quien está de baja. Mismo patrón de modal que
+Órdenes de Trabajo.
+
+Diferido a versiones futuras: Clientes/Empresas con pantalla propia (próximo),
+catálogo de servicios reutilizable, cotización formal con PDF, kanban de
+oportunidades, aprobaciones, logística y asistencias.
 
 Ver `docs/spec/` para el alcance detallado por bloque y las preguntas de
 negocio todavía abiertas.

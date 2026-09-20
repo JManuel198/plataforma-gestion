@@ -1,0 +1,1 @@
+ALTER TABLE "orden_trabajo" RENAME COLUMN "asunto" TO "servicio";

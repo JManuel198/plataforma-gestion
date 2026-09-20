@@ -16,7 +16,7 @@ const RETARDO_MS = 400;
 /**
  * Buscador del listado. El texto viaja en la URL
  * (`/ordenes-trabajo?busqueda=acme`) y la coincidencia la resuelve el `ILIKE`
- * de queries.ts sobre `codigo_ot`, `cliente` y `asunto` — aquí no se filtra
+ * de queries.ts sobre `codigo_ot`, `cliente` y `servicio` — aquí no se filtra
  * nada: la pantalla nunca llega a tener en memoria las filas que no coinciden.
  *
  * El texto se guarda además en estado local porque el input tiene que seguir
@@ -61,7 +61,7 @@ export function BuscadorOrdenes({ filtros }: { filtros: FiltrosOt }) {
         // que quita el filtro.
         type="search"
         className="w-72"
-        placeholder="OT, cliente o asunto"
+        placeholder="OT, cliente o servicio"
         value={texto}
         onChange={(evento) => alEscribir(evento.target.value)}
         onKeyDown={(evento) => {

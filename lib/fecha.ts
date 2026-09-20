@@ -73,3 +73,32 @@ export function inicioDelDia(fechaIso: string): Date {
 export function inicioDelDiaSiguiente(fechaIso: string): Date {
   return dayjs.tz(fechaIso, ZONA_HORARIA).startOf("day").add(1, "day").toDate();
 }
+
+/**
+ * Edad en años cumplidos a partir de una fecha de nacimiento `YYYY-MM-DD`.
+ *
+ * POR QUÉ ES UNA FUNCIÓN Y NO UNA COLUMNA: la edad no es un dato, es una
+ * consecuencia de dos fechas. Guardada en `personal.edad` sería correcta el
+ * día que se escribe y falsa a partir del siguiente cumpleaños, y nadie se
+ * enteraría — no hay error, solo un número que envejece mal. Se calcula cada
+ * vez que se muestra.
+ *
+ * El "hoy" contra el que se compara sale de la zona del negocio, no del reloj
+ * del proceso: en Vercel el servidor corre en UTC, cinco horas por delante de
+ * Lima, así que entre las 19:00 y la medianoche daría la edad de mañana. Para
+ * alguien que cumple años hoy, eso es un año de diferencia.
+ *
+ * `dayjs.diff(..., "year")` ya trunca hacia abajo, que es justo lo que
+ * significa "años cumplidos": el día antes del cumpleaños todavía es la edad
+ * anterior.
+ *
+ * `fechaIso` tiene que venir ya validada (`z.iso.date()`); aquí no se
+ * comprueba. Una fecha futura devolvería un número negativo — lo impide el
+ * esquema de Zod, no esta función.
+ */
+export function calcularEdad(fechaIso: string): number {
+  return dayjs()
+    .tz(ZONA_HORARIA)
+    .startOf("day")
+    .diff(dayjs.tz(fechaIso, ZONA_HORARIA).startOf("day"), "year");
+}

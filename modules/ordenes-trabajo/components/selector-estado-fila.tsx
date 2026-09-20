@@ -3,6 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { esRedireccionDeNext } from "@/lib/redireccion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,21 +23,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { actualizarEstadoOrdenTrabajo } from "../actions";
+import type { ResultadoAccion } from "@/core/resultado-accion";
 import { ESTADOS_OT, type EstadoOt } from "../constantes";
 
 /**
- * Un tono distinto por estado: con seis, dos que compartan variante dejan
+ * Un tono distinto por estado: con siete, dos que compartan variante dejan
  * de comunicar nada. El eje es cuánto peso visual merece cada punto del
  * ciclo, y `Facturado` no puede compartir tono con `Finalizada` — una es el
  * cierre técnico (el trabajo terminó) y la otra el cierre comercial (se
  * cobró), que es justo la distinción que el listado tiene que dejar ver.
  *
- * `dashed` y `success` se agregaron a components/ui/badge.tsx para esto: el
- * tema es monocromo (solo `destructive` tenía color), así que seis rellenos
- * de gris distinguibles no existían. `Pausada` pasa a distinguirse por
- * trazo punteado — lo interrumpido se lee mejor así que como un gris más — y
- * `Facturado` estrena el token `--success`, con el mismo patrón de tinte que
- * `destructive`.
+ * `dashed`, `success` e `info` se agregaron a components/ui/badge.tsx para
+ * esto: el tema es monocromo (solo `destructive` tenía color), así que siete
+ * rellenos de gris distinguibles no existían. `Pausada` pasa a distinguirse
+ * por trazo punteado — lo interrumpido se lee mejor así que como un gris
+ * más —, `Facturado` estrena el token `--success` y `Aceptada` el token
+ * `--info`, los dos con el mismo patrón de tinte que `destructive`.
+ *
+ * `Aceptada` va en azul y no en otro verde a propósito: es el visto bueno
+ * para arrancar, no el cobro, y con `Facturado` a un par de filas de
+ * distancia dos verdes se leerían como el mismo estado de un vistazo.
  *
  * Vive aquí y ya no en tabla-ordenes-trabajo.tsx porque la celda dejó de ser
  * un Badge suelto: el color ahora se pinta dentro del disparador del Select,
@@ -44,9 +50,16 @@ import { ESTADOS_OT, type EstadoOt } from "../constantes";
  */
 const variantePorEstado: Record<
   EstadoOt,
-  "default" | "secondary" | "outline" | "destructive" | "dashed" | "success"
+  | "default"
+  | "secondary"
+  | "outline"
+  | "destructive"
+  | "dashed"
+  | "success"
+  | "info"
 > = {
   Pendiente: "outline",
+  Aceptada: "info",
   "En ejecución": "default",
   Pausada: "dashed",
   Finalizada: "secondary",
@@ -59,10 +72,15 @@ const variantePorEstado: Record<
  *
  * Son los dos finales del ciclo, y los únicos que significan algo fuera de
  * esta pantalla: `Facturado` afirma que la OT ya se cobró y `Cancelada` la
- * cierra sin ejecutarla. Los otros cuatro son pasos del trabajo en curso —
- * moverse entre `Pendiente`, `En ejecución`, `Pausada` y `Finalizada` es
- * rutina diaria, y pedir confirmación en cada uno entrenaría al usuario a
- * aceptar sin leer, que es justo lo que haría inútil el aviso de estos dos.
+ * cierra sin ejecutarla. Los otros cinco son pasos del trabajo en curso —
+ * moverse entre `Pendiente`, `Aceptada`, `En ejecución`, `Pausada` y
+ * `Finalizada` es rutina diaria, y pedir confirmación en cada uno entrenaría
+ * al usuario a aceptar sin leer, que es justo lo que haría inútil el aviso de
+ * estos dos.
+ *
+ * `Aceptada` (agregada el 2026-09-20) se queda fuera por esa misma razón: da
+ * el visto bueno para arrancar el trabajo, no lo cierra, y es reversible sin
+ * consecuencias como cualquier otro paso intermedio.
  *
  * Ojo: esto es una defensa contra el clic accidental, no una regla de
  * negocio. Ninguno de los dos estados es irreversible hoy (supuesto 11 de
@@ -123,7 +141,22 @@ export function SelectorEstadoFila({
     iniciarGuardado(async () => {
       mostrarOptimista(nuevoEstado);
 
-      const resultado = await actualizarEstadoOrdenTrabajo(id, nuevoEstado);
+      let resultado: ResultadoAccion;
+
+      try {
+        resultado = await actualizarEstadoOrdenTrabajo(id, nuevoEstado);
+      } catch (error) {
+        // El `redirect()` a /login de `exigirSesion()` llega como error
+        // lanzado. Es una navegación, no un fallo: se deja pasar.
+        if (esRedireccionDeNext(error)) throw error;
+
+        // Un fallo de conexión o cualquier error sin traducir subía sin que
+        // nadie lo recogiera, y la fila volvía a su estado anterior sin decir
+        // por qué. El detalle real va al log del servidor.
+        console.error("[OT] fallo inesperado al cambiar el estado", error);
+        toast.error("No se pudo cambiar el estado. Intenta de nuevo.");
+        return;
+      }
 
       if (!resultado.ok) {
         // No hace falta deshacer nada a mano: al terminar la transición,
@@ -181,7 +214,7 @@ export function SelectorEstadoFila({
           className="w-40"
           aria-label={`Estado de ${codigo}`}
         >
-          {/* El Badge se conserva dentro del disparador: los seis estados se
+          {/* El Badge se conserva dentro del disparador: los siete estados se
               siguen distinguiendo por color, que es lo que hacía legible el
               listado de un vistazo antes de que la celda fuera editable. */}
           <SelectValue>

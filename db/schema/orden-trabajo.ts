@@ -13,10 +13,13 @@ import { ESTADOS_OT, MONEDAS } from "@/modules/ordenes-trabajo/constantes";
 // array literal con estos mismos valores.
 export const monedaEnum = pgEnum("moneda", MONEDAS);
 
-// Seis estados: los cinco de ejecución en campo que ya tenía la OT, más
+// Siete estados: los cinco de ejecución en campo que ya tenía la OT, más
 // `Facturado` (tomado de los estados de Servicio) para poder cerrar el
-// ciclo comercial ahora que no existe una tabla Servicio aparte. Lista
-// propuesta, pendiente de confirmar con el cliente — supuesto nuevo en
+// ciclo comercial ahora que no existe una tabla Servicio aparte, más
+// `Aceptada` (pedida por el cliente el 2026-09-20), que marca que la OT
+// ya tiene el visto bueno para arrancar pero todavía no se trabaja en
+// campo — por eso va justo después de `Pendiente`. Lista propuesta,
+// pendiente de confirmar con el cliente — supuesto nuevo en
 // docs/spec/preguntas-abiertas.md. Se guardan con la misma grafía que ve el
 // usuario.
 //
@@ -47,7 +50,7 @@ export const ordenTrabajo = pgTable(
     // a propósito, con el mismo criterio que `codigo_oc` (llega después del
     // registro) — decisión explícita de esta fusión, no un descuido.
     codigo_revision: text("codigo_revision"),
-    asunto: text("asunto").notNull(),
+    servicio: text("servicio").notNull(),
     // Nullable por el mismo criterio que `servicio.codigo_oc`: la orden de
     // compra suele llegar después del registro (supuesto 1 de
     // preguntas-abiertas.md).

@@ -76,12 +76,14 @@ trabaje en este código.
   nunca hardcodeado en el módulo.
 
 ## Deuda técnica conocida
-- RESUELTO (fusión Servicio + OT): estado-formulario.ts ya no está
-  duplicado. Vive solo en modules/ordenes-trabajo/, porque
-  modules/servicios/ desapareció al fusionarse ambas entidades en una.
-  No se unificó en core/: no hacía falta, dejó de haber un segundo
-  módulo con el que duplicarse. Si un módulo futuro lo necesita, core/
-  sigue siendo el sitio — nunca un import cruzado entre módulos.
+- RESUELTO (2026-09-20): estado-formulario.ts y resultado-accion.ts
+  viven ahora en core/, que es lo que esta misma nota dejaba dicho que
+  había que hacer "si un módulo futuro lo necesita". Ese módulo llegó:
+  modules/personal/ usa los dos tipos. Los importan
+  modules/ordenes-trabajo/ y modules/personal/ desde @/core/, terreno
+  neutral, y ninguno depende del otro. La regla se mantiene para lo que
+  venga: cuando una segunda entidad necesite algo que hoy vive en un
+  módulo, se mueve a core/ — nunca un import cruzado entre módulos.
 - El código de empresa "CCM" en el correlativo de OT vive en
   modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
   como dice la convención de Correlativos en AGENTS.md —
@@ -122,12 +124,23 @@ trabaje en este código.
   no usa el almacén de CA del sistema con verify-full — hay que añadir
   &sslrootcert=system a la cadena o falla pidiendo ~/.postgresql/root.crt.
   node-pg, drizzle-kit y la app no necesitan nada.
-- components/ui/dialog.tsx:112 usa render={<Button .../>} en el trigger
-  de cierre — mismo patrón de render que el bug de nativeButton que se
-  corrigió en los Links de navegación, pero Dialog no se usa en ninguna
-  pantalla todavía y el caso puede ser distinto (Close no es un link).
-  Verificar en consola la primera vez que se use Dialog en una pantalla
-  real, antes de asumir que está bien o que hay que corregirlo.
+- RESUELTO (2026-09-20): el render={<Button .../>} de
+  components/ui/dialog.tsx (línea 63 en DialogContent y 112 en
+  DialogFooter) NO tiene el bug de nativeButton. Se verificó al montar el
+  modal de crear/editar OT, que es la primera pantalla real que usa
+  Dialog. El caso sí era distinto, y el motivo es preciso: Dialog.Close
+  llama a useButton (DialogClose.js:35) igual que el ButtonPrimitive,
+  pero el problema nunca fue llamarlo — es el desajuste entre la prop
+  `nativeButton` (true por defecto) y el elemento que se renderiza de
+  verdad. En useButton.js:183 la rama es
+  `isNativeButton ? { type: 'button' } : { role: 'button', ... }`. En los
+  Links de navegación se renderizaba un <a> con el flag en true: saltaba
+  el aviso y el role pisaba la semántica del enlace. En Dialog lo que va
+  en `render` es nuestro Button, que renderiza un <button> nativo, así
+  que flag y elemento coinciden: solo añade type="button", sin role y sin
+  aviso. La regla general, ya anotada en la skill de convenciones: el
+  `render` es correcto siempre que el elemento final coincida con lo que
+  declara `nativeButton`, no según qué componente lo use.
 - db/schema/ importa listas compartidas (ESTADOS_OT, MONEDAS) desde
   modules/ordenes-trabajo/constantes.ts: ese archivo es la fuente de
   verdad única de ambas y db/schema/orden-trabajo.ts solo las consume
@@ -137,3 +150,29 @@ trabaje en este código.
   compartido con el esquema, mover estas listas a core/ — neutral para
   ambos lados — en vez de que db/schema/ termine importando de varios
   módulos de negocio.
+- No hay suite de tests. package.json solo define dev, build, start y
+  lint: no existe un script `test` ni ninguna dependencia de testing.
+  Todo lo que se ha verificado hasta hoy se comprobó con scripts
+  temporales, escritos para el momento y borrados después — la reserva
+  concurrente del correlativo, el UNIQUE de personal.dni rechazando
+  duplicados en la base real, y el cálculo de edad contra tres zonas
+  horarias del proceso. Las tres pasaron, pero ninguna quedó como
+  protección: nada de eso vuelve a ejecutarse solo cuando alguien toque
+  ese código mañana, y el fallo que evitan no se manifiesta como un
+  error de compilación ni de lint, sino como un dato incorrecto que
+  nadie mira.
+  Vale la pena automatizarlas el día que el ritmo de cambios baje lo
+  suficiente para invertir ahí sin frenar la construcción — no antes,
+  porque hoy el esquema y las pantallas todavía se mueven demasiado
+  para que valga fijarlos en pruebas. Cuando llegue ese día, las dos
+  primeras son correlativo.ts (dos creaciones simultáneas no pueden
+  recibir el mismo número, y la transacción tiene que revertir la
+  reserva) y lib/fecha.ts (calcularEdad en los bordes del cumpleaños,
+  inicioDelDia/inicioDelDiaSiguiente en los filtros): son las piezas
+  más fáciles de romper sin darse cuenta, porque las dos dependen de
+  concurrencia y de zonas horarias, que es justo lo que no se ve
+  probando a mano en el navegador.
+  Ojo al escribirlas: calcularEdad no admite un "hoy" inyectado, así
+  que probar el borde exacto de un cumpleaños exige o mockear el reloj
+  o refactorizar la función para recibir la fecha de referencia. Lo
+  segundo es más limpio y es el momento de hacerlo.

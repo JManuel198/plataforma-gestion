@@ -1,6 +1,8 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { hoyIso } from "@/lib/fecha";
+import { crearOrdenTrabajoEnModal } from "@/modules/ordenes-trabajo/actions";
 import { AvisoToast } from "@/modules/ordenes-trabajo/components/aviso-toast";
+import { DialogoOrdenTrabajo } from "@/modules/ordenes-trabajo/components/dialogo-orden-trabajo";
 import { BuscadorOrdenes } from "@/modules/ordenes-trabajo/components/buscador-ordenes";
 import { FiltroEstado } from "@/modules/ordenes-trabajo/components/filtro-estado";
 import { FiltroFechas } from "@/modules/ordenes-trabajo/components/filtro-fechas";
@@ -51,14 +53,19 @@ export default async function PaginaOrdenesTrabajo({
         <h1 className="text-xl font-semibold tracking-tight">
           Órdenes de Trabajo
         </h1>
-        {/* Un Link con `buttonVariants`, no un Button con `render`: el
-            patrón de `render` en un elemento de navegación es el que provocó
-            el aviso de accesibilidad de Base UI que ya se corrigió (commit
-            4bc1270). Aquí es un enlace de verdad, así que se escribe como
-            enlace. */}
-        <Link href="/ordenes-trabajo/nueva" className={buttonVariants()}>
-          Nueva OT
-        </Link>
+        {/* Ya no navega: abre el modal sobre este mismo listado, así que es
+            un botón de verdad y no un enlace disfrazado. La ruta
+            /ordenes-trabajo/nueva sigue existiendo y sigue funcionando — es
+            la única forma de enlazar el formulario por URL.
+
+            `hoyIso()` se calcula aquí, en el servidor: el reloj del navegador
+            puede estar en otra zona que la del negocio y enseñaría un día
+            distinto del que la base de datos va a escribir. */}
+        <DialogoOrdenTrabajo
+          guardarAction={crearOrdenTrabajoEnModal}
+          fechaHoy={hoyIso()}
+          disparador={<Button>Nueva OT</Button>}
+        />
       </div>
 
       {/* Cada control recibe los filtros completos, no solo el suyo: así el

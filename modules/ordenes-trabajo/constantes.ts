@@ -14,10 +14,19 @@
 // alguna fila ya use exige reasignar esas filas primero.
 
 /**
- * Los seis estados de la OT tras la fusión con Servicio: los cinco de
- * ejecución en campo que ya tenía, más `Facturado`, que viene de los estados
- * de Servicio y permite cerrar el ciclo comercial ahora que la OT es también
- * el registro comercial.
+ * Los siete estados de la OT: los cinco de ejecución en campo que ya tenía,
+ * más `Facturado`, que viene de los estados de Servicio y permite cerrar el
+ * ciclo comercial ahora que la OT es también el registro comercial, y
+ * `Aceptada`, que el cliente pidió el 2026-09-20.
+ *
+ * `Aceptada` va entre `Pendiente` y `En ejecución` a propósito: marca que la
+ * OT ya tiene el visto bueno para arrancar, pero que todavía no se está
+ * trabajando en campo. Es un paso de avance del trabajo, no un cierre — por
+ * eso no entra en `ESTADOS_A_CONFIRMAR` (ver selector-estado-fila.tsx).
+ *
+ * El orden del array es también el orden del enum en PostgreSQL, así que
+ * refleja el ciclo de vida de la OT y no el capricho de quien lo editó: un
+ * valor nuevo se inserta donde le toca en el ciclo, no al final.
  *
  * Lista propuesta, pendiente de confirmar con el cliente (supuesto 12 de
  * docs/spec/preguntas-abiertas.md).
@@ -26,6 +35,7 @@
  */
 export const ESTADOS_OT = [
   "Pendiente",
+  "Aceptada",
   "En ejecución",
   "Pausada",
   "Finalizada",

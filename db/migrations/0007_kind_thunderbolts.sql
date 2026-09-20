@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ot_estado" ADD VALUE 'Aceptada' BEFORE 'En ejecución';

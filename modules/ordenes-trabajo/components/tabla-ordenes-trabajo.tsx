@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,7 +8,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatearFecha } from "@/lib/fecha";
+import { editarOrdenTrabajoEnModal } from "../actions";
 import { formatearMonto } from "../dinero";
+import { DialogoOrdenTrabajo } from "./dialogo-orden-trabajo";
 import type { FilaOrdenTrabajo } from "../queries";
 import { SelectorEstadoFila } from "./selector-estado-fila";
 
@@ -42,7 +43,7 @@ export function TablaOrdenesTrabajo({
           <TableHead>OT</TableHead>
           <TableHead>COT.</TableHead>
           <TableHead>REV.</TableHead>
-          <TableHead>Asunto</TableHead>
+          <TableHead>Servicio</TableHead>
           <TableHead>OC</TableHead>
           <TableHead>Cliente</TableHead>
           <TableHead className="text-right">Precio</TableHead>
@@ -60,8 +61,8 @@ export function TablaOrdenesTrabajo({
             </TableCell>
             <TableCell>{fila.codigo_cotizacion}</TableCell>
             <TableCell>{fila.codigo_revision ?? "—"}</TableCell>
-            <TableCell className="max-w-64 truncate" title={fila.asunto}>
-              {fila.asunto}
+            <TableCell className="max-w-64 truncate" title={fila.servicio}>
+              {fila.servicio}
             </TableCell>
             <TableCell>{fila.codigo_oc ?? "—"}</TableCell>
             <TableCell>{fila.cliente}</TableCell>
@@ -85,13 +86,20 @@ export function TablaOrdenesTrabajo({
                 estado={fila.estado}
               />
             </TableCell>
+            {/* Editar abre el mismo modal que "Nueva OT", precargado con la
+                fila. La fila del listado ya trae todos los campos que el
+                formulario necesita (ver `OrdenTrabajoEditable` en tipos.ts),
+                así que no hace falta ir a buscar la OT otra vez. */}
             <TableCell className="text-right">
-              <Link
-                href={`/ordenes-trabajo/${fila.id}/editar`}
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                Editar
-              </Link>
+              <DialogoOrdenTrabajo
+                guardarAction={editarOrdenTrabajoEnModal}
+                orden={fila}
+                disparador={
+                  <Button variant="ghost" size="sm">
+                    Editar
+                  </Button>
+                }
+              />
             </TableCell>
           </TableRow>
         ))}

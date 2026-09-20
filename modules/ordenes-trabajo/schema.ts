@@ -116,7 +116,7 @@ export const otCrearSchema = z.object({
   // donde era obligatorio, la revisión puede llegar después del registro —
   // mismo criterio que `codigo_oc` (ver db/schema/orden-trabajo.ts).
   codigo_revision: textoOpcional(50),
-  asunto: textoObligatorio("El asunto", 300),
+  servicio: textoObligatorio("El servicio", 300),
   codigo_oc: textoOpcional(100),
   cliente: textoObligatorio("El cliente", 200),
   precio: montoSchema,
