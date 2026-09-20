@@ -176,7 +176,7 @@ export function FormularioOrdenTrabajo({
             id="codigo_oc"
             name="codigo_oc"
             defaultValue={orden?.codigo_oc ?? ""}
-            placeholder="Opcional (formato libre según el cliente)"
+            placeholder="Ingresa la orden de compra del cliente"
             aria-invalid={Boolean(errores.codigo_oc)}
           />
           <MensajeError errores={errores.codigo_oc} />
@@ -188,7 +188,7 @@ export function FormularioOrdenTrabajo({
             id="responsable"
             name="responsable"
             defaultValue={orden?.responsable ?? ""}
-            placeholder="Opcional — nombre del técnico a cargo"
+            placeholder="Ingresa el nombre del técnico a cargo"
             aria-invalid={Boolean(errores.responsable)}
           />
           <MensajeError errores={errores.responsable} />
@@ -227,7 +227,6 @@ export function FormularioOrdenTrabajo({
             // El usuario escribe un monto normal (150.50); el servidor lo
             // convierte a céntimos antes de guardarlo.
             inputMode="decimal"
-            placeholder="150.50"
             defaultValue={orden ? aMontoDecimal(orden.precio) : ""}
             required
             aria-invalid={Boolean(errores.precio)}
