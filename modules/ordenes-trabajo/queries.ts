@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, ilike, lt, or } from "drizzle-orm";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
+import { patronParcial } from "@/core/busqueda";
 import { inicioDelDia, inicioDelDiaSiguiente } from "@/lib/fecha";
 import type { FiltrosOt } from "./filtros";
 
@@ -24,19 +25,6 @@ const columnasListado = {
   responsable: ordenTrabajo.responsable,
   comentarios: ordenTrabajo.comentarios,
 } as const;
-
-/**
- * Convierte el texto del buscador en el patrón de un `ILIKE`.
- *
- * El valor viaja parametrizado, así que no hay inyección posible; lo que sí
- * hay que neutralizar son los comodines del propio `LIKE`: sin esto, buscar
- * "50%" traería todo lo que empiece por "50", y un "_" casaría con cualquier
- * carácter. El escape es `\`, que es el que PostgreSQL usa por defecto en
- * `LIKE`/`ILIKE` (no hace falta cláusula `ESCAPE`).
- */
-function patronParcial(texto: string): string {
-  return `%${texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
-}
 
 /**
  * Lista las órdenes de trabajo aplicando los filtros que vengan.

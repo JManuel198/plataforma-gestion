@@ -1,6 +1,7 @@
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { materiales } from "@/db/schema/materiales";
+import { patronParcial } from "@/core/busqueda";
 import type { FiltrosMateriales } from "./filtros";
 
 /**
@@ -19,25 +20,6 @@ const columnasListado = {
   fecha_activacion: materiales.fecha_activacion,
   activo: materiales.activo,
 } as const;
-
-/**
- * Convierte el texto del buscador en el patrón de un `ILIKE`.
- *
- * Copia deliberada de `patronParcial` en modules/personal/queries.ts y
- * modules/ordenes-trabajo/queries.ts: dos módulos no se importan entre sí
- * (AGENTS.md, Arquitectura). Ya son TRES copias idénticas, así que esta
- * función cumple de sobra la condición para mudarse a core/ — se deja aquí
- * solo para no mezclar ese movimiento con el trabajo de este bloque, y es lo
- * primero que hay que hacer si aparece un cuarto listado con búsqueda.
- *
- * El valor viaja parametrizado, así que no hay inyección posible; lo que hay
- * que neutralizar son los comodines del propio `LIKE`: sin esto, buscar "50%"
- * traería todo lo que empiece por "50". El escape es `\`, el que PostgreSQL
- * usa por defecto en `LIKE`/`ILIKE`.
- */
-function patronParcial(texto: string): string {
-  return `%${texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
-}
 
 /**
  * Lista el catálogo de materiales aplicando los filtros que vengan.

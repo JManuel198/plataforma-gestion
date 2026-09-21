@@ -220,9 +220,11 @@ servidor.** La referencia a copiar es
   llamarse `useAlgo` aunque el resto del módulo esté en español —
   `react-hooks/rules-of-hooks` reconoce los hooks por ese prefijo.
 - **Búsqueda de texto**: `ILIKE '%…%'` en el servidor, con `or(...)` entre las
-  columnas buscables. Escapa `\`, `%` y `_` del texto del usuario antes de
-  armar el patrón (`patronParcial` en `queries.ts`), o un `%` escrito en el
-  buscador actúa como comodín. El input lleva su propio estado local y navega
+  columnas buscables. El texto del usuario pasa SIEMPRE por `patronParcial`
+  de **`core/busqueda.ts`** —importado, nunca copiado—, que escapa `\`, `%` y
+  `_`; sin eso, un `%` escrito en el buscador actúa como comodín. Estuvo
+  duplicado en los tres módulos hasta el 2026-09-21; se unificó en `core/`
+  tras comprobar lo que cuesta esa duplicación (ver `errores-postgres.ts`). El input lleva su propio estado local y navega
   con `router.replace` tras una pausa de tecleo, para no llenar el historial.
 - **Filtros por fecha**: los dos extremos son inclusivos para el usuario. Se
   traducen a `>=` contra `inicioDelDia(desde)` y `<` contra

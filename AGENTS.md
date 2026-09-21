@@ -197,6 +197,16 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   neutral, y ninguno depende del otro. La regla se mantiene para lo que
   venga: cuando una segunda entidad necesite algo que hoy vive en un
   módulo, se mueve a core/ — nunca un import cruzado entre módulos.
+- RESUELTO (2026-09-21): `patronParcial()` —el escape de comodines del
+  buscador— estaba copiado igual en los tres `queries.ts` (ordenes-trabajo,
+  personal, materiales), cada copia con una nota diciendo que se movería a
+  core/ "cuando aparezca un tercer listado". Apareció, y se movió: vive en
+  core/busqueda.ts y los tres lo importan. Lo que precipitó el movimiento no
+  fue el conteo sino el bug de `esUniqueViolado` (arriba): allí el mismo
+  patrón de tres copias dejó dos rotas en silencio durante semanas, porque un
+  arreglo en una copia no llega a las otras y nada avisa de que divergieron.
+  Criterio para lo que venga: a la tercera copia se mueve a core/, sin esperar
+  a una cuarta.
 - El código de empresa "CCM" en el correlativo de OT vive en
   modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
   como dice la convención de Correlativos en AGENTS.md —

@@ -1,6 +1,7 @@
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { personal } from "@/db/schema/personal";
+import { patronParcial } from "@/core/busqueda";
 import type { FiltrosPersonal } from "./filtros";
 
 /**
@@ -17,23 +18,6 @@ const columnasListado = {
   fecha_nacimiento: personal.fecha_nacimiento,
   activo: personal.activo,
 } as const;
-
-/**
- * Convierte el texto del buscador en el patrón de un `ILIKE`.
- *
- * Copia deliberada de `patronParcial` en modules/ordenes-trabajo/queries.ts:
- * dos módulos no se importan entre sí (AGENTS.md, Arquitectura). Si aparece
- * un tercer listado con búsqueda, esto se mueve a core/ y se importa desde
- * los tres — no antes, y nunca en cruz.
- *
- * El valor viaja parametrizado, así que no hay inyección posible; lo que hay
- * que neutralizar son los comodines del propio `LIKE`: sin esto, buscar "50%"
- * traería todo lo que empiece por "50". El escape es `\`, el que PostgreSQL
- * usa por defecto en `LIKE`/`ILIKE`.
- */
-function patronParcial(texto: string): string {
-  return `%${texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
-}
 
 /**
  * Lista al personal aplicando los filtros que vengan.

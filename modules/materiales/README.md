@@ -44,8 +44,6 @@ Lista de precios, Tarifario de personal y EPPs heredan tal cual. Está
 documentado en `.claude/skills/shadcn-conventions/SKILL.md`, sección
 "Catálogos maestros"; si cambias algo aquí, cámbialo también allí.
 
-`patronParcial()` en `queries.ts` es ya la TERCERA copia idéntica (las otras
-en personal/ y ordenes-trabajo/). Cumple de sobra la condición de AGENTS.md
-para mudarse a `core/`; se dejó aquí para no mezclar ese movimiento con este
-bloque, y es lo primero que hay que hacer si aparece un cuarto listado con
-búsqueda.
+El escape de comodines del buscador ya no vive aquí: `patronParcial()` se
+movió a `core/busqueda.ts` y lo importan los tres listados. Si añades una
+búsqueda nueva, impórtalo de ahí — nunca lo copies otra vez.
