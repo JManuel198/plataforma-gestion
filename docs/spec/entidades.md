@@ -224,7 +224,7 @@ confirmar, y eso sí sigue abierto (ver más abajo y
 | `codigo_fabrica` | `text` | **no** | manual — el del fabricante, distinto del interno |
 | `unidad` | `text` | **no** | manual — unidad de medida, texto libre sin catálogo cerrado |
 | `fecha_activacion` | `date` (mode `"string"` en Drizzle) | **no** | manual — fecha de activación del material, sujeta a una validación previa aún sin construir |
-| `activo` | `boolean`, default `true` | sí | automático al crear; manual al dar de baja (baja todavía sin construir — ver `modules/materiales/README.md`) |
+| `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar desde el listado (Bloque 12, Parte 2) |
 | `created_at` / `updated_at` | `timestamp` | sí | automáticos |
 
 **Ningún campo de negocio es `NOT NULL`.** A diferencia de `personal` u
@@ -257,8 +257,12 @@ al respecto, a propósito.
 **`activo` es baja lógica, no borrado** — regla invariable 9, mismo criterio
 que `personal.activo`: Materiales no tiene un enum de estado propio que ya
 cumpla ese papel. Hoy la columna existe y el listado (`listarMateriales`) ya
-filtra por ella, pero todavía no hay ninguna acción que la ponga en `false`
-(Parte 2).
+filtra por ella. Desde el Bloque 12, Parte 2, la pone en `false`
+`cambiarActivoMaterial` (`modules/materiales/actions.ts`), disparada desde el
+icono de inactivar del listado con un `alert-dialog` de confirmación delante.
+El filtro «Mostrar inactivos» es lo que permite volver a verlas y
+reactivarlas: sin él, inactivar sería irreversible de cara al usuario aunque
+en la base no lo sea.
 
 **Índices.** `materiales_activo_idx` sobre `activo`, mismo criterio que
 `personal_activo_idx` y `orden_trabajo_estado_idx`: el listado filtra por

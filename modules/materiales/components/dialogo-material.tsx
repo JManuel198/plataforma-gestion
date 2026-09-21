@@ -55,6 +55,14 @@ type Props = {
  */
 export function DialogoMaterial({ guardarAction, disparador, material }: Props) {
   const router = useRouter();
+  // Las dos columnas admiten NULL en la base (ningún campo de negocio de
+  // `materiales` es NOT NULL), así que no se pueden interpolar a pelo: una
+  // fila cargada fuera de este formulario —escenario real, ver la decisión 8
+  // de "Catálogos maestros" en preguntas-abiertas.md— pintaría literalmente
+  // "null" en el título y en el toast. Mismo criterio que `oVacio()` en
+  // tabla-materiales.tsx y que el fallback de acciones-material.tsx.
+  const descripcion = material?.descripcion?.trim() || "Sin descripción";
+  const codigo = material?.codigo_interno?.trim() || "Sin código";
   const [abierto, setAbierto] = useState(false);
   const [estado, setEstado] = useState<EstadoFormulario>(
     estadoFormularioInicial,
@@ -88,9 +96,7 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
       setAbierto(false);
       setEstado(estadoFormularioInicial);
       toast.success(
-        material
-          ? `${material.descripcion}: cambios guardados.`
-          : "Material registrado.",
+        material ? `${descripcion}: cambios guardados.` : "Material registrado.",
       );
       router.refresh();
     });
@@ -118,7 +124,7 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
           </DialogTitle>
           <DialogDescription>
             {material
-              ? `${material.codigo_interno} · ${material.descripcion}`
+              ? `${codigo} · ${descripcion}`
               : "Herramientas, materiales y consumibles del catálogo."}
           </DialogDescription>
         </DialogHeader>
