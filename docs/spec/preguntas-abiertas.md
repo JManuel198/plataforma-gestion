@@ -258,17 +258,26 @@ El Bloque 11 agregó al menú lateral cinco catálogos maestros —**Materiales,
 Lista de precios, Servicios, Tarifario de personal y EPPs**— con una ruta
 plana cada uno (`/materiales`, `/lista-precios`, `/servicios`,
 `/tarifario-personal`, `/epps`) y una pantalla "próximamente"
-(`components/pantalla-proximamente.tsx`). Hoy **no hay nada detrás**: ni
-tabla, ni schema, ni regla de negocio. Se registran aquí porque los cinco
-nombres entran al vocabulario del sistema sin estar en `entidades.md`, y no
-se asumió ningún modelo de datos para ellos.
+(`components/pantalla-proximamente.tsx`). Cuando se escribió esto no había
+nada detrás de ninguno: ni tabla, ni schema, ni regla de negocio. Se
+registraron aquí porque los cinco nombres entraban al vocabulario del sistema
+sin estar en `entidades.md`.
 
-1. **Ninguno de los cinco tiene modelo definido.** No se sabe qué campos
-   lleva un material, si la lista de precios es una tabla o varias
-   versionadas, ni cómo se relaciona el tarifario con `personal`. Antes de
-   construir cualquiera de los cinco hay que documentarlo en
-   `entidades.md`; mientras tanto la pantalla es un placeholder y no decide
-   nada.
+**Actualización (Bloque 12, Parte 1, 2026-09-21): Materiales ya tiene tabla
+real** (`db/schema/materiales.ts`) y ficha propia en `entidades.md`; su
+pantalla ya no es un placeholder. Los otros CUATRO siguen como estaban. Las
+dudas de abajo que son suyas (la 3, 4, 5 y 6) siguen abiertas tal cual; las
+que eran de Materiales se cerraron o se concretaron en la 8.
+
+1. **Cuatro de los cinco siguen sin modelo definido** (Lista de precios,
+   Servicios, Tarifario de personal, EPPs). No se sabe si la lista de precios
+   es una tabla o varias versionadas, ni cómo se relaciona el tarifario con
+   `personal`. Antes de construir cualquiera de los cuatro hay que
+   documentarlo en `entidades.md`; mientras tanto su pantalla es un
+   placeholder y no decide nada.
+   **Materiales ya no está en este grupo**: su modelo se decidió en el Bloque
+   12 y está documentado. Lo que sigue abierto de él no es el modelo sino la
+   obligatoriedad de sus campos (decisión 8) y qué significa `fecha`.
 2. **Según AGENTS.md los catálogos maestros van en `core/`**, no en
    `modules/`. Las cinco pantallas viven en `app/(protegido)/` y todavía no
    tienen módulo, así que la decisión sigue abierta y no se ha prejuzgado.
@@ -310,3 +319,77 @@ se asumió ningún modelo de datos para ellos.
    Mientras no se confirme, la línea de `entidades.md` que dice que esas
    rutas "se retiraron por completo" describe la fusión, no el árbol de
    rutas de hoy.
+8. **¿Qué campos de Materiales son obligatorios?** (Bloque 12, Parte 1,
+   2026-09-21 — primer catálogo con tabla real, `db/schema/materiales.ts`).
+   El borrador de campos (hoy movido al cuerpo de `entidades.md`) nunca dijo
+   cuáles pueden quedar vacíos, y a diferencia de Personal u OT no hay
+   ninguna fuente (ni siquiera un Excel) de la que inferirlo.
+   **Asumido:** ningún campo de negocio es `NOT NULL` — `codigo_interno`,
+   `descripcion`, `marca`, `modelo`, `codigo_fabrica`, `unidad` y `fecha`
+   quedan todos nullable en la base. Solo `activo` (con su `DEFAULT true`) y
+   las columnas de auditoría son obligatorias, porque esas sí las exige el
+   comportamiento de la tabla, no una regla de negocio sobre el material. Es
+   la lectura literal de "solo `NOT NULL` donde sea evidente por el propio
+   campo": ninguno de los siete se consideró lo bastante evidente como para
+   endurecerlo sin que el cliente lo pida. El Zod de
+   `modules/materiales/schema.ts` puede exigir algunos en el formulario sin
+   tocar la columna — mismo patrón en dos capas que ya usa `responsable` de
+   OT (supuesto 6): endurecer primero el Zod y solo después, si se confirma,
+   la columna con una migración.
+   **Si se confirma que alguno es obligatorio:** agregar `.required()` (o
+   equivalente) en el Zod del módulo primero; la migración que añada
+   `.notNull()` a la columna en `db/schema/materiales.ts` solo es segura si
+   ninguna fila existente tiene ese campo vacío — si ya hay filas cargadas
+   sin `descripcion`, por ejemplo, hay que rellenarlas antes o la migración
+   falla.
+
+9. **Existe un proceso de validación previa a la activación de un material,
+   y NO está construido.** Confirmado por el cliente junto con el
+   significado de `fecha_activacion` (Bloque 12, 2026-09-21): un material no
+   se activa sin pasar antes por esa validación. Hoy el sistema **no la
+   representa de ninguna forma**: no hay estado, ni checklist, ni
+   comprobación, ni registro de quién validó; `fecha_activacion` es un campo
+   de texto que el usuario escribe a mano, y nada impide poner una fecha de
+   un material que nunca se validó.
+   Se registra aquí, aunque esté explícitamente fuera de alcance por ahora,
+   para que no se pierda como necesidad futura. Lo que falta por preguntar
+   antes de construirlo: en qué consiste la validación, quién la hace, si
+   deja rastro (quién y cuándo), y si un material puede existir en el
+   catálogo sin estar activado todavía — que es lo que hoy ocurre de hecho,
+   porque `fecha_activacion` admite `NULL` en la base.
+10. **¿`fecha_activacion` puede ser una fecha futura, o solo pasada o de
+    hoy?** Sin confirmar, y deliberadamente sin resolver. Hay argumento para
+    las dos: un material podría registrarse **antes** de terminar su
+    validación, con la activación ya prevista para una fecha próxima (futura
+    válida); o la activación podría ser algo que solo se anota una vez
+    ocurrida (futura imposible, sería un error de tecleo).
+    **Qué se hizo mientras tanto:** no se valida ningún rango — ni en
+    `modules/materiales/schema.ts` ni con `min`/`max` en el input. Permitir
+    todo no asume ninguna de las dos respuestas y deja pasar el dato;
+    rechazar futuros habría asumido una. Cuando se confirme, el sitio es
+    `fechaActivacionSchema` en `modules/materiales/schema.ts` (y, si se
+    quiere el aviso antes del viaje al servidor, un `max` en el input de
+    `components/campos-material.tsx`).
+
+11. **`codigo_interno` de Materiales pasará a generarse automáticamente.**
+    Confirmado que ocurrirá; **el formato está pendiente** y no se ha
+    construido nada. Hoy lo escribe el usuario a mano y es texto libre sin
+    patrón impuesto.
+    **Lo que esto cambia cuando llegue, y por eso se registra:** el flujo de
+    "ese código ya existe, corrígelo" **deja de ser el camino principal del
+    usuario**. Si el código lo genera el sistema, un choque de duplicados pasa
+    a ser un fallo interno del generador —como ya lo es el 23505 de
+    `codigo_ot` en Órdenes de Trabajo, que solo salta si algo se saltó el
+    correlativo— y no un error que el usuario pueda corregir escribiendo otra
+    cosa.
+    El `UNIQUE` de la columna y su traducción de error en
+    `modules/materiales/actions.ts` **se quedan**, pero cambian de papel: de
+    interacción esperada a red de seguridad. Cuando se construya el generador
+    hay que revisar el texto del mensaje ("Ya existe un material con ese
+    código interno" deja de tener sentido si el usuario no lo escribió) y
+    quitar el campo del formulario o dejarlo de solo lectura, igual que se
+    hizo con `codigo_ot`. El patrón a copiar es
+    `modules/ordenes-trabajo/correlativo.ts`, que ya resuelve la reserva
+    atómica del número sin huecos ni carreras.
+    Sin decidir todavía: el formato en sí, si el correlativo es global o por
+    alguna categoría, y qué pasa con los materiales ya cargados a mano.

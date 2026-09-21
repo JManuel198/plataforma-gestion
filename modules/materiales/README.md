@@ -27,15 +27,25 @@ Dos cosas SÍ están confirmadas y ya aplicadas:
 - `tipos.ts` — el tipo que consume el formulario para precargarse.
 - `queries.ts` — lecturas (listado, detalle).
 - `actions.ts` — Server Actions de crear y editar. Verifican sesión.
-- `components/` — campos, modal y tabla.
+- `filtros.ts` — los filtros del listado y cómo se escriben en la URL. Sin
+  Drizzle, para que lo usen tanto el servidor como los controles cliente.
+- `components/` — campos, modal, tabla, buscador, filtro de inactivos y las
+  acciones de fila.
 
 Tabla en `db/schema/materiales.ts`. Pantalla en
 `app/(protegido)/materiales/page.tsx` — ruta plana a propósito: el encabezado
 "Catálogos maestros" del menú es solo una etiqueta y nunca entra en la URL
 (ver la convención en AGENTS.md).
 
-**Pendiente para la Parte 2:** el buscador, el filtro de inactivos y los
-iconos de acción por fila. Hoy hay un botón "Editar" por fila, que es lo
-mínimo para probar el modal de punta a punta. La baja lógica todavía no
-tiene botón: la columna `activo` existe y el listado ya filtra por ella,
-pero nada la pone en `false` (igual que hacía `BotonBaja` en Personal).
+**Parte 2 (hecha):** buscador, filtro de inactivos y las dos acciones de
+fila. Este módulo es ahora la **referencia del patrón de Catálogos maestros**
+—dos iconos por fila (editar, inactivar), sin lupa de detalle— que Servicios,
+Lista de precios, Tarifario de personal y EPPs heredan tal cual. Está
+documentado en `.claude/skills/shadcn-conventions/SKILL.md`, sección
+"Catálogos maestros"; si cambias algo aquí, cámbialo también allí.
+
+`patronParcial()` en `queries.ts` es ya la TERCERA copia idéntica (las otras
+en personal/ y ordenes-trabajo/). Cumple de sobra la condición de AGENTS.md
+para mudarse a `core/`; se dejó aquí para no mezclar ese movimiento con este
+bloque, y es lo primero que hay que hacer si aparece un cuarto listado con
+búsqueda.

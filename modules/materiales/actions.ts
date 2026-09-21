@@ -10,7 +10,12 @@ import { db } from "@/db";
 import { materiales } from "@/db/schema/materiales";
 import type { EstadoFormulario } from "@/core/estado-formulario";
 import { esUniqueViolado } from "@/core/errores-postgres";
-import { materialCrearSchema, materialEditarSchema } from "./schema";
+import type { ResultadoAccion } from "@/core/resultado-accion";
+import {
+  materialCambioActivoSchema,
+  materialCrearSchema,
+  materialEditarSchema,
+} from "./schema";
 
 /**
  * Una Server Action se puede invocar con un POST directo, sin pasar por la
@@ -142,6 +147,56 @@ export async function editarMaterialEnModal(
 
     console.error("[Materiales] fallo inesperado al editar el material", error);
     return { mensaje: MENSAJE_FALLO_GUARDADO };
+  }
+
+  revalidatePath("/materiales");
+
+  return { ok: true };
+}
+
+/**
+ * Inactiva un material o vuelve a activarlo. Escribe SOLO la columna `activo`.
+ *
+ * NO ES UN BORRADO, y no debe convertirse en uno. La fila se queda: el día que
+ * `lista_precios.material` apunte de verdad a esta tabla (decisión todavía
+ * abierta, ver preguntas-abiertas.md), un DELETE dejaría filas de precios
+ * señalando a un material que ya no existe. Inactivar conserva el dato y solo
+ * lo saca del catálogo vigente.
+ *
+ * Deliberadamente no reutiliza `editarMaterialEnModal`: esa recibe el
+ * formulario entero y escribe siete columnas más, así que invocarla desde el
+ * listado significaría reescribir valores que esa pantalla ni muestra. Mismo
+ * criterio que `cambiarActivoPersona` y `actualizarEstadoOrdenTrabajo`.
+ *
+ * Recibe argumentos sueltos, no un `FormData`: no nace de un `<form>`.
+ */
+export async function cambiarActivoMaterial(
+  id: string,
+  activo: boolean,
+): Promise<ResultadoAccion> {
+  await exigirSesion();
+
+  // Los tipos de los parámetros no protegen nada en runtime: una Server Action
+  // es un endpoint y puede llegar cualquier cosa.
+  const resultado = materialCambioActivoSchema.safeParse({ id, activo });
+
+  if (!resultado.success) {
+    return { ok: false, mensaje: "Esa petición no es válida." };
+  }
+
+  try {
+    const actualizados = await db
+      .update(materiales)
+      .set({ activo: resultado.data.activo })
+      .where(eq(materiales.id, resultado.data.id))
+      .returning({ id: materiales.id });
+
+    if (actualizados.length === 0) {
+      return { ok: false, mensaje: "Ese material ya no existe." };
+    }
+  } catch (error) {
+    console.error("[Materiales] fallo inesperado al cambiar el activo", error);
+    return { ok: false, mensaje: "No se pudo completar. Intenta de nuevo." };
   }
 
   revalidatePath("/materiales");

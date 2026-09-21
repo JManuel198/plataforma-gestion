@@ -261,6 +261,50 @@ servidor.** La referencia a copiar es
   spinners elaborados — es una herramienta interna de un solo usuario, no
   necesita ese nivel de pulido todavía.
 
+## Catálogos maestros
+
+Los cinco catálogos que declara el menú (Materiales, Lista de precios,
+Servicios, Tarifario de personal, EPPs) comparten forma. **Materiales
+(`modules/materiales/`) es la referencia**: el que venga después se copia de
+ahí, no se reinventa.
+
+- **Dos iconos de acción por fila, no tres.** Lápiz (`PencilIcon`) para editar
+  y equis (`XIcon`) para inactivar. **No hay lupa de "ver detalle"** y es
+  deliberado: una fila de catálogo cabe entera en la tabla, así que una
+  pantalla de solo lectura no enseñaría nada nuevo — y el modal de edición ya
+  sirve para mirar, porque se cierra sin guardar. Añadir la lupa sería una
+  pantalla más que mantener a cambio de nada.
+- El componente es `components/acciones-material.tsx`. Los dos botones son
+  `Button variant="ghost" size="icon-sm"`, cada uno con su nombre en un
+  `<span class="sr-only">` (lo que lee un lector de pantalla) **y** un `title`
+  (el tooltip nativo al pasar el ratón). Un icono suelto sin las dos cosas es
+  inaccesible. Iconos y no texto —al revés que Personal, que usa palabras—
+  porque estas tablas tienen muchas columnas y dos etiquetas por fila empujan
+  el contenido.
+- **Inactivar se confirma con `alert-dialog`; reactivar no.** Inactivar saca la
+  fila del catálogo vigente y se confunde con borrar; reactivar no destruye ni
+  esconde nada, y confirmarlo también entrenaría a aceptar sin leer. Mismo
+  criterio que `BotonBaja` en Personal.
+- **Nunca se borra**: la acción escribe solo `activo = false` (regla invariable
+  9 de AGENTS.md), con su propia Server Action mínima —`cambiarActivoMaterial`,
+  que recibe argumentos sueltos y devuelve `ResultadoAccion`—, nunca la de
+  guardar el formulario entero. El texto del diálogo habla de "dejar de
+  aparecer en el catálogo", no de columnas.
+- **El botón de inactivar obliga a tener el filtro "Mostrar inactivos"**
+  (`components/filtro-inactivos.tsx`). Sin él la fila desaparece sin vuelta
+  atrás posible desde la interfaz, y el botón de reactivar no tendría cómo
+  mostrarse nunca: inactivar sería un borrado irreversible de cara al usuario
+  aunque no lo sea en la base.
+- **Un solo buscador para varias columnas**, no una caja por campo: quien busca
+  escribe lo que recuerda sin saber en qué columna cae. Se resuelve con
+  `or(ilike(...))` en el servidor (ver la sección Tablas y listas). En
+  Materiales cubre `codigo_interno`, `descripcion`, `marca` y `modelo`, y
+  deja fuera `unidad` —un puñado de valores repetidos que traería medio
+  catálogo— y `codigo_fabrica`.
+- El reparto de archivos del módulo es el de siempre (`schema.ts`, `tipos.ts`,
+  `queries.ts`, `actions.ts`, `filtros.ts`, `components/`), más
+  `components/use-filtros.ts` para la navegación de los filtros.
+
 ## Acciones destructivas
 
 - "Eliminar" casi nunca existe de verdad en este proyecto — es desactivar o

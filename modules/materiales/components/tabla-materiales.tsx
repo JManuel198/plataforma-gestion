@@ -8,10 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { editarMaterialEnModal } from "../actions";
 import type { FilaMaterial } from "../queries";
-import { DialogoMaterial } from "./dialogo-material";
+import { AccionesMaterial } from "./acciones-material";
 
 /**
  * Un guion para las celdas sin dato, en vez de dejar el hueco en blanco: una
@@ -22,11 +20,20 @@ function oVacio(valor: string | null | undefined) {
   return valor && valor.trim() !== "" ? valor : "—";
 }
 
-export function TablaMateriales({ materiales }: { materiales: FilaMaterial[] }) {
+export function TablaMateriales({
+  materiales,
+  filtrado = false,
+}: {
+  materiales: FilaMaterial[];
+  /** Si hay filtros puestos — cambia el mensaje de lista vacía. */
+  filtrado?: boolean;
+}) {
   if (materiales.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No hay materiales registrados todavía.
+        {filtrado
+          ? "Ningún material coincide con los filtros."
+          : "No hay materiales registrados todavía."}
       </p>
     );
   }
@@ -80,18 +87,7 @@ export function TablaMateriales({ materiales }: { materiales: FilaMaterial[] }) 
                 {fila.activo ? null : <Badge variant="secondary">Inactivo</Badge>}
               </TableCell>
               <TableCell className="text-right whitespace-nowrap">
-                {/* Un botón de texto y no un icono: los iconos de acción por
-                    fila son Parte 2. Esto es lo mínimo para probar el modal de
-                    edición de punta a punta, igual que se hizo en OT. */}
-                <DialogoMaterial
-                  guardarAction={editarMaterialEnModal}
-                  material={fila}
-                  disparador={
-                    <Button variant="ghost" size="sm">
-                      Editar
-                    </Button>
-                  }
-                />
+                <AccionesMaterial material={fila} />
               </TableCell>
             </TableRow>
           ))}

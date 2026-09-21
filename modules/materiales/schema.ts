@@ -105,5 +105,40 @@ export const materialEditarSchema = materialCrearSchema.extend({
   id: z.string().trim().min(1, "Falta el identificador del material."),
 });
 
+/**
+ * Inactivar o reactivar desde el listado. Esquema aparte y mínimo a propósito,
+ * igual que `personaCambioActivoSchema`: la acción que lo usa escribe una sola
+ * columna, así que nada más puede viajar con él aunque alguien invoque la
+ * acción con un POST directo.
+ */
+export const materialCambioActivoSchema = z.object({
+  id: z.string().trim().min(1, "Falta el identificador del material."),
+  activo: z.boolean(),
+});
+
+// --- Filtros del listado ---------------------------------------------------
+//
+// Vienen de `searchParams`, o sea que son input del usuario. Mismo patrón que
+// en Personal y OT: `.optional().catch(undefined)` para que un parámetro
+// inventado o repetido no reviente la pantalla, solo se ignore.
+
+export const filtroBusquedaSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .catch(undefined);
+
+/**
+ * `?inactivos=1` muestra también los materiales inactivos. Cualquier otro
+ * valor —o ninguno— deja el listado en su comportamiento por defecto: solo
+ * activos.
+ */
+export const filtroInactivosSchema = z
+  .literal("1")
+  .optional()
+  .catch(undefined);
+
 export type MaterialCrearInput = z.infer<typeof materialCrearSchema>;
 export type MaterialEditarInput = z.infer<typeof materialEditarSchema>;

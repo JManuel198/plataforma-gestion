@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { crearMaterialEnModal } from "@/modules/materiales/actions";
+import { BuscadorMateriales } from "@/modules/materiales/components/buscador-materiales";
 import { DialogoMaterial } from "@/modules/materiales/components/dialogo-material";
+import { FiltroInactivos } from "@/modules/materiales/components/filtro-inactivos";
 import { TablaMateriales } from "@/modules/materiales/components/tabla-materiales";
+import { hayFiltros, type FiltrosMateriales } from "@/modules/materiales/filtros";
 import { listarMateriales } from "@/modules/materiales/queries";
+import {
+  filtroBusquedaSchema,
+  filtroInactivosSchema,
+} from "@/modules/materiales/schema";
 
 // Ruta plana a propósito: el encabezado "Catálogos maestros" bajo el que
 // aparece este enlace es solo una etiqueta del menú y nunca entra en la URL.
@@ -10,8 +17,19 @@ import { listarMateriales } from "@/modules/materiales/queries";
 // components/barra-lateral.tsx (comentario sobre MENU).
 export const metadata = { title: "Materiales" };
 
-export default async function PaginaMateriales() {
-  const materiales = await listarMateriales();
+export default async function PaginaMateriales({
+  searchParams,
+}: PageProps<"/materiales">) {
+  const { busqueda, inactivos } = await searchParams;
+
+  // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro
+  // inventado o repetido se ignora en vez de reventar la pantalla.
+  const filtros: FiltrosMateriales = {
+    busqueda: filtroBusquedaSchema.parse(busqueda),
+    inactivos: filtroInactivosSchema.parse(inactivos) === "1",
+  };
+
+  const materiales = await listarMateriales(filtros);
 
   return (
     <div className="space-y-6">
@@ -34,11 +52,14 @@ export default async function PaginaMateriales() {
         />
       </div>
 
-      {/* El buscador y el filtro de inactivos son Parte 2: van aquí, con el
-          mismo patrón de `BuscadorPersonal` (estado en la URL, filtrado en la
-          consulta del servidor). */}
+      {/* Cada control recibe los filtros completos, no solo el suyo: así el
+          que cambia conserva al otro en la URL en vez de pisarlo. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <BuscadorMateriales filtros={filtros} />
+        <FiltroInactivos filtros={filtros} />
+      </div>
 
-      <TablaMateriales materiales={materiales} />
+      <TablaMateriales materiales={materiales} filtrado={hayFiltros(filtros)} />
     </div>
   );
 }

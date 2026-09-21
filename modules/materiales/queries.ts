@@ -1,6 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { materiales } from "@/db/schema/materiales";
+import type { FiltrosMateriales } from "./filtros";
 
 /**
  * Las columnas que muestra el listado: todas las de negocio, más `activo`
@@ -20,25 +21,59 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista el catálogo de materiales.
+ * Convierte el texto del buscador en el patrón de un `ILIKE`.
  *
- * Solo los activos: la baja es lógica (`activo = false`, nunca un DELETE —
- * regla invariable 9), pero de cara al usuario tiene que verse como un
- * borrado. Hoy no hay nada que ponga `activo` en false, así que en la práctica
- * devuelve todo; el filtro está desde el principio para que el día que la
- * Parte 2 añada la baja no haya que tocar la consulta, y para que
- * `materiales_activo_idx` sirva de algo.
+ * Copia deliberada de `patronParcial` en modules/personal/queries.ts y
+ * modules/ordenes-trabajo/queries.ts: dos módulos no se importan entre sí
+ * (AGENTS.md, Arquitectura). Ya son TRES copias idénticas, así que esta
+ * función cumple de sobra la condición para mudarse a core/ — se deja aquí
+ * solo para no mezclar ese movimiento con el trabajo de este bloque, y es lo
+ * primero que hay que hacer si aparece un cuarto listado con búsqueda.
  *
- * Sin parámetros todavía: el buscador y el filtro de inactivos son Parte 2.
- * Cuando lleguen, esta función recibe un objeto de filtros como
- * `listarPersonal`, y el filtrado se resuelve aquí en la consulta — nunca en
- * el navegador sobre un arreglo ya traído entero.
+ * El valor viaja parametrizado, así que no hay inyección posible; lo que hay
+ * que neutralizar son los comodines del propio `LIKE`: sin esto, buscar "50%"
+ * traería todo lo que empiece por "50". El escape es `\`, el que PostgreSQL
+ * usa por defecto en `LIKE`/`ILIKE`.
  */
-export async function listarMateriales() {
+function patronParcial(texto: string): string {
+  return `%${texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
+}
+
+/**
+ * Lista el catálogo de materiales aplicando los filtros que vengan.
+ *
+ * Por defecto solo los activos: la baja es lógica (`activo = false`, nunca un
+ * DELETE — regla invariable 9), pero de cara al usuario tiene que verse como
+ * un borrado. Quien quiera ver los inactivos lo pide explícitamente con
+ * `inactivos`.
+ *
+ * Todo se resuelve en la consulta, nunca en el navegador.
+ */
+export async function listarMateriales(filtros: FiltrosMateriales = {}) {
+  const { busqueda, inactivos } = filtros;
+  const patron = busqueda ? patronParcial(busqueda) : null;
+
+  const condiciones = [
+    inactivos ? undefined : eq(materiales.activo, true),
+    // Las cuatro columnas del buscador. Son `nullable`, y eso importa aquí:
+    // `ILIKE` sobre NULL da NULL, no false — pero dentro de un `or(...)` eso
+    // se comporta como "esta no casa", que es exactamente lo que se quiere.
+    // Una fila sin marca no desaparece de la búsqueda: sigue pudiendo casar
+    // por descripción o por código.
+    patron
+      ? or(
+          ilike(materiales.codigo_interno, patron),
+          ilike(materiales.descripcion, patron),
+          ilike(materiales.marca, patron),
+          ilike(materiales.modelo, patron),
+        )
+      : undefined,
+  ];
+
   return db
     .select(columnasListado)
     .from(materiales)
-    .where(eq(materiales.activo, true))
+    .where(and(...condiciones))
     // Por código interno: es el identificador con el que el usuario busca una
     // herramienta en una lista de papel. No hay correlativo ni fecha de
     // emisión que sugiera otro orden.
