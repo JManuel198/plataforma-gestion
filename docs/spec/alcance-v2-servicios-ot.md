@@ -46,6 +46,13 @@ Fuera de alcance en 3 días, y está bien que sea así: 2FA, límite de intentos
 | `comentarios` | texto libre | manual |
 
 ### Estados (confirmados por el cliente)
+> **SUPERADO (2026-09-19).** Esta lista era de la entidad Servicio, que ya no
+> existe: se fusionó en Orden de Trabajo. `Activado`, `En espera` y
+> `Rechazado` se descartaron por redundar con `Pendiente`, `Pausada` y
+> `Cancelada` de la OT. **La lista vigente son los 7 estados de la OT y está
+> en `reglas-negocio.md`.** Se conserva lo de abajo como registro de lo que
+> el cliente había confirmado en su momento.
+
 `Activado` · `En espera` · `En ejecución` · `Finalizado` · `Facturado` · `Rechazado`
 
 ### Definición de "hecho"
@@ -85,6 +92,12 @@ Formato: `OT.CCM.2026.0001`
 - **Asunción a confirmar:** cada año inicia en `0001`. Si el cliente de verdad quiere que inicie en `0000`, es un ajuste de una línea — avisar cuando se confirme.
 
 ### Estados propuestos (pendientes de validar con el cliente)
+> **SUPERADO (2026-09-19 / 2026-09-20).** A estos cinco se les sumó
+> `Facturado` al fusionar Servicio en OT, y `Aceptada` cuando el cliente la
+> pidió el 2026-09-20. **La lista vigente son 7 y está en
+> `reglas-negocio.md`**; el cómo se llegó a ella, en el supuesto 12 de
+> `preguntas-abiertas.md`.
+
 `Pendiente` · `En ejecución` · `Pausada` · `Finalizada` · `Cancelada`
 
 Se proponen distintos a los de Servicio a propósito: los de Servicio son administrativos/comerciales, estos son de ejecución en campo. Sujetos a cambio — el cliente ya autorizó esta propuesta temporal.

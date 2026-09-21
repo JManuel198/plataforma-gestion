@@ -19,6 +19,10 @@ esa FK) — tenía 0 filas, no hubo
 pérdida de datos real. Todo lo que describía esta sección ahora vive en
 **Orden de Trabajo**, abajo. `modules/servicios/` y las rutas
 `app/(protegido)/servicios/**` también se retiraron por completo.
+Ojo al leer esto hoy: la ruta `/servicios` volvió a existir en el Bloque 11
+(2026-09-21), pero para el **catálogo maestro de servicios**, que no es esta
+entidad. Es una pantalla "próximamente" sin modelo definido — ver
+"Catálogos maestros" en `preguntas-abiertas.md`.
 
 ---
 
@@ -53,7 +57,9 @@ fusionar Servicio (de donde viene `Facturado`) con los estados de ejecución
 en campo que ya tenía la OT, más `Aceptada` (pedida por el cliente el
 2026-09-20, entre `Pendiente` y `En ejecución`: marca que la OT ya tiene el
 visto bueno para arrancar pero todavía no se trabaja en campo). **Pendiente
-de confirmar con el cliente** — ver supuesto nuevo en `preguntas-abiertas.md`.
+de confirmar con el cliente** — ver supuesto 12 de `preguntas-abiertas.md`.
+La regla enunciada (los 7 en orden y por qué `Aceptada` va donde va) está en
+`reglas-negocio.md`.
 
 Desde 2026-09-19, `modules/ordenes-trabajo/constantes.ts` es la única fuente
 de esta lista y también de `MONEDAS`: `db/schema/orden-trabajo.ts` importa los
@@ -170,6 +176,17 @@ concreto: si `orden_trabajo.responsable` (hoy texto libre) llega a
 convertirse algún día en FK a esta tabla, un DELETE real dejaría referencias
 rotas.
 
+**`cargo` dejará de ser texto libre — forma ya decidida, construcción
+pendiente.** Pasará a ser un campo de **búsqueda con autocompletado** contra
+`tarifario_personal` (ver el borrador más abajo), no un `<select>`
+tradicional: la lista de cargos crecerá y un desplegable plano se vuelve
+inmanejable. Lo que está decidido es esa forma de interacción; lo que NO está
+decidido es el modelo (si `cargo` pasa a ser FK a `tarifario_personal` o sigue
+siendo texto validado contra él). **La construcción de esta conexión queda
+para después de que `tarifario_personal` esté aprobado por el cliente** — hasta
+entonces `cargo` sigue siendo `text` libre, con las consecuencias ya anotadas
+en `preguntas-abiertas.md` (supuesto 3 de Personal).
+
 **Índices.** `personal_activo_idx` sobre `activo`, mismo criterio que
 `orden_trabajo_estado_idx`: el listado filtra por `activo` en la consulta por
 defecto.
@@ -177,3 +194,86 @@ defecto.
 **Consume:** nada. **Consumida por:** `modules/personal/` (en desarrollo). Sin
 relación todavía con `orden_trabajo.responsable`, que sigue siendo texto
 libre — ver deuda técnica en AGENTS.md sobre esa columna.
+
+---
+
+# BORRADOR — Catálogos maestros (no confirmado con el cliente)
+
+**Todo lo que sigue es un borrador temporal**, dicho así explícitamente por el
+desarrollador: son los campos tal como se han esbozado hasta el Bloque 11
+(2026-09-21), **no una especificación cerrada ni confirmada con el cliente**.
+Ninguna de estas tablas existe todavía en `db/schema/` — hoy las cinco rutas
+del menú (`/materiales`, `/lista-precios`, `/servicios`,
+`/tarifario-personal`, `/epps`) muestran una pantalla "próximamente".
+
+A diferencia del resto de este documento, que refleja lo que existe de verdad
+en `db/schema/`, esta sección va por delante del código. **No generes
+migraciones a partir de esto sin confirmarlo antes.** Las dudas abiertas de
+cada catálogo están en `preguntas-abiertas.md`, sección "Catálogos maestros".
+
+Los tipos concretos (`text`, `bigint`, enum…) se deciden al construir cada
+tabla; aquí solo está la lista de campos. Dos reglas del proyecto ya aplican
+sin discusión cuando llegue ese momento: todo importe va en **céntimos**
+(regla 2) y toda fecha sin hora va como **`date`**, no `timestamp` (regla 10).
+
+## BORRADOR — Materiales
+
+| Campo | Notas |
+|---|---|
+| código interno | el que usa la empresa, no el del fabricante |
+| descripción | |
+| marca | |
+| modelo | |
+| código de fábrica | el del fabricante, distinto del interno |
+| unidad | unidad de medida |
+| fecha | sin confirmar de qué fecha se trata (alta, actualización…) |
+
+## BORRADOR — Lista de precios
+
+| Campo | Notas |
+|---|---|
+| código oferta | |
+| material | **sin decidir** si es texto libre o relación real contra Materiales — ver preguntas-abiertas.md |
+| proveedor | |
+| unidad | |
+| cantidad | |
+| precio lista | importe, en céntimos |
+| precio | importe, en céntimos — **sin decidir** si es independiente o se deriva de precio lista menos descuentos |
+| descuentos | |
+| moneda | mismo criterio que la OT: una sola por registro |
+| fecha | |
+
+## BORRADOR — Servicios (catálogo maestro)
+
+**Ojo con el nombre:** este catálogo NO es la entidad Servicio fusionada en OT
+el 2026-09-19 (ver la primera sección de este documento). Comparten nombre y
+ruta (`/servicios`), y esa colisión está registrada como pregunta abierta.
+
+| Campo | Notas |
+|---|---|
+| código | |
+| servicio | |
+| categoría | |
+| unidad | |
+| precio | importe, en céntimos |
+| moneda | |
+| comprobante | **sin decidir** si es texto (referencia/número) o un archivo real — si es archivo, es infraestructura nueva para el proyecto |
+| fecha de actualización | **automática** en cada edición, nunca manual |
+
+## BORRADOR — tarifario_personal
+
+Es el catálogo contra el que se autocompletará el `cargo` de Personal (ver esa
+sección más arriba).
+
+| Campo | Notas |
+|---|---|
+| cargo | |
+| nivel | **opcional** |
+| costo por día | entero, en **céntimos** (regla 2) |
+| moneda | |
+| activo | baja lógica, nunca borrado (regla 9) |
+
+## EPPs
+
+Sin campos definidos todavía. Registrado en `preguntas-abiertas.md`; no se
+esboza aquí para no inventar un modelo que nadie ha propuesto.

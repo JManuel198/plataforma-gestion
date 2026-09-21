@@ -15,9 +15,11 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   primitivo, instálalo con `npx shadcn@latest add <componente>` — nunca lo
   construyas a mano, y nunca escribas CSS custom sin justificarlo en el propio
   archivo (regla 5 de AGENTS.md).
-- Instalados hoy: `alert-dialog`, `badge`, `button`, `card`, `dialog`,
-  `input`, `label`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`,
-  `sonner`, `table`, `textarea`, `tooltip`. Cualquier otro hay que agregarlo.
+- Instalados hoy: `alert-dialog`, `badge`, `button`, `card`, `collapsible`,
+  `dialog`, `input`, `label`, `select`, `separator`, `sheet`, `sidebar`,
+  `skeleton`, `sonner`, `table`, `textarea`, `tooltip`. Cualquier otro hay que
+  agregarlo. `collapsible` entró en el Bloque 11, para plegar las secciones de
+  la barra lateral.
   Los cinco últimos en llegar (`sidebar` y sus dependencias `separator`,
   `sheet`, `skeleton`, `tooltip`, más el hook `hooks/use-mobile.ts`) entraron
   de una sola vez con `npx shadcn@latest add sidebar`, para la barra lateral
@@ -101,12 +103,46 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   (`components/barra-lateral.tsx`), montada por `app/(protegido)/layout.tsx`.
   No hay cabecera de navegación: la única cabecera que queda es una franja con
   el `SidebarTrigger`, que en móvil es lo que abre el cajón.
-- **Agregar un módulo es agregar una entrada al array `MODULOS`** de
-  `barra-lateral.tsx` (`{ href, etiqueta, Icono }`, iconos de `lucide-react`).
-  No se toca el layout. Ese array terminará en `config/clientes/*.json`
-  ("módulos activos") cuando exista el primer archivo de cliente.
-- El módulo activo se marca comparando `usePathname()` con `href`, contando
+- **Agregar una entrada es agregarla al array `MENU`** de `barra-lateral.tsx`.
+  No se toca el layout. `MENU` es una lista de secciones
+  (`{ encabezado?, enlaces }`) y cada enlace es `{ href, etiqueta, Icono }`,
+  con iconos de `lucide-react`. Hasta el Bloque 11 era un array plano llamado
+  `MODULOS`; las secciones entraron con SSOMA y Catálogos maestros. Ese array
+  terminará en `config/clientes/*.json` ("módulos activos") cuando exista el
+  primer archivo de cliente.
+- **`encabezado` es solo una etiqueta visual y nunca entra en ninguna URL.**
+  Personal está bajo "SSOMA" pero vive en `/personal`, y los catálogos son
+  rutas planas (`/materiales`, `/lista-precios`, …), no
+  `/catalogos-maestros/...`. Prohibido derivar un `href` del texto de un
+  encabezado. El porqué y cómo revertirlo, en el comentario de `MENU` y en la
+  sección Convenciones de AGENTS.md.
+- Las secciones se arman con `SidebarGroup` + `SidebarGroupLabel`, **no** con
+  `SidebarMenuSub`: el submenú lleva `group-data-[collapsible=icon]:hidden`,
+  así que al colapsar la barra desaparecerían sus enlaces. Con grupos solo se
+  desvanece el encabezado.
+- **Una sección con `encabezado` es desplegable**: el encabezado es el
+  `CollapsibleTrigger` (`SidebarGroupLabel render={<CollapsibleTrigger />}`,
+  que sale como `<button>` nativo y por tanto respeta la regla de `render` de
+  arriba). El estado vive en cada sección, así que son independientes; arranca
+  abierta y no se persiste.
+- **Hay DOS ejes de colapso y se cruzan.** El de la barra entera
+  (`collapsible="icon"`) y el de cada sección. En modo icono el encabezado se
+  desvanece, así que una sección cerrada dejaría sus enlaces inalcanzables: por
+  eso en modo icono el panel se fuerza abierto (`modoIcono || abierta`) y el
+  encabezado va `inert` — no basta `disabled`, porque el trigger de Base UI usa
+  `focusableWhenDisabled: true`. En móvil no aplica (`&& !isMobile`): dentro
+  del `Sheet` nunca hay `data-collapsible="icon"`. Si tocas uno de los dos
+  ejes, prueba la combinación: cerrar una sección, colapsar la barra a iconos,
+  y volver a expandirla.
+- Plegar una sección es **estado visual y nada más**: no toca la URL. Si algún
+  día tiene que sobrevivir a una recarga, va en cookie o `localStorage` (como
+  `sidebar_state` para la barra entera), nunca en `searchParams`.
+- La sección activa se marca comparando `usePathname()` con `href`, contando
   también las rutas hijas (`/ordenes-trabajo/nueva` marca Órdenes de Trabajo).
+- Una sección del menú que todavía no está construida apunta a un `page.tsx`
+  que solo renderiza `PantallaProximamente`
+  (`components/pantalla-proximamente.tsx`) — así el enlace no lleva a un 404.
+  Al implementarla de verdad, ese `page.tsx` deja de importarla.
 - El nombre del usuario y `BotonCerrarSesion` van en el **pie de la barra**
   (`SidebarFooter`). La sesión se lee en el Server Component del layout y
   llega a la barra por prop — la barra es cliente solo por `usePathname()`.

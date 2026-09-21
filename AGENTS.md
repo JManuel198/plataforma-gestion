@@ -47,6 +47,16 @@ trabaje en este código.
   el runtime de producción de cada cliente nunca lo es. No existe
   aislamiento por tenant_id porque no hace falta: cada base de datos
   pertenece a un solo cliente.
+
+  Estado real de esto (2026-09-21): esta estructura existe en el código
+  pero no se persigue activamente — no hay plan de reventa confirmado con
+  el cliente actual. Si aparece un cliente nuevo, se evalúa un sistema
+  aparte, no generalizar este. Lo de arriba sigue describiendo cómo está
+  pensado el mecanismo, no un objetivo en curso: por eso config/clientes/
+  no tiene todavía ningún .json y varias cosas que "deberían" vivir ahí
+  (el correlativo de OT, el array MENU de la barra lateral) siguen en el
+  código a sabiendas. No inviertas esfuerzo en generalizar por cliente sin
+  que alguien lo pida explícitamente.
 - docs/spec/ — especificación de negocio capturada de la plataforma guía.
   Fuente de verdad antes que el código: ante cualquier duda sobre una
   regla de negocio, se consulta aquí primero, nunca se asume.
@@ -71,13 +81,106 @@ trabaje en este código.
    vez de asumir.
 8. Ningún secreto se hardcodea. Todo vive en variables de entorno
    (.env.local, nunca versionado).
+9. Ningún registro se borra en operación normal — se desactiva (columna
+   `activo` o equivalente). Viene de Cliente/Contacto de la **plataforma
+   guía** (el sistema que se está replicando; aquí no hay tabla de Clientes
+   todavía, `orden_trabajo.cliente` es texto libre). En este repositorio
+   está aplicado en Personal (`activo`). La OT es la excepción razonada: su
+   propio `estado` llega a `Cancelada` y cumple ese papel, así que no lleva
+   una segunda bandera (ver entidades.md).
+10. Un campo que representa solo fecha, sin hora, se guarda como `date`,
+    nunca `timestamp` — evita el problema de zona horaria que sí afecta a
+    las columnas de fecha de Órdenes de Trabajo (ver la deuda técnica
+    sobre db/index.ts más abajo). Aplicado ya en `fecha_nacimiento` de
+    Personal.
 
 ## Convenciones
 - Archivos: kebab-case. Componentes de React: PascalCase.
 - Un módulo de negocio = una carpeta en modules/, con su propio schema.ts,
   actions.ts y components/.
 - Los correlativos siguen el formato definido en config/clientes/*.json,
-  nunca hardcodeado en el módulo.
+  nunca hardcodeado en el módulo. **Hoy esto NO se cumple y es deliberado**:
+  config/clientes/ no tiene ningún .json, así que las cinco constantes del
+  correlativo viven en el código (ver la deuda técnica más abajo). La
+  convención se conserva como la forma correcta el día que exista un archivo
+  de cliente, no como una tarea pendiente con fecha — desde que se decidió
+  no perseguir la generalización multi-cliente (ver la nota de
+  config/clientes/ en Arquitectura), mover el correlativo allí dejó de ser
+  un objetivo en curso. Mientras tanto, lo que manda es: una sola fuente de
+  verdad para el formato, y que las cinco constantes viajen juntas si algún
+  día se mueven.
+- Las etiquetas del menú lateral van DESACOPLADAS de las rutas (decidido en
+  el Bloque 11, 2026-09-21). Los encabezados que agrupan enlaces en
+  components/barra-lateral.tsx — hoy "SSOMA" y "Catálogos maestros" — son
+  solo texto del menú: jamás forman parte de una URL, y ningún href se
+  deriva de ellos. Por eso Personal está bajo SSOMA pero sigue en
+  /personal, y los cinco catálogos usan rutas planas de nivel superior
+  (/materiales, /lista-precios, /servicios, /tarifario-personal, /epps) en
+  vez de /catalogos-maestros/...
+  El motivo: "SSOMA" es un nombre provisional que probablemente cambie. Con
+  la etiqueta fuera de la URL, renombrarlo es editar un string del array
+  MENU y nada más; acoplado, rompería cualquier enlace guardado o
+  compartido.
+  El mismo principio cubre el plegado de esas secciones (son desplegables:
+  un clic en el encabezado muestra u oculta sus enlaces). Abrir o cerrar un
+  grupo es estado puramente visual y NO toca la URL: nada de
+  ?ssoma=abierto ni de rutas distintas según el estado. Arranca abierto y
+  no se persiste. Si algún día se quiere que sobreviva a una recarga, el
+  sitio es una cookie o localStorage — como ya hace la barra entera con
+  sidebar_state —, nunca el searchParams.
+  Ojo con los DOS ejes de colapso, que no son el mismo: el de la barra
+  entera (collapsible="icon") y el de cada sección. Se cruzan en un punto:
+  en modo icono el encabezado se desvanece, así que una sección cerrada
+  dejaría sus enlaces inalcanzables. Por eso en modo icono el panel se
+  fuerza abierto y el encabezado se marca inert. Está resuelto y comentado
+  en SeccionBarra, en components/barra-lateral.tsx; si tocas una de las dos
+  cosas, vuelve a probar la combinación.
+  Si alguna vez se decide lo contrario (URLs más descriptivas, del tipo
+  /catalogos-maestros/materiales): esto se decidió a sabiendas, no por
+  descuido. Revertirlo es mover las carpetas de app/(protegido)/<ruta>/ a
+  app/(protegido)/<grupo>/<ruta>/, actualizar los href del array MENU en
+  components/barra-lateral.tsx — el único archivo que declara la relación
+  etiqueta/ruta — y dejar redirecciones de las rutas viejas en
+  next.config.ts para no romper lo ya enlazado.
+- La regla real del aviso de `nativeButton` de Base UI NO es "nunca usar
+  `render`": es que el elemento que termina en el DOM coincida con lo que
+  declara `nativeButton`. Confirmado dos veces: en los Links de navegación
+  (un <a> con el flag en true — mal) y en el SidebarGroupLabel de la barra
+  lateral (un <button> nativo con el flag en true — bien). Antes de dar un
+  `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
+  qué componente lo envuelve. El detalle, con números de línea, en la skill
+  de convenciones y en la deuda técnica de abajo.
+- Para dejar un elemento inalcanzable (no solo oculto) se usa `inert`, no
+  `disabled`: varios componentes de Base UI pasan
+  `focusableWhenDisabled: true`, así que `disabled` puede dejar un control
+  invisible pero todavía enfocable con Tab. Aplicado en los encabezados de
+  la barra lateral cuando está en modo icono.
+- Antes de usar un componente nuevo de Base UI con overlay o portal
+  (Dialog, Collapsible, etc.), verifica explícitamente qué hace al
+  cerrarse: si desmonta a sus hijos o los deja montados. No asumas que se
+  comporta como otro que ya usas. Dialog NO desmonta a sus hijos por
+  defecto; Collapsible SÍ (su `keepMounted` es false), así que los enlaces
+  de una sección cerrada de la barra no están en el DOM — y por tanto
+  tampoco aparecen en el Ctrl+F del navegador.
+- Todo `try/catch` alrededor de una Server Action tiene que dejar pasar el
+  `NEXT_REDIRECT` de Next — se reconoce por su `digest` — y traducir
+  cualquier otro fallo no reconocido en un mensaje visible para el usuario.
+  Nunca fallar en silencio: un catch que se traga el redirect deja el
+  formulario colgado sin navegar y sin avisar.
+
+## Subagentes del proyecto
+En `.claude/agents/` viven dos agentes especializados. No son opcionales
+por capricho: cada uno concentra reglas que no están en ningún otro sitio.
+- `auditor.md` — revisa código contra las reglas invariables de este
+  archivo, contra docs/spec/ y contra buenas prácticas de seguridad, en
+  modo estrictamente de solo lectura (no tiene Edit ni Write). Se invoca al
+  completar cada checkpoint y antes de cualquier commit importante. No
+  corrige: reporta qué está mal, por qué y qué regla viola.
+- `arquitecto-datos.md` — diseña y modifica el esquema y las migraciones de
+  Drizzle. Toda tabla, columna o relación nueva pasa por aquí, incluida la
+  integración con las tablas de Better Auth. Genera migraciones (nunca SQL
+  manual) y mantiene docs/spec/entidades.md sincronizado con el esquema
+  real.
 
 ## Deuda técnica conocida
 - RESUELTO (2026-09-20): estado-formulario.ts y resultado-accion.ts
@@ -154,12 +257,19 @@ trabaje en este código.
   compartido con el esquema, mover estas listas a core/ — neutral para
   ambos lados — en vez de que db/schema/ termine importando de varios
   módulos de negocio.
-- La suite de tests está apenas empezada. Ya existe infraestructura:
-  @playwright/test, playwright.config.ts, el script `npm test` y una
-  prueba de humo end-to-end en tests/humo.spec.ts. Eso cubre que la app
-  levanta y que las pantallas principales responden, nada más: siguen
-  faltando las pruebas de unidad, que son las que de verdad importan
-  aquí (correlativo.ts y lib/fecha.ts — ver abajo).
+- La suite de tests está apenas empezada, pero existe y corre: no es una
+  carpeta vacía. `npm test` ejecuta @playwright/test contra
+  playwright.config.ts y hoy son DOS pruebas de humo reales, las dos en
+  tests/humo.spec.ts y las dos en verde (verificado el 2026-09-21):
+  que /login renderiza y pide correo y contraseña, y que /ordenes-trabajo
+  redirige a /login sin sesión.
+  Cuidado con sobrevender lo que cubren, que es muy poco: la única
+  pantalla que se renderiza de verdad es /login. Ninguna prueba entra a
+  una pantalla protegida —no hay forma de automatizar el login sin meter
+  credenciales en el repositorio (regla 8), y sembrar una sesión de prueba
+  está sin decidir—, así que nada del comportamiento autenticado está
+  cubierto. Siguen faltando las pruebas de unidad, que son las que de
+  verdad importan aquí (correlativo.ts y lib/fecha.ts — ver abajo).
   Todo lo demás que se ha verificado hasta hoy se comprobó con scripts
   temporales, escritos para el momento y borrados después — la reserva
   concurrente del correlativo, el UNIQUE de personal.dni rechazando

@@ -1,9 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardListIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import {
+  BanknoteIcon,
+  ChevronDownIcon,
+  ClipboardListIcon,
+  HardHatIcon,
+  HomeIcon,
+  PackageIcon,
+  TagsIcon,
+  UsersIcon,
+  WrenchIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { BotonCerrarSesion } from "@/components/boton-cerrar-sesion";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -16,19 +33,54 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-type Modulo = {
+type Enlace = {
   href: string;
   etiqueta: string;
   Icono: LucideIcon;
 };
 
+type Seccion = {
+  /**
+   * Encabezado visual del grupo. Opcional: sin él los enlaces van sueltos
+   * arriba, que es como aparecen Inicio y Órdenes de Trabajo. Cuando lo hay,
+   * el encabezado es además el botón que pliega y despliega la sección.
+   */
+  encabezado?: string;
+  enlaces: readonly Enlace[];
+};
+
 /**
- * Los módulos que se listan en la barra. Agregar uno es agregar una entrada
- * aquí: ni el layout ni este componente cambian de forma. Personal entró así
- * el 2026-09-20, sin tocar nada más.
+ * El menú de la barra. Agregar una entrada es agregarla aquí: ni el layout ni
+ * el resto de este componente cambian de forma.
+ *
+ * ETIQUETA Y RUTA VAN DESACOPLADAS — DECISIÓN DELIBERADA (Bloque 11).
+ * `encabezado` es SOLO texto que agrupa enlaces en el menú; jamás forma parte
+ * de una URL. Por eso Personal sigue en `/personal` (no `/ssoma/personal`) y
+ * los catálogos son rutas planas de nivel superior (`/materiales`,
+ * `/lista-precios`, `/servicios`, `/tarifario-personal`, `/epps`), no
+ * `/catalogos-maestros/...`. Ningún `href` se deriva del texto del encabezado.
+ *
+ * El motivo: "SSOMA" es un nombre temporal y es probable que cambie. Con la
+ * etiqueta fuera de la URL, renombrarlo es editar el string de abajo y nada
+ * más — cero rutas afectadas, cero enlaces guardados o compartidos rotos.
+ *
+ * El mismo principio cubre el plegado de cada sección (ver `SeccionBarra`):
+ * abrir o cerrar un grupo es estado puramente visual y no toca la URL — nada
+ * de `?ssoma=abierto` ni de rutas distintas según el estado. Si mañana se
+ * quiere que el plegado sobreviva a una recarga, el sitio es una cookie o
+ * `localStorage`, nunca el `searchParams`.
+ *
+ * SI ALGÚN DÍA SE QUIERE LO CONTRARIO (URLs más descriptivas, del tipo
+ * `/catalogos-maestros/materiales`): la decisión de ahora está tomada a
+ * sabiendas, no por descuido. Revertirla es mover las carpetas de
+ * `app/(protegido)/<ruta>/` a `app/(protegido)/<grupo>/<ruta>/`, actualizar
+ * los `href` de esta lista y dejar redirecciones desde las rutas viejas
+ * (`next.config.ts`) para no romper lo que ya esté enlazado. Está anotado en
+ * la sección de Convenciones de AGENTS.md.
  *
  * DÓNDE DEBERÍA VIVIR ESTO A LA LARGA: en `config/clientes/*.json`, que según
  * AGENTS.md es quien declara los "módulos activos" de cada cliente — no todos
@@ -39,25 +91,154 @@ type Modulo = {
  * viajar en el JSON tal cual: habrá que dejar en el archivo de cliente la
  * clave del icono y resolverla contra un mapa en el código.
  */
-const MODULOS: readonly Modulo[] = [
+const MENU: readonly Seccion[] = [
   {
-    href: "/ordenes-trabajo",
-    etiqueta: "Órdenes de Trabajo",
-    Icono: ClipboardListIcon,
+    enlaces: [
+      { href: "/", etiqueta: "Inicio", Icono: HomeIcon },
+      {
+        href: "/ordenes-trabajo",
+        etiqueta: "Órdenes de Trabajo",
+        Icono: ClipboardListIcon,
+      },
+    ],
   },
   {
-    href: "/personal",
-    etiqueta: "Personal",
-    Icono: UsersIcon,
+    // Nombre provisional: ver el bloque de arriba antes de tocarlo (cambiarlo
+    // es seguro justamente porque no hay ninguna ruta que dependa de él).
+    encabezado: "SSOMA",
+    enlaces: [{ href: "/personal", etiqueta: "Personal", Icono: UsersIcon }],
+  },
+  {
+    encabezado: "Catálogos maestros",
+    enlaces: [
+      { href: "/materiales", etiqueta: "Materiales", Icono: PackageIcon },
+      { href: "/lista-precios", etiqueta: "Lista de precios", Icono: TagsIcon },
+      { href: "/servicios", etiqueta: "Servicios", Icono: WrenchIcon },
+      {
+        href: "/tarifario-personal",
+        etiqueta: "Tarifario de personal",
+        Icono: BanknoteIcon,
+      },
+      { href: "/epps", etiqueta: "EPPs", Icono: HardHatIcon },
+    ],
   },
 ];
 
 /**
- * Barra lateral del layout protegido: los módulos en columna, la marca arriba
- * y la sesión abajo.
+ * Una sección del menú. Si tiene `encabezado`, el encabezado es el disparador
+ * que la pliega y despliega; si no, los enlaces van sueltos y no hay nada que
+ * plegar.
  *
- * Es Client Component solo por `usePathname()`, que es lo que marca el módulo
- * en el que está el usuario. La sesión NO se lee aquí: llega por prop desde el
+ * El estado abierto/cerrado vive aquí, en cada sección, y por eso cada una es
+ * independiente: abrir SSOMA no toca Catálogos maestros. Arranca abierta y no
+ * se persiste — cada carga vuelve a empezar abierta.
+ *
+ * LOS DOS EJES DE COLAPSO NO SON EL MISMO. El de la barra entera
+ * (`collapsible="icon"`, la franja de iconos) ya existía; este, por sección,
+ * es nuevo. Se cruzan en un punto y hay que tratarlo: en modo icono el
+ * encabezado se desvanece (`SidebarGroupLabel` lleva
+ * `group-data-[collapsible=icon]:opacity-0`), así que una sección cerrada
+ * dejaría sus enlaces inalcanzables — sin encabezado visible que tocar para
+ * reabrirla. Por eso en modo icono el panel se fuerza abierto (`modoIcono ||
+ * abierta`) y el encabezado se marca `inert`, que lo saca del tabulador y del
+ * árbol de accesibilidad: invisible y además no enfocable, en vez de un botón
+ * fantasma. `disabled` no serviría: el trigger de Base UI usa
+ * `focusableWhenDisabled: true`.
+ *
+ * Lo que eligió el usuario no se pierde en el cruce: `abierta` se conserva
+ * mientras la barra está en modo icono, así que al volver a expandirla la
+ * sección reaparece como la había dejado.
+ *
+ * En móvil no aplica: la barra se renderiza dentro de un `Sheet` y ahí nunca
+ * hay `data-collapsible="icon"` — de ahí el `&& !isMobile`.
+ */
+function SeccionBarra({
+  seccion,
+  pathname,
+}: {
+  seccion: Seccion;
+  pathname: string;
+}) {
+  const { state, isMobile } = useSidebar();
+  const modoIcono = state === "collapsed" && !isMobile;
+  const [abierta, setAbierta] = useState(true);
+
+  const enlaces = (
+    <SidebarMenu>
+      {seccion.enlaces.map(({ href, etiqueta, Icono }) => {
+        // `startsWith` además de la igualdad para que las pantallas hijas
+        // (/ordenes-trabajo/nueva, /ordenes-trabajo/x/editar) sigan marcando
+        // su sección. El `/` del final evita que "/ordenes-trabajo-x" se dé
+        // por activo — y de paso deja a Inicio marcándose solo en "/" exacto,
+        // porque ningún pathname empieza por "//".
+        const activo = pathname === href || pathname.startsWith(`${href}/`);
+
+        return (
+          <SidebarMenuItem key={href}>
+            {/* `render={<Link/>}` es correcto AQUÍ, aunque la convención del
+                proyecto lo prohíba para `Button`: lo que inyecta
+                `role="button"` y rompe la semántica del enlace es `useButton`,
+                que usa el `ButtonPrimitive` de Base UI envuelto en
+                components/ui/button.tsx. `SidebarMenuButton` usa solo
+                `useRender`, sin `useButton`, así que esto renderiza un `<a>`
+                limpio. No lo "corrijas" a una clase suelta sobre el Link:
+                perderías el tooltip de la barra colapsada, que lo pone este
+                componente. */}
+            <SidebarMenuButton
+              isActive={activo}
+              tooltip={etiqueta}
+              render={<Link href={href} />}
+            >
+              <Icono />
+              <span>{etiqueta}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+
+  if (!seccion.encabezado) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupContent>{enlaces}</SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  return (
+    <SidebarGroup>
+      <Collapsible open={modoIcono || abierta} onOpenChange={setAbierta}>
+        {/* `render={<CollapsibleTrigger/>}` sí está bien: `SidebarGroupLabel`
+            es `useRender` puro y el trigger de Base UI renderiza un `<button>`
+            nativo con `nativeButton` en true, que es el caso en que el flag y
+            el elemento coinciden — solo añade `type="button"`. */}
+        <SidebarGroupLabel
+          render={<CollapsibleTrigger />}
+          inert={modoIcono || undefined}
+          className="group/encabezado w-full cursor-pointer hover:text-sidebar-foreground"
+        >
+          <span>{seccion.encabezado}</span>
+          {/* El trigger lleva `data-panel-open` mientras la sección está
+              abierta; cerrada no lleva atributo, de ahí que la rotación
+              en reposo sea la de cerrado. */}
+          <ChevronDownIcon className="ml-auto -rotate-90 transition-transform duration-200 group-data-[panel-open]/encabezado:rotate-0" />
+        </SidebarGroupLabel>
+
+        <CollapsibleContent>
+          <SidebarGroupContent>{enlaces}</SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarGroup>
+  );
+}
+
+/**
+ * Barra lateral del layout protegido: los enlaces en columna agrupados bajo
+ * sus encabezados, la marca arriba y la sesión abajo.
+ *
+ * Es Client Component solo por `usePathname()`, que es lo que marca la sección
+ * en la que está el usuario. La sesión NO se lee aquí: llega por prop desde el
  * Server Component del layout, que es quien la verifica.
  *
  * Responsive, resuelto por el propio `Sidebar`: por debajo de 768px
@@ -65,6 +246,12 @@ const MODULOS: readonly Modulo[] = [
  * sobre el contenido y no ocupa ancho; de ahí para arriba es fija y
  * `collapsible="icon"` la deja en una franja de iconos con el nombre en un
  * tooltip.
+ *
+ * Los encabezados se agrupan con `SidebarGroup` + `SidebarGroupLabel` y no con
+ * `SidebarMenuSub`: el submenú lleva `group-data-[collapsible=icon]:hidden`, o
+ * sea que al colapsar la barra desaparecerían Personal y los cinco catálogos.
+ * Con grupos, lo que se desvanece es solo el encabezado y los iconos siguen
+ * siendo accesibles.
  */
 export function BarraLateral({ nombreUsuario }: { nombreUsuario: string }) {
   const pathname = usePathname();
@@ -83,44 +270,17 @@ export function BarraLateral({ nombreUsuario }: { nombreUsuario: string }) {
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Módulos</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {MODULOS.map(({ href, etiqueta, Icono }) => {
-                  // `startsWith` además de la igualdad para que las pantallas
-                  // hijas (/ordenes-trabajo/nueva, /ordenes-trabajo/x/editar)
-                  // sigan marcando su módulo. El `/` del final evita que
-                  // "/ordenes-trabajo-x" se dé por activo.
-                  const activo =
-                    pathname === href || pathname.startsWith(`${href}/`);
-
-                  return (
-                    <SidebarMenuItem key={href}>
-                      {/* `render={<Link/>}` es correcto AQUÍ, aunque la
-                          convención del proyecto lo prohíba para `Button`: lo
-                          que inyecta `role="button"` y rompe la semántica del
-                          enlace es `useButton`, que usa el `ButtonPrimitive`
-                          de Base UI envuelto en components/ui/button.tsx.
-                          `SidebarMenuButton` usa solo `useRender`, sin
-                          `useButton`, así que esto renderiza un `<a>` limpio.
-                          No lo "corrijas" a una clase suelta sobre el Link:
-                          perderías el tooltip de la barra colapsada, que lo
-                          pone este componente. */}
-                      <SidebarMenuButton
-                        isActive={activo}
-                        tooltip={etiqueta}
-                        render={<Link href={href} />}
-                      >
-                        <Icono />
-                        <span>{etiqueta}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {MENU.map((seccion) => (
+            // Sin `encabezado` la clave es la del primer enlace: las secciones
+            // son una constante, no una lista que se reordene en runtime. La
+            // clave tiene que ser estable: es lo que conserva el estado
+            // abierto/cerrado de cada sección entre renders.
+            <SeccionBarra
+              key={seccion.encabezado ?? seccion.enlaces[0].href}
+              seccion={seccion}
+              pathname={pathname}
+            />
+          ))}
         </SidebarContent>
 
         <SidebarFooter>

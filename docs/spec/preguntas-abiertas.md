@@ -163,18 +163,32 @@ en dos por un problema de orden entre `DROP TABLE ... CASCADE` y un `DROP
 CONSTRAINT` explícito) resuelve la relación de los supuestos 5-9
 de arriba (ya no aplica un `servicio_id`), pero abre dos preguntas nuevas.
 
-### 12. ¿Cuáles son los 6 estados definitivos de la OT fusionada?
+### 12. ¿Cuáles son los 7 estados definitivos de la OT fusionada?
 El alcance solo tenía confirmados los 6 estados de Servicio (comerciales) y
 los 5 de OT (ejecución en campo), como listas separadas y con propósitos
 distintos. La fusión obliga a tener una sola lista, y no hay una reunión
 donde el cliente haya validado cuál debe ser.
 
-**Asumido:** `Pendiente` · `En ejecución` · `Pausada` · `Finalizada` ·
-`Facturado` · `Cancelada` — los 5 de OT más `Facturado` de Servicio insertado
-antes de `Cancelada`, para poder cerrar el ciclo comercial (facturar) sin
-tener que reintroducir un estado comercial aparte. Se descartaron
-`Activado`, `En espera` y `Rechazado` de Servicio por redundar con
-`Pendiente`/`Pausada`/`Cancelada` de OT.
+**Asumido (actualizado el 2026-09-20 — ahora son 7, no 6):**
+`Pendiente` · `Aceptada` · `En ejecución` · `Pausada` · `Finalizada` ·
+`Facturado` · `Cancelada`.
+
+Se llegó aquí en dos pasos:
+1. Al fusionar (2026-09-19) se asumieron **6**: los 5 de OT más `Facturado`
+   de Servicio insertado antes de `Cancelada`, para poder cerrar el ciclo
+   comercial (facturar) sin reintroducir un estado comercial aparte. Se
+   descartaron `Activado`, `En espera` y `Rechazado` de Servicio por
+   redundar con `Pendiente`/`Pausada`/`Cancelada` de OT.
+2. El **2026-09-20 el cliente pidió `Aceptada`**, entre `Pendiente` y
+   `En ejecución`: marca que el cliente confirma que acepta la cotización
+   **antes** de que empiece el trabajo, no al terminarlo. Una OT `Aceptada`
+   tiene el visto bueno para arrancar pero todavía no se ha tocado en campo.
+   Esa posición es lo único de la lista que el cliente pidió explícitamente;
+   el resto sigue siendo propuesta nuestra.
+
+Lo que queda **sin confirmar** es la lista completa de 7 como conjunto: nunca
+hubo una reunión donde el cliente la validara entera. La lista vigente está
+enunciada en `reglas-negocio.md`.
 **Si se confirma distinto:** cambiar `ESTADOS_OT` en
 `modules/ordenes-trabajo/constantes.ts` (fuente de verdad única desde
 2026-09-19; `db/schema/orden-trabajo.ts` la importa de ahí para construir el
@@ -237,3 +251,62 @@ a pedido del cliente, así que estos supuestos se tomaron para poder avanzar y
    y la ficha de esa persona pueden no coincidir, y dar de baja a alguien no
    afecta a sus OT. Conectarlos es una migración aparte y hay que decidir
    antes qué pasa con las OT que hoy tienen un nombre que no casa con nadie.
+
+## Catálogos maestros (enlaces del menú, Bloque 11, 2026-09-21)
+
+El Bloque 11 agregó al menú lateral cinco catálogos maestros —**Materiales,
+Lista de precios, Servicios, Tarifario de personal y EPPs**— con una ruta
+plana cada uno (`/materiales`, `/lista-precios`, `/servicios`,
+`/tarifario-personal`, `/epps`) y una pantalla "próximamente"
+(`components/pantalla-proximamente.tsx`). Hoy **no hay nada detrás**: ni
+tabla, ni schema, ni regla de negocio. Se registran aquí porque los cinco
+nombres entran al vocabulario del sistema sin estar en `entidades.md`, y no
+se asumió ningún modelo de datos para ellos.
+
+1. **Ninguno de los cinco tiene modelo definido.** No se sabe qué campos
+   lleva un material, si la lista de precios es una tabla o varias
+   versionadas, ni cómo se relaciona el tarifario con `personal`. Antes de
+   construir cualquiera de los cinco hay que documentarlo en
+   `entidades.md`; mientras tanto la pantalla es un placeholder y no decide
+   nada.
+2. **Según AGENTS.md los catálogos maestros van en `core/`**, no en
+   `modules/`. Las cinco pantallas viven en `app/(protegido)/` y todavía no
+   tienen módulo, así que la decisión sigue abierta y no se ha prejuzgado.
+3. **¿El campo `material` de Lista de precios es texto libre o una
+   relación real contra la tabla Materiales?** Decisión **pospuesta a
+   propósito** por el desarrollador, no olvidada: depende de si la lista de
+   precios puede tener filas de materiales que no estén en el catálogo.
+   Como relación es más correcto y evita nombres desalineados; como texto
+   libre permite cargar una oferta de un material aún no catalogado. Hasta
+   decidirlo no se genera ninguna de las dos tablas.
+4. **¿`precio_lista` y `precio` son independientes, o `precio` se deriva de
+   `precio_lista` menos `descuentos`?** Sin confirmar. No es cosmético: si
+   se deriva, `precio` no debe guardarse como columna editable sino
+   calcularse en el backend (regla invariable 1), y `descuentos` necesita
+   un formato definido (¿porcentaje? ¿importe? ¿varios encadenados?). Si
+   son independientes, los tres campos se capturan a mano y pueden no
+   cuadrar entre sí, lo cual hay que aceptar explícitamente.
+5. **¿`comprobante` en el catálogo de Servicios es un campo de texto o un
+   archivo real?** Si es texto (una referencia o número de comprobante), es
+   una columna más y no cambia nada. **Si es un archivo, es la primera vez
+   que el proyecto necesita almacenamiento de archivos**: no es una
+   columna, es una pieza de infraestructura nueva que hay que elegir y
+   presupuestar (dónde se guarda —Vercel Blob, S3, otro—, límites de
+   tamaño, permisos de acceso, qué pasa al borrar la fila). Preguntar esto
+   antes de construir el catálogo de Servicios, no después.
+6. **Campos del catálogo de EPPs: no definidos todavía.** Es el único de
+   los cinco del que no hay ni borrador. Por eso no aparece en
+   `entidades.md`: no se esboza un modelo que nadie ha propuesto. La
+   pantalla existe en el menú y dice "próximamente".
+7. **La ruta `/servicios` se reutiliza para un concepto distinto del que
+   tenía.** `entidades.md` documenta que al fusionar Servicio en OT
+   (2026-09-19) se retiraron `modules/servicios/` y las rutas
+   `app/(protegido)/servicios/**`. Esa ruta vuelve a existir desde el
+   Bloque 11, pero para el **catálogo maestro de servicios**, que no es la
+   entidad Servicio extinta. **Sin confirmar**: si esta colisión de nombre
+   confunde al negocio, el catálogo debería llamarse otra cosa
+   (`/catalogo-servicios`, por ejemplo) — se cambia en el array `MENU` de
+   `components/barra-lateral.tsx` y renombrando la carpeta de la ruta.
+   Mientras no se confirme, la línea de `entidades.md` que dice que esas
+   rutas "se retiraron por completo" describe la fusión, no el árbol de
+   rutas de hoy.
