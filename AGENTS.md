@@ -162,6 +162,12 @@ trabaje en este código.
   defecto; Collapsible SÍ (su `keepMounted` es false), así que los enlaces
   de una sección cerrada de la barra no están en el DOM — y por tanto
   tampoco aparecen en el Ctrl+F del navegador.
+- Un error de PostgreSQL NO se reconoce mirando `error.code`: drizzle-orm lo
+  envuelve en un `DrizzleQueryError` y el `code` queda en `cause`. Usa
+  `esUniqueViolado()` de core/errores-postgres.ts, que recorre la cadena de
+  causas, y pásale el nombre del constraint. Los tres módulos tenían su propia
+  copia mirando `error.code` a mano y las tres estaban rotas en silencio
+  (corregido el 2026-09-21, ver la deuda técnica de abajo).
 - Todo `try/catch` alrededor de una Server Action tiene que dejar pasar el
   `NEXT_REDIRECT` de Next — se reconoce por su `digest` — y traducir
   cualquier otro fallo no reconocido en un mensaje visible para el usuario.
@@ -293,6 +299,26 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   que probar el borde exacto de un cumpleaños exige o mockear el reloj
   o refactorizar la función para recibir la fecha de referencia. Lo
   segundo es más limpio y es el momento de hacerlo.
+- RESUELTO (2026-09-21): la traducción de los errores de UNIQUE estaba rota
+  en los tres módulos y nadie lo había notado. `esDniDuplicado` (personal),
+  `esCodigoDuplicado` (ordenes-trabajo) y su gemelo recién escrito en
+  materiales comprobaban `(error as {code}).code === "23505"`, que NUNCA se
+  cumple: drizzle-orm 0.45 envuelve el error de `pg` en un `DrizzleQueryError`
+  con el mensaje "Failed query: …" y deja el error original en `cause`, que es
+  donde vive el `code` y también el `constraint`.
+  El dato nunca corrió peligro —el UNIQUE de la base sí rechazaba el
+  duplicado— pero el usuario veía "No se pudo guardar. Intenta de nuevo." en
+  vez de "ese DNI ya existe". Invisible para tsc y para el lint: los tipos
+  eran correctos, la rama simplemente no se tomaba nunca.
+  Salió al probar contra la base real el UNIQUE nuevo de
+  `materiales.codigo_interno`; probar solo que la base rechaza el duplicado no
+  habría bastado, hacía falta comprobar que la traducción se dispara.
+  Ahora la comprobación vive en core/errores-postgres.ts (`esUniqueViolado`),
+  recorre la cadena de `cause` y acepta el nombre del constraint para no
+  confundir el choque de una columna con el de otra. Los tres módulos la usan.
+  Lección para lo que venga: un error de una librería que envuelve al de otra
+  no se reconoce de memoria — se imprime una vez contra la base real y se mira
+  qué trae de verdad.
 - npm audit reporta 4 vulnerabilidades moderadas, pero las cuatro son la
   misma (GHSA-67mh-4wv8-2f99, esbuild <=0.24.2) contada una vez por cada
   eslabón de la cadena que la arrastra: drizzle-kit →

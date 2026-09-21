@@ -12,6 +12,7 @@ import { anioVigente, formatearCodigoOt } from "./codigo";
 import type { EstadoOt } from "./constantes";
 import { reservarCorrelativo } from "./correlativo";
 import type { EstadoFormulario } from "@/core/estado-formulario";
+import { esUniqueViolado } from "@/core/errores-postgres";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { otCambioEstadoSchema, otCrearSchema, otEditarSchema } from "./schema";
 
@@ -30,19 +31,20 @@ async function exigirSesion() {
 }
 
 /**
- * `23505` es la violación de UNIQUE en PostgreSQL. Solo debería poder saltar
- * sobre `codigo_ot`, y solo si algo se saltó el contador de
- * correlativo.ts — es la red de seguridad de la base de datos haciendo su
- * trabajo. Se traduce a un mensaje en vez de dejar que reviente en un 500.
+ * El UNIQUE de `codigo_ot`: solo debería poder saltar si algo se saltó el
+ * contador de correlativo.ts — es la red de seguridad de la base de datos
+ * haciendo su trabajo. Se traduce a un mensaje en vez de dejar que reviente en
+ * un 500.
+ *
+ * CORREGIDO EL 2026-09-21: esto comprobaba `error.code === "23505"` a mano y
+ * NUNCA se cumplía, porque Drizzle envuelve el error de `pg` y el `code` queda
+ * en `cause`. Aquí el efecto era menos visible que en Personal —este choque no
+ * debería ocurrir nunca— pero el día que ocurriera, el aviso habría salido
+ * como un fallo genérico y habría costado mucho más diagnosticarlo. El porqué,
+ * con la verificación contra la base real, está en `esUniqueViolado`
+ * (core/errores-postgres.ts).
  */
-function esCodigoDuplicado(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "23505"
-  );
-}
+const CONSTRAINT_CODIGO_OT = "orden_trabajo_codigo_ot_unique";
 
 /**
  * Lo único que ve el usuario cuando algo falla de una forma que no sabemos
@@ -99,7 +101,7 @@ async function guardarOtNueva(
       });
     });
   } catch (error) {
-    if (esCodigoDuplicado(error)) {
+    if (esUniqueViolado(error, CONSTRAINT_CODIGO_OT)) {
       // Reintentar NO sirve, y por eso este mensaje no lo ofrece: la
       // transacción revierte también la reserva del correlativo, así que un
       // segundo intento pide exactamente el mismo número y choca contra el

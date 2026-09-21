@@ -10,6 +10,7 @@ import { db } from "@/db";
 import { personal } from "@/db/schema/personal";
 import type { EstadoFormulario } from "@/core/estado-formulario";
 import type { ResultadoAccion } from "@/core/resultado-accion";
+import { esUniqueViolado } from "@/core/errores-postgres";
 import {
   personaCambioActivoSchema,
   personaCrearSchema,
@@ -31,20 +32,19 @@ async function exigirSesion() {
 }
 
 /**
- * `23505` es la violación de UNIQUE en PostgreSQL. Aquí solo puede saltar
- * sobre `dni`, que es la única columna única de la tabla: alguien intentó dar
- * de alta a una persona con un DNI que ya existe. A diferencia del 23505 de
- * OT —que era un fallo interno del correlativo— este es un error del usuario
- * perfectamente normal, y por eso el mensaje dice qué hacer.
+ * Alguien intentó dar de alta a una persona con un DNI que ya existe. A
+ * diferencia del choque de OT —que era un fallo interno del correlativo— este
+ * es un error del usuario perfectamente normal, y por eso el mensaje dice qué
+ * hacer.
+ *
+ * CORREGIDO EL 2026-09-21: esto comprobaba `error.code === "23505"` a mano y
+ * NUNCA se cumplía, porque Drizzle envuelve el error de `pg` y el `code` queda
+ * en `cause`. El UNIQUE de la base sí rechazaba el duplicado —ningún dato se
+ * corrompió— pero el usuario veía el mensaje genérico en vez de este. El
+ * porqué, con la verificación contra la base real, está en
+ * `esUniqueViolado` (core/errores-postgres.ts).
  */
-function esDniDuplicado(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "23505"
-  );
-}
+const CONSTRAINT_DNI = "personal_dni_unique";
 
 /**
  * Lo único que ve el usuario cuando algo falla de una forma que no sabemos
@@ -89,7 +89,7 @@ export async function crearPersonaEnModal(
     // SELECT dejaría una ventana entre la comprobación y el INSERT en la que
     // otra alta simultánea mete el mismo DNI. Se intenta y se traduce el
     // choque, que es lo único libre de carreras.
-    if (esDniDuplicado(error)) {
+    if (esUniqueViolado(error, CONSTRAINT_DNI)) {
       return ERROR_DNI_DUPLICADO;
     }
 
@@ -131,7 +131,7 @@ export async function editarPersonaEnModal(
       return { mensaje: "Esa persona ya no existe." };
     }
   } catch (error) {
-    if (esDniDuplicado(error)) {
+    if (esUniqueViolado(error, CONSTRAINT_DNI)) {
       return ERROR_DNI_DUPLICADO;
     }
 
