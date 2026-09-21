@@ -19,16 +19,20 @@ trabaje en este código.
 - Tailwind CSS + shadcn/ui
 - PostgreSQL (Neon) + Drizzle ORM
 - Better Auth
-- dnd-kit (kanban arrastrable)
-- Playwright (generación de PDF)
+- Playwright — hoy se usa para pruebas end-to-end (tests/, `npm test`).
+  La generación de PDF, que era su propósito original en este stack,
+  todavía no se ha construido.
 - Despliegue en Vercel
 
 ## Arquitectura
 - core/ — auth, roles, catálogos maestros, motor de precios, generación de
   PDF, auditoría. Nunca se bifurca por cliente.
-- modules/ — módulos de negocio independientes: crm/, cotizaciones/,
-  proyectos/, logistica/, asistencias/. Cada uno consume core/ pero no
+- modules/ — módulos de negocio independientes. Hoy existen de verdad
+  dos: ordenes-trabajo/ y personal/. Cada uno consume core/ pero no
   depende de otro módulo directamente.
+  Los módulos originalmente previstos — crm/, cotizaciones/, proyectos/,
+  logistica/, asistencias/ — son visión futura, no estructura actual:
+  sus carpetas solo contienen un README de marcador.
 - config/clientes/ — un .json por cliente con branding, campos extra,
   flujos de aprobación y módulos activos. Toda personalización vive aquí,
   nunca en ramas de git ni en código condicional por cliente.
@@ -127,9 +131,9 @@ trabaje en este código.
 - RESUELTO (2026-09-20): el render={<Button .../>} de
   components/ui/dialog.tsx (línea 63 en DialogContent y 112 en
   DialogFooter) NO tiene el bug de nativeButton. Se verificó al montar el
-  modal de crear/editar OT, que es la primera pantalla real que usa
-  Dialog. El caso sí era distinto, y el motivo es preciso: Dialog.Close
-  llama a useButton (DialogClose.js:35) igual que el ButtonPrimitive,
+  modal de crear/editar OT (Bloque 9), que es la primera pantalla real
+  que usa Dialog. El caso sí era distinto, y el motivo es preciso:
+  Dialog.Close llama a useButton (DialogClose.js:35) igual que el ButtonPrimitive,
   pero el problema nunca fue llamarlo — es el desajuste entre la prop
   `nativeButton` (true por defecto) y el elemento que se renderiza de
   verdad. En useButton.js:183 la rama es
@@ -150,9 +154,13 @@ trabaje en este código.
   compartido con el esquema, mover estas listas a core/ — neutral para
   ambos lados — en vez de que db/schema/ termine importando de varios
   módulos de negocio.
-- No hay suite de tests. package.json solo define dev, build, start y
-  lint: no existe un script `test` ni ninguna dependencia de testing.
-  Todo lo que se ha verificado hasta hoy se comprobó con scripts
+- La suite de tests está apenas empezada. Ya existe infraestructura:
+  @playwright/test, playwright.config.ts, el script `npm test` y una
+  prueba de humo end-to-end en tests/humo.spec.ts. Eso cubre que la app
+  levanta y que las pantallas principales responden, nada más: siguen
+  faltando las pruebas de unidad, que son las que de verdad importan
+  aquí (correlativo.ts y lib/fecha.ts — ver abajo).
+  Todo lo demás que se ha verificado hasta hoy se comprobó con scripts
   temporales, escritos para el momento y borrados después — la reserva
   concurrente del correlativo, el UNIQUE de personal.dni rechazando
   duplicados en la base real, y el cálculo de edad contra tres zonas
@@ -161,12 +169,11 @@ trabaje en este código.
   ese código mañana, y el fallo que evitan no se manifiesta como un
   error de compilación ni de lint, sino como un dato incorrecto que
   nadie mira.
-  Vale la pena automatizarlas el día que el ritmo de cambios baje lo
-  suficiente para invertir ahí sin frenar la construcción — no antes,
-  porque hoy el esquema y las pantallas todavía se mueven demasiado
-  para que valga fijarlos en pruebas. Cuando llegue ese día, las dos
-  primeras son correlativo.ts (dos creaciones simultáneas no pueden
-  recibir el mismo número, y la transacción tiene que revertir la
+  Con el runner ya montado, automatizarlas cuesta bastante menos que
+  antes: lo que queda es escribirlas. Sigue sin ser urgente mientras el
+  esquema y las pantallas se muevan tanto como hoy, pero las dos
+  primeras cuando se haga son correlativo.ts (dos creaciones
+  simultáneas no pueden recibir el mismo número, y la transacción tiene que revertir la
   reserva) y lib/fecha.ts (calcularEdad en los bordes del cumpleaños,
   inicioDelDia/inicioDelDiaSiguiente en los filtros): son las piezas
   más fáciles de romper sin darse cuenta, porque las dos dependen de
@@ -176,3 +183,25 @@ trabaje en este código.
   que probar el borde exacto de un cumpleaños exige o mockear el reloj
   o refactorizar la función para recibir la fecha de referencia. Lo
   segundo es más limpio y es el momento de hacerlo.
+- npm audit reporta 4 vulnerabilidades moderadas, pero las cuatro son la
+  misma (GHSA-67mh-4wv8-2f99, esbuild <=0.24.2) contada una vez por cada
+  eslabón de la cadena que la arrastra: drizzle-kit →
+  @esbuild-kit/esm-loader (deprecado, fusionado en tsx) →
+  @esbuild-kit/core-utils → esbuild@0.18.20, que queda anidado porque
+  core-utils lo fija en ~0.18.20. Los otros dos esbuild del árbol
+  (0.25.12 directo de drizzle-kit, 0.28.2 vía tsx) están sanos.
+  No hay fix limpio: drizzle-kit@0.31.11, la última publicada, declara
+  la misma dependencia deprecada, y `npm audit fix --force` degradaría a
+  drizzle-kit@0.18.1 — trece versiones menores atrás, incompatible con
+  drizzle-orm 0.45 y con las migraciones ya generadas. `npm audit fix`
+  sin --force no toca nada de esto.
+  El vector real (el dev server de esbuild respondiendo a cualquier
+  origen) no aplica aquí: drizzle-kit solo usa esbuild para transpilar
+  drizzle.config.ts, no levanta ese servidor. Además es devDependency,
+  así que nunca llega al runtime de Vercel.
+  Se deja como está a propósito. Revisar cuando Drizzle actualice y
+  suelte la dependencia muerta — ya depende de tsx, que es su sucesor,
+  así que soltarla es cuestión de que lo hagan. La alternativa, si
+  alguna vez urge silenciarlo, es un `overrides` en package.json que
+  fuerce ese esbuild anidado a ^0.25, verificando después que
+  `npx drizzle-kit generate` y `check` siguen funcionando.

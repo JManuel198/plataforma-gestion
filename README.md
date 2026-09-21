@@ -13,8 +13,13 @@ está diferido.
 - **Base de datos:** PostgreSQL (Neon)
 - **ORM:** Drizzle ORM
 - **Autenticación:** Better Auth
-- **Kanban:** dnd-kit (planeado, no construido todavía)
-- **Generación de PDF:** Playwright (planeado, no construido todavía)
+- **Pruebas:** Playwright (`@playwright/test`), instalado con una prueba de
+  humo; la suite real sigue pendiente (ver deuda técnica en `AGENTS.md`)
+- **Generación de PDF:** planeado, no construido todavía. Sería Playwright,
+  pero no con el paquete que ya está instalado: `@playwright/test` es el
+  runner de pruebas. Para generar PDF en Vercel harían falta `playwright-core`
+  y `@sparticuz/chromium`, porque una función serverless no puede ejecutar el
+  Chromium completo que descarga el paquete normal
 - **Despliegue:** Vercel
 
 ## Estructura del proyecto
