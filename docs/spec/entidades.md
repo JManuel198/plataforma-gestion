@@ -197,13 +197,90 @@ libre — ver deuda técnica en AGENTS.md sobre esa columna.
 
 ---
 
+## Materiales
+
+Primer catálogo maestro de los cinco que declara el menú del Bloque 11
+(Materiales, Lista de precios, Servicios, Tarifario de personal y EPPs) en
+tener tabla real. Definida en `db/schema/materiales.ts`, tabla `materiales`.
+Construida en el Bloque 12, Parte 1 (2026-09-21), consumida por
+`modules/materiales/` (en desarrollo en paralelo).
+
+**Sus campos siguen siendo un borrador sin confirmar con el cliente** — lo
+que cambió con este bloque es que dejaron de ser una lista de nombres en este
+documento para ser columnas reales, con tipo y obligatoriedad decididos. El
+esquema implementado coincide con lo que estaba esbozado (mismos siete campos
+de negocio, mismos nombres), así que esta entidad ya no lleva la marca
+BORRADOR — pero su obligatoriedad y varias reglas de negocio siguen sin
+confirmar, y eso sí sigue abierto (ver más abajo y
+`preguntas-abiertas.md`, decisión 8 de "Catálogos maestros").
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo_interno` | `text` (**UNIQUE**) | **no** | manual — el código que usa la empresa, distinto del de fábrica |
+| `descripcion` | `text` | **no** | manual |
+| `marca` | `text` | **no** | manual |
+| `modelo` | `text` | **no** | manual |
+| `codigo_fabrica` | `text` | **no** | manual — el del fabricante, distinto del interno |
+| `unidad` | `text` | **no** | manual — unidad de medida, texto libre sin catálogo cerrado |
+| `fecha_activacion` | `date` (mode `"string"` en Drizzle) | **no** | manual — fecha de activación del material, sujeta a una validación previa aún sin construir |
+| `activo` | `boolean`, default `true` | sí | automático al crear; manual al dar de baja (baja todavía sin construir — ver `modules/materiales/README.md`) |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**Ningún campo de negocio es `NOT NULL`.** A diferencia de `personal` u
+`orden_trabajo`, aquí no hay una fuente (ni un Excel, ni una reunión) de la
+que inferir qué es obligatorio, así que se optó por la lectura literal de la
+regla "solo `NOT NULL` donde sea evidente por el propio campo": ninguno de
+los siete se consideró evidente. **Decisión asumida**, no confirmada — ver
+decisión 8 de "Catálogos maestros" en `preguntas-abiertas.md`, con el camino
+para endurecerlo (primero el Zod del módulo, después la columna).
+
+**`UNIQUE` sobre `codigo_interno`, confirmado por el cliente (Bloque 12,
+Parte 2): dos materiales no pueden compartir código interno.** La garantía
+real es el `UNIQUE` de la base, no la validación del formulario — mismo
+razonamiento que `personal.dni`. Sigue sin ser `NOT NULL`: solo se confirmó
+la unicidad, no la obligatoriedad, y en Postgres varias filas con `NULL` no
+chocan entre sí bajo un `UNIQUE`. `codigo_fabrica` sigue SIN `UNIQUE` — no
+está confirmado que sea un identificador único, podría haber duplicados
+mientras se depura el catálogo.
+
+**`fecha_activacion` es `date`, no `timestamp`** — regla invariable 10 de
+AGENTS.md, mismo patrón que `personal.fecha_nacimiento`: sin hora, sin el
+problema de zona horaria de las columnas `timestamp` sin zona (ver la deuda
+técnica de `db/index.ts`). Su significado ya está confirmado (Bloque 12,
+Parte 2): es la fecha de activación del material, sujeta a una validación
+previa que todavía no se construye (fuera de alcance por ahora). Lo que
+sigue sin confirmar es si admite fechas futuras (un material podría
+registrarse antes de completar esa validación) — no se impuso ningún `CHECK`
+al respecto, a propósito.
+
+**`activo` es baja lógica, no borrado** — regla invariable 9, mismo criterio
+que `personal.activo`: Materiales no tiene un enum de estado propio que ya
+cumpla ese papel. Hoy la columna existe y el listado (`listarMateriales`) ya
+filtra por ella, pero todavía no hay ninguna acción que la ponga en `false`
+(Parte 2).
+
+**Índices.** `materiales_activo_idx` sobre `activo`, mismo criterio que
+`personal_activo_idx` y `orden_trabajo_estado_idx`: el listado filtra por
+`activo` en la consulta por defecto.
+
+**Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo).
+Sin relación todavía con `lista_precios.material` (borrador, más abajo): esa
+relación —si el `material` de Lista de precios termina siendo una FK real en
+vez de texto libre— es una decisión pendiente por separado (ver
+"Catálogos maestros", decisión 3, en `preguntas-abiertas.md`).
+
+---
+
 # BORRADOR — Catálogos maestros (no confirmado con el cliente)
 
 **Todo lo que sigue es un borrador temporal**, dicho así explícitamente por el
 desarrollador: son los campos tal como se han esbozado hasta el Bloque 11
 (2026-09-21), **no una especificación cerrada ni confirmada con el cliente**.
-Ninguna de estas tablas existe todavía en `db/schema/` — hoy las cinco rutas
-del menú (`/materiales`, `/lista-precios`, `/servicios`,
+De los cinco catálogos maestros del menú, **Materiales ya tiene tabla real**
+(ver la entidad "Materiales" más arriba); los otros cuatro —Lista de
+precios, Servicios, Tarifario de personal y EPPs— siguen sin tabla en
+`db/schema/`, y sus rutas (`/lista-precios`, `/servicios`,
 `/tarifario-personal`, `/epps`) muestran una pantalla "próximamente".
 
 A diferencia del resto de este documento, que refleja lo que existe de verdad
@@ -215,18 +292,6 @@ Los tipos concretos (`text`, `bigint`, enum…) se deciden al construir cada
 tabla; aquí solo está la lista de campos. Dos reglas del proyecto ya aplican
 sin discusión cuando llegue ese momento: todo importe va en **céntimos**
 (regla 2) y toda fecha sin hora va como **`date`**, no `timestamp` (regla 10).
-
-## BORRADOR — Materiales
-
-| Campo | Notas |
-|---|---|
-| código interno | el que usa la empresa, no el del fabricante |
-| descripción | |
-| marca | |
-| modelo | |
-| código de fábrica | el del fabricante, distinto del interno |
-| unidad | unidad de medida |
-| fecha | sin confirmar de qué fecha se trata (alta, actualización…) |
 
 ## BORRADOR — Lista de precios
 
