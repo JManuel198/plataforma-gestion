@@ -5,3 +5,4 @@
 - [ESTADOS_OT fuente única](estados_ot_fuente_unica.md) — (2026-09-19) db/schema importa el array desde modules/ordenes-trabajo/constantes.ts; MONEDAS queda con el mismo problema, sin tocar a propósito
 - [pexpect: elegir "rename column"](pexpect_rename_columna.md) — (2026-09-20) receta inversa a la de la fusión: flecha abajo + enter cuando la opción deseada NO es el default resaltado
 - [Tabla personal](personal_tabla.md) — (2026-09-20) date/mode string para fecha_nacimiento, activo sí aplica aquí (a diferencia de OT), sin columna edad
+- [Tabla materiales](materiales_tabla.md) — (2026-09-21) catálogo maestro; codigo_interno UNIQUE, fecha→fecha_activacion confirmados Parte 2; migración 0009 regenerada desde cero (nunca se había aplicado)

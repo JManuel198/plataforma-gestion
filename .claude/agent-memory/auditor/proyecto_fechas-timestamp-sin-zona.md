@@ -21,9 +21,8 @@ distinta.
 **Why:** db/index.ts registra un type parser global que lee TODA columna
 `timestamp` como UTC. Ese supuesto es cierto para el primer grupo y falso para
 el segundo. En Vercel el proceso corre en UTC y los dos grupos coinciden, así
-que el desfase solo aparece en desarrollo — y la máquina de Manuel está en
-`America/Caracas` (-04:00), no en `America/Lima` (-05:00) como asumen varios
-comentarios del código.
+que el desfase solo aparece en desarrollo — y la máquina de desarrollo no
+corre en `America/Lima`, que es lo que asumen varios comentarios del código.
 
 **How to apply:** al auditar cualquier fecha nueva, primero preguntar quién la
 escribe. Si la escribe Node en una columna sin zona, el parser la corre; si la
