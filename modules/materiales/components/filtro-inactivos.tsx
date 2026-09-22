@@ -5,7 +5,13 @@ import type { FiltrosMateriales } from "../filtros";
 import { useFiltros } from "./use-filtros";
 
 /**
- * Enseña también los materiales inactivos.
+ * Cambia el listado a la vista de materiales inactivos.
+ *
+ * La etiqueta dice "Ver SOLO inactivos" y no "Mostrar inactivos" porque las
+ * dos vistas son excluyentes: al marcarlo desaparecen los activos. Decirlo
+ * mal fue el bug — con "Mostrar" el usuario espera que se sumen, y la
+ * consulta efectivamente los sumaba, así que al reactivar algo seguía a la
+ * vista.
  *
  * Existe porque la baja es lógica: la fila sigue ahí y tiene que haber una
  * forma de volver a verla, o "inactivar" sería un borrado irreversible de cara
@@ -34,7 +40,7 @@ export function FiltroInactivos({ filtros }: { filtros: FiltrosMateriales }) {
         }
       />
       <Label htmlFor="inactivos" className="font-normal">
-        Mostrar inactivos
+        Ver solo inactivos
       </Label>
     </div>
   );

@@ -13,9 +13,14 @@ export type FiltrosPersonal = {
   /** Texto libre: casa parcialmente con nombre, apellido, dni o cargo. */
   busqueda?: string;
   /**
-   * Incluir a quien está de baja. Ausente = solo activos, que es el
-   * comportamiento por defecto: de cara al usuario, dar de baja se ve como
-   * borrar, y lo borrado no aparece salvo que se pida verlo.
+   * Ver SOLO a quien está de baja. Las dos vistas son excluyentes: sin esta
+   * bandera se ve al personal activo, con ella únicamente a los dados de baja
+   * — nunca las dos cosas mezcladas. Ausente es el comportamiento por
+   * defecto: de cara al usuario, dar de baja se ve como borrar, y lo borrado
+   * no aparece salvo que se pida verlo.
+   *
+   * No es "incluir además a los dados de baja", que es lo que hacía antes y
+   * era un bug: al reactivar a alguien desde esa vista, seguía apareciendo.
    */
   inactivos?: boolean;
 };

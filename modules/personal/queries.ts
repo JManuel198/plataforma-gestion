@@ -33,7 +33,14 @@ export async function listarPersonal(filtros: FiltrosPersonal = {}) {
   const patron = busqueda ? patronParcial(busqueda) : null;
 
   const condiciones = [
-    inactivos ? undefined : eq(personal.activo, true),
+    // El filtro ALTERNA entre dos vistas excluyentes, no acumula: sin él se
+    // ven los activos, con él SOLO los inactivos. Antes era
+    // `inactivos ? undefined : eq(activo, true)` —o sea, sin condición— y eso
+    // hacía que la vista de inactivos mostrase TAMBIÉN los activos: al
+    // reactivar una fila seguía ahí, y una fila que nunca se inactivó
+    // aparecía igual. No era un problema de refresco: la consulta ya devolvía
+    // esa fila.
+    eq(personal.activo, inactivos ? false : true),
     patron
       ? or(
           ilike(personal.nombre, patron),

@@ -260,7 +260,7 @@ cumpla ese papel. Hoy la columna existe y el listado (`listarMateriales`) ya
 filtra por ella. Desde el Bloque 12, Parte 2, la pone en `false`
 `cambiarActivoMaterial` (`modules/materiales/actions.ts`), disparada desde el
 icono de inactivar del listado con un `alert-dialog` de confirmación delante.
-El filtro «Mostrar inactivos» es lo que permite volver a verlas y
+El filtro «Ver solo inactivos» es lo que permite volver a verlas y
 reactivarlas: sin él, inactivar sería irreversible de cara al usuario aunque
 en la base no lo sea.
 

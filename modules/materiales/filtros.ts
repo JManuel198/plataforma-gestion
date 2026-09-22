@@ -19,9 +19,14 @@ export type FiltrosMateriales = {
    */
   busqueda?: string;
   /**
-   * Incluir los materiales inactivos. Ausente = solo activos, que es el
-   * comportamiento por defecto: de cara al usuario, inactivar se ve como
-   * borrar, y lo borrado no aparece salvo que se pida verlo.
+   * Ver SOLO los materiales inactivos. Las dos vistas son excluyentes: sin
+   * esta bandera se ven los activos, con ella únicamente los inactivos —
+   * nunca las dos cosas mezcladas. Ausente es el comportamiento por defecto:
+   * de cara al usuario, inactivar se ve como borrar, y lo borrado no aparece
+   * salvo que se pida verlo.
+   *
+   * No es "incluir además los inactivos", que es lo que hacía antes y era un
+   * bug: al reactivar una fila desde esa vista, seguía apareciendo ahí.
    */
   inactivos?: boolean;
 };

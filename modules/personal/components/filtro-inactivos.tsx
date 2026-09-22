@@ -5,7 +5,11 @@ import type { FiltrosPersonal } from "../filtros";
 import { useFiltros } from "./use-filtros";
 
 /**
- * Enseña también a quien está de baja.
+ * Cambia el listado a la vista de personal dado de baja.
+ *
+ * La etiqueta dice "Ver SOLO dados de baja" y no "Mostrar dados de baja"
+ * porque las dos vistas son excluyentes: al marcarlo desaparece el personal
+ * activo. Mismo arreglo que en Materiales, donde el bug se detectó.
  *
  * Existe porque la baja es lógica: la fila sigue ahí y tiene que haber una
  * forma de volver a verla, o "dar de baja" sería un borrado irreversible de
@@ -32,7 +36,7 @@ export function FiltroInactivos({ filtros }: { filtros: FiltrosPersonal }) {
         }
       />
       <Label htmlFor="inactivos" className="font-normal">
-        Mostrar dados de baja
+        Ver solo dados de baja
       </Label>
     </div>
   );

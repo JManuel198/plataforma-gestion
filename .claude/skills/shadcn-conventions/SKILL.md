@@ -292,11 +292,20 @@ ahí, no se reinventa.
   que recibe argumentos sueltos y devuelve `ResultadoAccion`—, nunca la de
   guardar el formulario entero. El texto del diálogo habla de "dejar de
   aparecer en el catálogo", no de columnas.
-- **El botón de inactivar obliga a tener el filtro "Mostrar inactivos"**
+- **El botón de inactivar obliga a tener el filtro "Ver solo inactivos"**
   (`components/filtro-inactivos.tsx`). Sin él la fila desaparece sin vuelta
   atrás posible desde la interfaz, y el botón de reactivar no tendría cómo
   mostrarse nunca: inactivar sería un borrado irreversible de cara al usuario
   aunque no lo sea en la base.
+- **Ese filtro ALTERNA entre dos vistas excluyentes, no acumula.** Sin marcar
+  se ven los activos; marcado, SOLO los inactivos. En la consulta es
+  `eq(tabla.activo, inactivos ? false : true)` — **nunca**
+  `inactivos ? undefined : eq(activo, true)`, que es no poner condición y
+  devuelve todo. Ese fue un bug real (2026-09-21) en Materiales y en Personal:
+  al reactivar una fila seguía a la vista, porque la consulta la seguía
+  trayendo. La etiqueta tiene que decir "Ver solo…" y no "Mostrar…": con
+  "Mostrar" el usuario espera que se sumen a los activos, y entonces la
+  pantalla contradice a la consulta hagas lo que hagas.
 - **Un solo buscador para varias columnas**, no una caja por campo: quien busca
   escribe lo que recuerda sin saber en qué columna cae. Se resuelve con
   `or(ilike(...))` en el servidor (ver la sección Tablas y listas). En

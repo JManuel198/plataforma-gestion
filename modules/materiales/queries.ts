@@ -36,7 +36,14 @@ export async function listarMateriales(filtros: FiltrosMateriales = {}) {
   const patron = busqueda ? patronParcial(busqueda) : null;
 
   const condiciones = [
-    inactivos ? undefined : eq(materiales.activo, true),
+    // El filtro ALTERNA entre dos vistas excluyentes, no acumula: sin él se
+    // ven los activos, con él SOLO los inactivos. Antes era
+    // `inactivos ? undefined : eq(activo, true)` —o sea, sin condición— y eso
+    // hacía que la vista de inactivos mostrase TAMBIÉN los activos: al
+    // reactivar una fila seguía ahí, y una fila que nunca se inactivó
+    // aparecía igual. No era un problema de refresco: la consulta ya devolvía
+    // esa fila.
+    eq(materiales.activo, inactivos ? false : true),
     // Las cuatro columnas del buscador. Son `nullable`, y eso importa aquí:
     // `ILIKE` sobre NULL da NULL, no false — pero dentro de un `or(...)` eso
     // se comporta como "esta no casa", que es exactamente lo que se quiere.

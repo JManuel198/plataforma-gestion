@@ -162,6 +162,15 @@ trabaje en este código.
   defecto; Collapsible SÍ (su `keepMounted` es false), así que los enlaces
   de una sección cerrada de la barra no están en el DOM — y por tanto
   tampoco aparecen en el Ctrl+F del navegador.
+- Un filtro de "ver inactivos" en un listado ALTERNA entre dos vistas
+  excluyentes: `eq(tabla.activo, inactivos ? false : true)`. Nunca
+  `inactivos ? undefined : eq(activo, true)` — eso es no poner condición, así
+  que la vista de inactivos devuelve TAMBIÉN los activos y una fila
+  reactivada no desaparece de ella. Y la etiqueta va como "Ver solo…", no
+  "Mostrar…". Estaba mal en Materiales y en Personal (corregido el
+  2026-09-21, ver la deuda técnica de abajo); los catálogos que faltan
+  heredan el patrón de la skill de convenciones, así que conviene no
+  recopiarlo mal.
 - Un error de PostgreSQL NO se reconoce mirando `error.code`: drizzle-orm lo
   envuelve en un `DrizzleQueryError` y el `code` queda en `cause`. Usa
   `esUniqueViolado()` de core/errores-postgres.ts, que recorre la cadena de
@@ -329,6 +338,24 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   Lección para lo que venga: un error de una librería que envuelve al de otra
   no se reconoce de memoria — se imprime una vez contra la base real y se mira
   qué trae de verdad.
+- RESUELTO (2026-09-21): el filtro de inactivos mostraba de más, en los dos
+  módulos que lo tienen. La condición era
+  `inactivos ? undefined : eq(activo, true)`: con la bandera puesta no ponía
+  NINGUNA condición, así que esa vista devolvía activos e inactivos
+  mezclados. Síntoma con el que se reportó: al reactivar un material seguía
+  apareciendo en «Mostrar inactivos». Pero no era un problema de refresco ni
+  de la acción de reactivar —la base escribía `activo = true` correctamente—
+  sino de la propia consulta, que seguía trayendo esa fila; se comprobó
+  viendo que una fila que NUNCA se inactivó aparecía igual en esa vista.
+  La etiqueta empeoraba el diagnóstico: "Mostrar inactivos" se lee como
+  "añádelos a lo que ya veo", que es justo lo que hacía la consulta, así que
+  el código era coherente consigo mismo y solo chocaba con lo que el usuario
+  esperaba. Ahora la consulta alterna (`eq(activo, inactivos ? false : true)`)
+  y la etiqueta dice "Ver solo inactivos" / "Ver solo dados de baja".
+  Dos cosas que llevarse: un `undefined` dentro de un `and(...)` desaparece
+  en silencio y no es lo mismo que "no filtrar por esto" cuando la intención
+  era filtrar al revés; y probar que la base guarda bien NO prueba que el
+  listado enseñe lo correcto — hay que consultar el listado, no la columna.
 - npm audit reporta 4 vulnerabilidades moderadas, pero las cuatro son la
   misma (GHSA-67mh-4wv8-2f99, esbuild <=0.24.2) contada una vez por cada
   eslabón de la cadena que la arrastra: drizzle-kit →

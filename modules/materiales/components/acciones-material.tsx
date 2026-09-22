@@ -132,7 +132,7 @@ export function AccionesMaterial({ material }: { material: FilaMaterial }) {
                   <AlertDialogTitle>¿Inactivar {nombre}?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Dejará de aparecer en el catálogo. Sus datos se conservan y
-                    puedes volver a activarlo cuando quieras marcando «Mostrar
+                    puedes volver a activarlo cuando quieras desde «Ver solo
                     inactivos».
                   </AlertDialogDescription>
                 </AlertDialogHeader>
