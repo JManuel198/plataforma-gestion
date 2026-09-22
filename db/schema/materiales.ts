@@ -1,4 +1,4 @@
-import { pgTable, text, date, boolean, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, index } from "drizzle-orm/pg-core";
 
 // Primer catálogo maestro de los cinco que declara el menú (Bloque 11):
 // Materiales, Lista de precios, Servicios, Tarifario de personal y EPPs. Los
@@ -7,15 +7,20 @@ import { pgTable, text, date, boolean, timestamp, index } from "drizzle-orm/pg-c
 //
 // Los campos de este catálogo siguen sin confirmar con el cliente en su
 // mayoría (ver "Catálogos maestros" en docs/spec/preguntas-abiertas.md), con
-// dos excepciones confirmadas en el Bloque 12, Parte 2: la unicidad de
-// `codigo_interno` y el significado de `fecha_activacion` (ver los
-// comentarios de esas columnas). Fuera de eso, a diferencia de `personal` o
-// `orden_trabajo`, aquí no hay ningún otro `.notNull()` sobre un campo de
-// negocio ni ningún otro `.unique()`: inventar una obligación o una
-// restricción que nadie pidió es peor que dejarla abierta y endurecerla
-// después con una migración. Solo llevan `.notNull()` las columnas cuyo
-// propio comportamiento lo exige (`id`, `activo`, las de auditoría) — nunca
-// una decisión de negocio no confirmada.
+// una excepción confirmada en el Bloque 12, Parte 2: la unicidad de
+// `codigo_interno` (ver el comentario de esa columna). Fuera de eso, a
+// diferencia de `personal` o `orden_trabajo`, aquí no hay ningún otro
+// `.notNull()` sobre un campo de negocio ni ningún otro `.unique()`: inventar
+// una obligación o una restricción que nadie pidió es peor que dejarla
+// abierta y endurecerla después con una migración. Solo llevan `.notNull()`
+// las columnas cuyo propio comportamiento lo exige (`id`, `activo`, las de
+// auditoría) — nunca una decisión de negocio no confirmada.
+//
+// `fecha_activacion` existió como columna `date` propia (Bloque 12, Parte 2)
+// y se eliminó en el Bloque 12, Parte 3 (2026-09-22): la tabla seguía vacía,
+// sin datos que perder, y la fecha que se muestra en la interfaz (tabla y
+// vista de detalle) es simplemente `created_at` — no hacía falta una segunda
+// columna de negocio para lo mismo. No hay columna de reemplazo.
 export const materiales = pgTable(
   "materiales",
   {
@@ -43,18 +48,6 @@ export const materiales = pgTable(
     // Unidad de medida. Texto libre, sin catálogo cerrado: no se confirmó si
     // "UND", "und" y "Unidad" deben tratarse como el mismo valor.
     unidad: text("unidad"),
-    // `date`, NO `timestamp`, con mode "string" — regla invariable 10 de
-    // AGENTS.md, mismo patrón que `personal.fecha_nacimiento`: un campo de
-    // solo fecha entra y sale como `YYYY-MM-DD` literal, sin la conversión de
-    // zona horaria que sí afecta a las columnas `timestamp` (ver la deuda
-    // técnica de db/index.ts). Significado confirmado (Bloque 12, Parte 2):
-    // es la fecha de activación del material, sujeta a una validación previa
-    // que todavía no se construye (fuera de alcance por ahora). Lo que sigue
-    // SIN confirmar es si admite fechas futuras (un material podría
-    // registrarse antes de completar esa validación) — no se impone ningún
-    // CHECK al respecto. Sigue admitiendo NULL: no se confirmó su
-    // obligatoriedad, solo su significado.
-    fecha_activacion: date("fecha_activacion", { mode: "string" }),
     // Única columna de este catálogo que sí lleva `.notNull()`: la baja
     // lógica en sí (regla invariable 9) no es una regla de negocio del
     // material, es la política general del proyecto de nunca borrar filas

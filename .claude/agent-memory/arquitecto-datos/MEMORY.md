@@ -6,3 +6,5 @@
 - [pexpect: elegir "rename column"](pexpect_rename_columna.md) — (2026-09-20) receta inversa a la de la fusión: flecha abajo + enter cuando la opción deseada NO es el default resaltado
 - [Tabla personal](personal_tabla.md) — (2026-09-20) date/mode string para fecha_nacimiento, activo sí aplica aquí (a diferencia de OT), sin columna edad
 - [Tabla materiales](materiales_tabla.md) — (2026-09-21) catálogo maestro; codigo_interno UNIQUE, fecha→fecha_activacion confirmados Parte 2; migración 0009 regenerada desde cero (nunca se había aplicado)
+- [Correlativo genérico](correlativo_generico.md) — (2026-09-22) tabla `correlativo` (clave text PK) hermana de ot_correlativo, no su ALTER; eliminó materiales.fecha_activacion; migración 0010 aplicada
+- [Tabla material_caracteristicas](material_caracteristicas_tabla.md) — (2026-09-22) DELETE real permitido, sin `activo` ni `updated_at`; excepción distinta a la de OT; migración 0011 aplicada

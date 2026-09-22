@@ -10,7 +10,7 @@ import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
 import { anioVigente, formatearCodigoOt } from "./codigo";
 import type { EstadoOt } from "./constantes";
-import { reservarCorrelativo } from "./correlativo";
+import { reservarCorrelativoAnual } from "./correlativo";
 import type { EstadoFormulario } from "@/core/estado-formulario";
 import { esUniqueViolado } from "@/core/errores-postgres";
 import type { ResultadoAccion } from "@/core/resultado-accion";
@@ -91,7 +91,7 @@ async function guardarOtNueva(
     // la OT falla, el número se revierte con ella y no quedan huecos.
     // El porqué completo está en correlativo.ts.
     await db.transaction(async (tx) => {
-      const correlativo = await reservarCorrelativo(tx, anio);
+      const correlativo = await reservarCorrelativoAnual(tx, anio);
 
       // `fecha_creacion` no se envía: la pone la base de datos
       // (DEFAULT now()) al insertar.

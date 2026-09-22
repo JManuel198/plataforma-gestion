@@ -344,52 +344,89 @@ que eran de Materiales se cerraron o se concretaron en la 8.
    falla.
 
 9. **Existe un proceso de validación previa a la activación de un material,
-   y NO está construido.** Confirmado por el cliente junto con el
-   significado de `fecha_activacion` (Bloque 12, 2026-09-21): un material no
-   se activa sin pasar antes por esa validación. Hoy el sistema **no la
-   representa de ninguna forma**: no hay estado, ni checklist, ni
-   comprobación, ni registro de quién validó; `fecha_activacion` es un campo
-   de texto que el usuario escribe a mano, y nada impide poner una fecha de
-   un material que nunca se validó.
-   Se registra aquí, aunque esté explícitamente fuera de alcance por ahora,
-   para que no se pierda como necesidad futura. Lo que falta por preguntar
-   antes de construirlo: en qué consiste la validación, quién la hace, si
-   deja rastro (quién y cuándo), y si un material puede existir en el
-   catálogo sin estar activado todavía — que es lo que hoy ocurre de hecho,
-   porque `fecha_activacion` admite `NULL` en la base.
-10. **¿`fecha_activacion` puede ser una fecha futura, o solo pasada o de
-    hoy?** Sin confirmar, y deliberadamente sin resolver. Hay argumento para
-    las dos: un material podría registrarse **antes** de terminar su
-    validación, con la activación ya prevista para una fecha próxima (futura
-    válida); o la activación podría ser algo que solo se anota una vez
-    ocurrida (futura imposible, sería un error de tecleo).
-    **Qué se hizo mientras tanto:** no se valida ningún rango — ni en
-    `modules/materiales/schema.ts` ni con `min`/`max` en el input. Permitir
-    todo no asume ninguna de las dos respuestas y deja pasar el dato;
-    rechazar futuros habría asumido una. Cuando se confirme, el sitio es
-    `fechaActivacionSchema` en `modules/materiales/schema.ts` (y, si se
-    quiere el aviso antes del viaje al servidor, un `max` en el input de
-    `components/campos-material.tsx`).
+   y NO está construido. SIGUE ABIERTO.** Confirmado por el cliente en el
+   Bloque 12 (2026-09-21): un material no se activa sin pasar antes por esa
+   validación. Hoy el sistema **no la representa de ninguna forma**: no hay
+   estado, ni checklist, ni comprobación, ni registro de quién validó.
 
-11. **`codigo_interno` de Materiales pasará a generarse automáticamente.**
-    Confirmado que ocurrirá; **el formato está pendiente** y no se ha
-    construido nada. Hoy lo escribe el usuario a mano y es texto libre sin
-    patrón impuesto.
-    **Lo que esto cambia cuando llegue, y por eso se registra:** el flujo de
-    "ese código ya existe, corrígelo" **deja de ser el camino principal del
-    usuario**. Si el código lo genera el sistema, un choque de duplicados pasa
-    a ser un fallo interno del generador —como ya lo es el 23505 de
-    `codigo_ot` en Órdenes de Trabajo, que solo salta si algo se saltó el
-    correlativo— y no un error que el usuario pueda corregir escribiendo otra
-    cosa.
-    El `UNIQUE` de la columna y su traducción de error en
-    `modules/materiales/actions.ts` **se quedan**, pero cambian de papel: de
-    interacción esperada a red de seguridad. Cuando se construya el generador
-    hay que revisar el texto del mensaje ("Ya existe un material con ese
-    código interno" deja de tener sentido si el usuario no lo escribió) y
-    quitar el campo del formulario o dejarlo de solo lectura, igual que se
-    hizo con `codigo_ot`. El patrón a copiar es
-    `modules/ordenes-trabajo/correlativo.ts`, que ya resuelve la reserva
-    atómica del número sin huecos ni carreras.
-    Sin decidir todavía: el formato en sí, si el correlativo es global o por
-    alguna categoría, y qué pasa con los materiales ya cargados a mano.
+   **Actualización (2026-09-22): la columna `fecha_activacion` se eliminó, y
+   eso NO cierra este punto.** Aquella columna era lo único que aludía a este
+   proceso, y era una alusión pobre: un campo de texto que el usuario escribía
+   a mano, sin nada que comprobara que la validación hubiera ocurrido de
+   verdad. Al quitarla, el sistema pasó de representar mal este proceso a no
+   representarlo en absoluto — que es más honesto, pero igual de incompleto.
+   La fecha que hoy se muestra en el catálogo es `created_at`, la de alta del
+   registro, que no dice nada sobre validación ni activación.
+
+   **POR QUÉ ESTÁ FUERA DE ALCANCE, y no solamente sin construir (contexto del
+   cliente, 2026-09-22):** la distinción entre *fecha de activación* y *fecha
+   de validación* no aporta nada mientras el sistema tenga un solo usuario,
+   que es el propio cliente. Si quien registra el material es la misma persona
+   que lo valida, separar las dos fechas solo añade un campo que esa persona
+   se rellena a sí misma. La distinción **cobra sentido cuando existan
+   supervisores u otros roles verificando el trabajo de alguien más**: ahí sí
+   importa quién dio por buena la validación y cuándo, porque ya no coinciden
+   con quien cargó el dato.
+   Esto cambia la naturaleza del pendiente: no es una pieza que falte por
+   falta de tiempo, es una pieza que hoy **no tendría a quién servir**. El
+   disparador para retomarlo no es terminar otras tareas, es que el sistema
+   deje de tener un solo usuario — o sea, que aparezcan roles con permisos
+   distintos.
+
+   Lo que falta por preguntar cuando llegue ese momento, sin cambios: en qué
+   consiste la validación, quién la hace, si deja rastro (quién y cuándo), y
+   si un material puede existir en el catálogo sin estar activado todavía —
+   que es lo que hoy ocurre de hecho con todos, porque nada marca la
+   diferencia. Si de ahí sale que hace falta una fecha de activación real, se
+   vuelve a crear como columna con el proceso que la respalde, no como un
+   campo suelto.
+10. ~~**¿`fecha_activacion` puede ser una fecha futura, o solo pasada o de
+    hoy?**~~ **PREGUNTA RETIRADA (2026-09-22): la columna ya no existe.** Se
+    eliminó de `materiales` junto con su campo del formulario; no se sustituyó
+    por otra columna de fecha, y la que muestra el catálogo es `created_at`,
+    que la escribe la base y no admite fechas futuras por construcción. La
+    duda sobre el rango dejó de tener objeto.
+    **Ojo, esto no arrastra a la decisión 9**, que sigue abierta: el proceso
+    de validación previa sigue siendo una necesidad de negocio real, y ahora
+    sin ninguna representación en el sistema.
+
+11. ~~**`codigo_interno` de Materiales pasará a generarse automáticamente.**~~
+    **RESUELTO (2026-09-22).** Formato confirmado y construido: **`MAT.0000001`**
+    — prefijo `MAT.` más un correlativo de **7 dígitos** con ceros a la
+    izquierda. **Global, sin segmento de año, no reinicia nunca** (a diferencia
+    del de OT, que sí es anual). El usuario ya no lo escribe.
+
+    **Cómo quedó implementado:**
+    - La reserva atómica vive en `core/correlativo.ts` (`reservarCorrelativo`),
+      sobre una tabla `correlativo` cuya PK es un ámbito de texto (`clave`), no
+      un año. El mecanismo es el mismo upsert `ON CONFLICT … DO UPDATE …
+      RETURNING` que ya usaba OT, y por la misma razón: toma el lock de la fila,
+      así que dos altas simultáneas nunca reciben el mismo número.
+    - Lo que NO generalizaba de `modules/ordenes-trabajo/correlativo.ts` era su
+      clave: `ot_correlativo.anio` significa literalmente "año". Forzar un año
+      falso para reusar esa tabla habría ensuciado lo que allí funciona, así que
+      el contador global nació aparte, en `core/` por ser lógica compartida entre
+      módulos. La función de OT pasó a llamarse `reservarCorrelativoAnual` para
+      que los dos nombres no se confundan, y el tipo `Transaccion` se mudó a
+      `core/`.
+    - `ot_correlativo` **no se migró** a la tabla nueva: tiene datos y funciona.
+      Podrían consolidarse algún día con una clave tipo `"orden-trabajo:2026"`.
+    - El formato se arma en `modules/materiales/codigo.ts`; sus constantes
+      (`PREFIJO_MATERIAL`, `DIGITOS_CORRELATIVO`, `CORRELATIVO_INICIAL`,
+      `CLAVE_CORRELATIVO`) están en `modules/materiales/constantes.ts`.
+
+    **Lo que cambió de papel, como este mismo punto anticipaba:** el `UNIQUE`
+    de la columna y su traducción de error **se quedaron**, pero ya no son una
+    interacción del usuario sino red de seguridad del generador. El mensaje se
+    reescribió: "Ya existe un material con ese código interno" presuponía que
+    el usuario lo había escrito. Y **no ofrece reintentar**, deliberadamente —
+    la transacción revierte también la reserva del correlativo, así que un
+    segundo intento pide el mismo número y choca igual; el fallo es
+    determinista, no transitorio. Es la misma trampa que ya documentaba
+    `crearOrdenTrabajoEnModal`.
+
+    **Lo que queda sin decidir, y no bloquea nada:** si algún día hiciera falta
+    un correlativo por categoría en vez de global (hoy no hay categorías), y
+    qué hacer con materiales cargados a mano desde fuera de la aplicación — hoy
+    no hay ninguno: la tabla estaba vacía cuando se construyó esto, así que el
+    contador arranca limpio en `MAT.0000001` y no hubo nada que resincronizar.

@@ -1,13 +1,19 @@
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { materiales } from "@/db/schema/materiales";
+import { materialCaracteristicas } from "@/db/schema/material-caracteristicas";
 import { patronParcial } from "@/core/busqueda";
 import type { FiltrosMateriales } from "./filtros";
 
 /**
  * Las columnas que muestra el listado: todas las de negocio, más `activo`
- * para poder marcar visualmente las filas inactivas. Fuera quedan
- * `createdAt`/`updatedAt`, que nadie pinta.
+ * para poder marcar visualmente las filas inactivas.
+ *
+ * `createdAt` SÍ entra, a diferencia de los otros listados: desde que se
+ * eliminó `fecha_activacion`, la fecha que ve el usuario en la tabla y en la
+ * vista de detalle es la de creación del registro. No es una columna de
+ * auditoría que se cuele por descuido — es el dato que se pinta. `updatedAt`
+ * se queda fuera, que ese sí no lo mira nadie.
  */
 const columnasListado = {
   id: materiales.id,
@@ -17,8 +23,8 @@ const columnasListado = {
   modelo: materiales.modelo,
   codigo_fabrica: materiales.codigo_fabrica,
   unidad: materiales.unidad,
-  fecha_activacion: materiales.fecha_activacion,
   activo: materiales.activo,
+  createdAt: materiales.createdAt,
 } as const;
 
 /**
@@ -59,14 +65,67 @@ export async function listarMateriales(filtros: FiltrosMateriales = {}) {
       : undefined,
   ];
 
-  return db
+  const filas = await db
     .select(columnasListado)
     .from(materiales)
     .where(and(...condiciones))
-    // Por código interno: es el identificador con el que el usuario busca una
-    // herramienta en una lista de papel. No hay correlativo ni fecha de
-    // emisión que sugiera otro orden.
+    // Por código interno, que desde que se autogenera es además el orden de
+    // alta: `MAT.0000001`, `MAT.0000002`… Con 7 dígitos fijos y ceros a la
+    // izquierda, el orden alfabético y el numérico coinciden, así que ordenar
+    // el texto no hace falsos saltos (que es justo lo que pasaría con un
+    // código de ancho variable).
     .orderBy(asc(materiales.codigo_interno));
+
+  return conCaracteristicas(filas);
+}
+
+/**
+ * Cuelga de cada material sus características técnicas, en orden de entrada.
+ *
+ * UNA SOLA CONSULTA EXTRA PARA TODO EL LISTADO, no una por fila: se piden las
+ * características de todos los materiales de la página con un `IN (...)` y se
+ * agrupan aquí. Es la diferencia entre dos viajes a la base y N+1, que con un
+ * catálogo creciendo es la clase de detalle que no se nota hasta que duele.
+ *
+ * Van en el listado y no se piden al abrir el modal porque el modal se precarga
+ * desde la fila: es el patrón ya establecido en los tres módulos ("la fila ya
+ * trae todos los campos que el formulario necesita"). Son como mucho tres
+ * líneas de texto por material, así que el coste de traerlas siempre es
+ * despreciable frente a una segunda ida al servidor al abrir cada ficha.
+ */
+async function conCaracteristicas<T extends { id: string }>(filas: T[]) {
+  if (filas.length === 0) return [];
+
+  const caracteristicas = await db
+    .select({
+      material_id: materialCaracteristicas.material_id,
+      texto: materialCaracteristicas.texto,
+    })
+    .from(materialCaracteristicas)
+    .where(
+      inArray(
+        materialCaracteristicas.material_id,
+        filas.map((fila) => fila.id),
+      ),
+    )
+    // El orden de entrada es el que se guardó en `orden`; sin este ORDER BY la
+    // base no garantiza ninguno y las líneas podrían salir barajadas al reabrir
+    // el modal.
+    .orderBy(asc(materialCaracteristicas.orden));
+
+  const porMaterial = new Map<string, string[]>();
+
+  for (const fila of caracteristicas) {
+    const lista = porMaterial.get(fila.material_id);
+
+    if (lista) lista.push(fila.texto);
+    else porMaterial.set(fila.material_id, [fila.texto]);
+  }
+
+  return filas.map((fila) => ({
+    ...fila,
+    caracteristicas: porMaterial.get(fila.id) ?? [],
+  }));
 }
 
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */

@@ -16,21 +16,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import type { ControlDetalle } from "@/core/fila-clicable";
 import type { ResultadoAccion } from "@/core/resultado-accion";
-import { cambiarActivoMaterial, editarMaterialEnModal } from "../actions";
+import { cambiarActivoMaterial } from "../actions";
 import type { FilaMaterial } from "../queries";
-import { DialogoMaterial } from "./dialogo-material";
 
 /**
  * Las dos acciones de una fila del catálogo: editar e inactivar.
  *
- * SON DOS, NO TRES: no hay lupa de "ver detalle". Un material cabe entero en
- * su fila, así que una pantalla de solo lectura no enseñaría nada que no esté
- * ya a la vista — y el modal de edición sirve igual para mirar, porque se
- * cierra sin guardar. Este es el patrón estándar de los Catálogos maestros
- * (ver la sección "Catálogos maestros" en
- * .claude/skills/shadcn-conventions/SKILL.md): los que vengan —Servicios,
- * Lista de precios, Tarifario de personal, EPPs— lo heredan tal cual.
+ * SIGUEN SIENDO DOS ICONOS, NO TRES: no hay lupa de "ver detalle" porque no
+ * hace falta un botón para eso — se ve haciendo clic en la fila, que abre el
+ * mismo modal en modo solo lectura (ver `fila-material.tsx` y
+ * `core/fila-clicable.tsx`). El lápiz se queda como atajo: salta directo a
+ * edición sin pasar por la vista, que es lo que quiere quien ya sabe a qué
+ * viene. Este es el patrón estándar de los Catálogos maestros (ver la sección
+ * "Catálogos maestros" en .claude/skills/shadcn-conventions/SKILL.md): los
+ * que vengan —Servicios, Lista de precios, Tarifario de personal, EPPs— lo
+ * heredan tal cual.
+ *
+ * Ni el lápiz ni la equis montan su propio modal: los dos mueven el
+ * `ControlDetalle` de la fila, que es quien monta el único modal que hay.
+ *
+ * ESTE COMPONENTE NO SE MONTA SUELTO: va dentro del `SinPropagacion` de la
+ * fila, o el clic en cualquiera de estos botones abriría además la vista. El
+ * envoltorio está en `fila-material.tsx`, y el porqué —incluido el detalle de
+ * que los eventos de un portal burbujean igual— en `core/fila-clicable.tsx`.
  *
  * Iconos sin texto, a diferencia de Personal, que usa botones con palabras: en
  * una tabla de siete columnas el ancho es escaso y dos etiquetas por fila
@@ -51,7 +61,13 @@ import { DialogoMaterial } from "./dialogo-material";
  * acción solo pone `activo = false`. El texto del diálogo lo dice con las
  * palabras del usuario, no con las de la base de datos.
  */
-export function AccionesMaterial({ material }: { material: FilaMaterial }) {
+export function AccionesMaterial({
+  material,
+  control,
+}: {
+  material: FilaMaterial;
+  control: ControlDetalle;
+}) {
   const router = useRouter();
   const [confirmando, setConfirmando] = useState(false);
   const [guardando, iniciarGuardado] = useTransition();
@@ -92,17 +108,16 @@ export function AccionesMaterial({ material }: { material: FilaMaterial }) {
   }
 
   return (
-    <div className="flex items-center justify-end gap-1">
-      <DialogoMaterial
-        guardarAction={editarMaterialEnModal}
-        material={material}
-        disparador={
-          <Button variant="ghost" size="icon-sm" title="Editar">
-            <PencilIcon />
-            <span className="sr-only">Editar {nombre}</span>
-          </Button>
-        }
-      />
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        title="Editar"
+        onClick={() => control.cambiar("editando")}
+      >
+        <PencilIcon />
+        <span className="sr-only">Editar {nombre}</span>
+      </Button>
 
       {material.activo ? (
         <>
@@ -164,6 +179,6 @@ export function AccionesMaterial({ material }: { material: FilaMaterial }) {
           <span className="sr-only">Reactivar {nombre}</span>
         </Button>
       )}
-    </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CaracteristicasMaterial } from "./caracteristicas-material";
 import type { MaterialEditable } from "../tipos";
 
 type Props = {
@@ -35,28 +36,42 @@ function MensajeError({ errores }: { errores?: string[] }) {
  * ese `required` es solo comodidad de UX — la comprobación que vale está en
  * el servidor, como cualquier otra.
  *
- * `activo` no está: la baja será una acción confirmada del listado (Parte 2).
+ * TRES COSAS NO SE PIDEN AQUÍ, y las tres a propósito:
+ *
+ * - `codigo_interno` se enseña pero no se escribe: lo genera el correlativo
+ *   del servidor. Ver el comentario de su campo.
+ * - `fecha_activacion` YA NO EXISTE: la columna se eliminó del esquema. La
+ *   fecha que muestran la tabla y la vista de detalle es `created_at`, que
+ *   pone la base con su `DEFAULT now()` y nadie escribe a mano. Por eso este
+ *   formulario no tiene ningún campo de fecha.
+ * - `activo` no está: la baja es una acción confirmada del listado.
  */
 export function CamposMaterial({ material, errores }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-2">
         <Label htmlFor="codigo_interno">Código interno</Label>
-        {/* Sin formato impuesto: no está confirmado que el código interno
-            siga un patrón. Su UNICIDAD sí está confirmada, y la garantiza el
-            UNIQUE de la tabla — no este input ni el Zod: comprobarlo antes
-            con un SELECT dejaría una ventana de carrera. Si se repite, el
-            choque vuelve traducido desde ../actions.ts y aparece debajo de
-            este campo. */}
+        {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
+            global del servidor (`MAT.0000001`, ver ../codigo.ts). Se enseña
+            igualmente porque quien llena la ficha espera ver el código, pero
+            no es una decisión suya.
+
+            `disabled` y sin `name`, en los dos modos: así no viaja en el envío.
+            Que no viaje es la segunda mitad de la garantía — la primera es que
+            `materialCrearSchema` ni siquiera lo declara, de modo que un POST
+            directo que lo incluyera tampoco conseguiría imponerlo.
+
+            Al crear no hay número que enseñar todavía: el correlativo se
+            reserva dentro de la transacción del INSERT, así que cualquier
+            valor que se pintara aquí antes de guardar sería una adivinanza que
+            otra alta simultánea dejaría falsa. Mismo criterio, y mismo
+            marcador de posición, que `codigo_ot` en Órdenes de Trabajo. */}
         <Input
           id="codigo_interno"
-          name="codigo_interno"
           defaultValue={material?.codigo_interno ?? ""}
-          placeholder="El código que usa la empresa"
-          required
-          aria-invalid={Boolean(errores.codigo_interno)}
+          placeholder="Se genera automáticamente al guardar"
+          disabled
         />
-        <MensajeError errores={errores.codigo_interno} />
       </div>
 
       <div className="space-y-2">
@@ -125,23 +140,16 @@ export function CamposMaterial({ material, errores }: Props) {
         <MensajeError errores={errores.codigo_fabrica} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="fecha_activacion">Fecha de activación</Label>
-        {/* La columna es `date` (no `timestamp`), así que lo que este input
-            produce —`YYYY-MM-DD`— es literalmente lo que se guarda, sin pasar
-            por ninguna conversión de zona horaria.
-            Sin `min` ni `max`: no está confirmado si la activación puede ser
-            futura (ver ../schema.ts), y acotarlo aquí asumiría la respuesta. */}
-        <Input
-          id="fecha_activacion"
-          name="fecha_activacion"
-          type="date"
-          defaultValue={material?.fecha_activacion ?? ""}
-          required
-          aria-invalid={Boolean(errores.fecha_activacion)}
-        />
-        <MensajeError errores={errores.fecha_activacion} />
-      </div>
+      {/* AL FINAL, después de todos los demás campos, y ocupando las dos
+          columnas: es una lista que crece, no un campo más de la rejilla.
+          `key` atada a las iniciales para que al pasar de un material a otro
+          —o de vista a edición— el editor se remonte con su estado limpio en
+          vez de arrastrar las líneas del anterior. */}
+      <CaracteristicasMaterial
+        key={(material?.caracteristicas ?? []).join("\u0000")}
+        iniciales={material?.caracteristicas ?? []}
+        errores={errores.caracteristicas}
+      />
     </div>
   );
 }

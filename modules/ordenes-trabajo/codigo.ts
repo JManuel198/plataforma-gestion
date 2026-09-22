@@ -6,7 +6,7 @@ import { CODIGO_EMPRESA, DIGITOS_CORRELATIVO, PREFIJO_OT } from "./constantes";
  * se reservó: `(2026, 1)` → `"OT.CCM.2026.0001"`.
  *
  * Es solo el formateo. Quién decide ese número —y cómo evita que dos OT
- * creadas a la vez reciban el mismo— vive en `reservarCorrelativo`
+ * creadas a la vez reciban el mismo— vive en `reservarCorrelativoAnual`
  * (modules/ordenes-trabajo/correlativo.ts). Están separados a propósito: esta
  * función es pura y se lee de un vistazo; la otra toca la base de datos.
  */

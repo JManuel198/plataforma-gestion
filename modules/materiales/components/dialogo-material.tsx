@@ -19,20 +19,39 @@ import {
   estadoFormularioInicial,
   type EstadoFormulario,
 } from "@/core/estado-formulario";
+import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposMaterial } from "./campos-material";
+import { VistaMaterial } from "./vista-material";
 import type { MaterialEditable } from "../tipos";
 
 type Props = {
   /** Server Action que guarda. Devuelve el resultado, nunca redirige. */
   guardarAction: (formData: FormData) => Promise<EstadoFormulario>;
-  /** El control que abre el modal. Cada sitio trae el suyo. */
-  disparador: ReactElement;
-  /** Material existente: se está editando. */
+  /**
+   * El control que abre el modal. Solo lo trae el alta desde la cabecera, que
+   * vive en un Server Component y no puede pasar un `control`.
+   */
+  disparador?: ReactElement;
+  /**
+   * Los tres modos, cuando manda quien monta el modal. Lo pasa la fila, que
+   * tiene dos disparadores para un mismo modal: el clic en la fila lo abre en
+   * "viendo" y el lápiz en "editando". Sin esto el modal lleva su propio
+   * estado y solo conoce dos modos (cerrado y editando).
+   */
+  control?: ControlDetalle;
+  /** Material existente: se está viendo o editando. */
   material?: MaterialEditable;
+  /**
+   * `created_at` ya formateada, para el modo "viendo". Viene de fuera porque
+   * se resuelve en el servidor con la zona del negocio (ver
+   * `fila-material.tsx`). Solo la trae la fila; el alta desde la cabecera no
+   * pasa por la vista y no tiene fecha que enseñar todavía.
+   */
+  fechaCreacion?: string;
 };
 
 /**
- * Alta o edición de un material sin salir del listado.
+ * Alta, consulta y edición de un material sin salir del listado.
  *
  * Mismo patrón que `DialogoPersona` y `DialogoOrdenTrabajo`, con las tres
  * cosas que allí costó descubrir ya incorporadas. No las quites sin leer por
@@ -42,7 +61,7 @@ type Props = {
  *    interfaz (cerrar, avisar, refrescar), y con `useActionState` habría que
  *    reaccionar a él en un `useEffect` con `setState` dentro — justo lo que
  *    el lint rechaza (`react-hooks/set-state-in-effect`).
- * 2. Render condicional explícito de los campos (`{abierto ? … : null}`).
+ * 2. Render condicional explícito de los campos (`{editando ? … : null}`).
  *    Base UI NO desmonta a los hijos cuando `open` pasa a false: el portal se
  *    monta según `mounted` (dialog/portal/DialogPortal.js:32), que sobrevive a
  *    la animación de salida. Sin esto, el `router.refresh()` de abajo llega a
@@ -52,18 +71,38 @@ type Props = {
  *    promesa se rechaza dentro de la transición y el modal se queda mudo,
  *    como si no hubiera pasado nada. El `redirect()` de sesión vencida se
  *    deja pasar: es una navegación, no un fallo.
+ *
+ * LOS DOS MODOS ABIERTOS SON UN SOLO MODAL, no dos. Pasar de "viendo" a
+ * "editando" (el botón "Editar" de la vista) solo cambia lo que se pinta
+ * dentro: el diálogo no se cierra ni se vuelve a abrir, así que no hay
+ * parpadeo, ni animación de entrada repetida, ni foco que se pierda por el
+ * camino. Por eso el estado es un `ModoDetalle` de tres valores y no un
+ * booleano `abierto` más otro `editando`, que admitiría la combinación
+ * imposible "cerrado pero editando".
  */
-export function DialogoMaterial({ guardarAction, disparador, material }: Props) {
+export function DialogoMaterial({
+  guardarAction,
+  disparador,
+  control: controlExterno,
+  material,
+  fechaCreacion,
+}: Props) {
   const router = useRouter();
   // Las dos columnas admiten NULL en la base (ningún campo de negocio de
   // `materiales` es NOT NULL), así que no se pueden interpolar a pelo: una
   // fila cargada fuera de este formulario —escenario real, ver la decisión 8
   // de "Catálogos maestros" en preguntas-abiertas.md— pintaría literalmente
   // "null" en el título y en el toast. Mismo criterio que `oVacio()` en
-  // tabla-materiales.tsx y que el fallback de acciones-material.tsx.
+  // core/vista-detalle.ts y que el fallback de acciones-material.tsx.
   const descripcion = material?.descripcion?.trim() || "Sin descripción";
   const codigo = material?.codigo_interno?.trim() || "Sin código";
-  const [abierto, setAbierto] = useState(false);
+  // El hook se llama siempre (no puede ser condicional) y se descarta cuando
+  // el control viene de fuera: cuesta un `useState` sin usar y evita tener
+  // dos caminos distintos según quién monte el modal.
+  const controlPropio = useControlDetalle();
+  const control = controlExterno ?? controlPropio;
+  const abierto = control.modo !== "cerrado";
+  const editando = control.modo === "editando";
   const [estado, setEstado] = useState<EstadoFormulario>(
     estadoFormularioInicial,
   );
@@ -93,7 +132,7 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
         return;
       }
 
-      setAbierto(false);
+      control.cambiar("cerrado");
       setEstado(estadoFormularioInicial);
       toast.success(
         material ? `${descripcion}: cambios guardados.` : "Material registrado.",
@@ -106,11 +145,16 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
     <Dialog
       open={abierto}
       onOpenChange={(siguiente) => {
-        setAbierto(siguiente);
+        // Cerrar por cualquier vía (Cancelar, Escape, clic fuera) vuelve a
+        // "cerrado" sin recordar en qué modo estaba: el próximo clic en la
+        // fila tiene que abrir la vista otra vez, no la edición de antes.
+        // Abrir desde el disparador propio es siempre el alta, que solo tiene
+        // sentido en edición.
+        control.cambiar(siguiente ? "editando" : "cerrado");
         if (!siguiente) setEstado(estadoFormularioInicial);
       }}
     >
-      <DialogTrigger render={disparador} />
+      {disparador ? <DialogTrigger render={disparador} /> : null}
 
       {/* `data-closed:animate-none duration-0` anula la animación de salida
           que trae components/ui/dialog.tsx, solo aquí: como los campos se
@@ -120,7 +164,11 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
       <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {material ? "Editar material" : "Nuevo material"}
+            {material
+              ? editando
+                ? "Editar material"
+                : "Detalle del material"
+              : "Nuevo material"}
           </DialogTitle>
           <DialogDescription>
             {material
@@ -138,40 +186,64 @@ export function DialogoMaterial({ guardarAction, disparador, material }: Props) 
           </p>
         ) : null}
 
-        <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
-          {material ? (
-            <input type="hidden" name="id" value={material.id} />
-          ) : null}
-
-          {/* `-mx-4 px-4`: el contenedor llega al borde real del Dialog (que
-              tiene `p-4`) y recupera el margen por dentro, para que la barra
-              de scroll quede al ras y el anillo de foco no se corte contra el
-              recorte. `py-1` hace lo mismo arriba y abajo. */}
-          <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
-            {abierto ? (
-              <CamposMaterial
-                material={material}
-                errores={estado.errores ?? {}}
-              />
+        {/* `-mx-4 px-4`: el contenedor llega al borde real del Dialog (que
+            tiene `p-4`) y recupera el margen por dentro, para que la barra
+            de scroll quede al ras y el anillo de foco no se corte contra el
+            recorte. `py-1` hace lo mismo arriba y abajo. */}
+        {editando || !material ? (
+          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+            {material ? (
+              <input type="hidden" name="id" value={material.id} />
             ) : null}
-          </div>
 
-          <DialogFooter>
-            <DialogClose
-              render={<Button type="button" variant="outline" />}
-              disabled={enviando}
-            >
-              Cancelar
-            </DialogClose>
-            <Button type="submit" disabled={enviando}>
-              {enviando
-                ? "Guardando…"
-                : material
-                  ? "Guardar cambios"
-                  : "Registrar"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
+              {abierto ? (
+                <CamposMaterial
+                  material={material}
+                  errores={estado.errores ?? {}}
+                />
+              ) : null}
+            </div>
+
+            <DialogFooter>
+              <DialogClose
+                render={<Button type="button" variant="outline" />}
+                disabled={enviando}
+              >
+                Cancelar
+              </DialogClose>
+              <Button type="submit" disabled={enviando}>
+                {enviando
+                  ? "Guardando…"
+                  : material
+                    ? "Guardar cambios"
+                    : "Registrar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : (
+          <>
+            <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
+              {abierto ? (
+                <VistaMaterial
+                  material={material}
+                  fechaCreacion={fechaCreacion ?? "—"}
+                />
+              ) : null}
+            </div>
+
+            <DialogFooter>
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cerrar
+              </DialogClose>
+              {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
+                  esto es el mismo salto a edición para quien llegó mirando. */}
+              <Button type="button" onClick={() => control.cambiar("editando")}>
+                Editar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

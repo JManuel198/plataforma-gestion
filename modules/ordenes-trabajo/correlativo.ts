@@ -1,17 +1,23 @@
 import { sql } from "drizzle-orm";
-import type { db } from "@/db";
 import { otCorrelativo } from "@/db/schema/orden-trabajo";
+import type { Transaccion } from "@/core/correlativo";
 import { CORRELATIVO_INICIAL } from "./constantes";
 
-/**
- * El handle de transacción que entrega `db.transaction(async (tx) => ...)`.
- * Se deriva del tipo de `db` en vez de escribirlo a mano para que no se
- * desincronice si cambia el driver.
- */
-export type Transaccion = Parameters<Parameters<typeof db.transaction>[0]>[0];
+// `Transaccion` se mudó a core/correlativo.ts cuando Materiales necesitó el
+// mismo tipo: dos módulos no se importan entre sí, lo compartido va a core/.
+// Se reexporta para no romper a quien ya lo importaba de aquí.
+export type { Transaccion };
 
 /**
- * Reserva el siguiente correlativo del año y lo devuelve.
+ * Reserva el siguiente correlativo DEL AÑO y lo devuelve.
+ *
+ * Es el hermano anual de `reservarCorrelativo` (core/correlativo.ts), que
+ * cuenta en global y no reinicia. Los dos usan el mismo upsert atómico; lo que
+ * cambia es la clave de la tabla —aquí el año, allí un ámbito de texto— y que
+ * este reinicia cada enero. Si algún día se consolidan, el camino es mover
+ * este contador a la tabla `correlativo` con una clave tipo
+ * `"orden-trabajo:2026"`; hoy conviven a propósito, porque `ot_correlativo` ya
+ * tiene datos y moverlos sería una migración que nadie ha pedido.
  *
  * CÓMO EVITA LA CONDICIÓN DE CARRERA — esto es lo importante de este archivo.
  *
@@ -39,7 +45,7 @@ export type Transaccion = Parameters<Parameters<typeof db.transaction>[0]>[0];
  * El `UNIQUE` sobre `orden_trabajo.codigo_ot` queda como red de seguridad por
  * si algún cambio futuro se saltara este camino.
  */
-export async function reservarCorrelativo(
+export async function reservarCorrelativoAnual(
   tx: Transaccion,
   anio: number,
 ): Promise<number> {

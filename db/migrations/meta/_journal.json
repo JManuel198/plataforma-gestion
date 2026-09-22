@@ -71,6 +71,20 @@
       "when": 1790026211513,
       "tag": "0009_cooing_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790095479884,
+      "tag": "0010_open_newton_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790096846419,
+      "tag": "0011_shallow_santa_claus",
+      "breakpoints": true
     }
   ]
 }

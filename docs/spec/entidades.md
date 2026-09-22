@@ -135,6 +135,56 @@ se borraron después.
 
 ---
 
+## Correlativo genérico (tabla de apoyo)
+
+Tabla `correlativo`, en `db/schema/correlativo.ts`. Creada en el Bloque 12,
+Parte 3 (2026-09-22) para que `materiales.codigo_interno` se autogenere con
+el formato `MAT.0000001`. No es una entidad de negocio, igual que
+`ot_correlativo` — es el hermano genérico de esa misma tabla, no su
+reemplazo (ver más abajo).
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `clave` | `text` (PK) | sí | automático — el ÁMBITO del contador, ej. `"materiales"` |
+| `ultimo` | `integer` | sí | automático — último número entregado en ese ámbito |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**Mismo mecanismo de reserva atómica que `ot_correlativo`:**
+
+```sql
+INSERT INTO correlativo (clave, ultimo)
+VALUES ($clave, $inicial)
+ON CONFLICT (clave) DO UPDATE SET ultimo = correlativo.ultimo + 1
+RETURNING ultimo;
+```
+
+PostgreSQL toma el lock de la fila de esa `clave`: una reserva simultánea
+espera a que la primera transacción termine en vez de leer un valor
+obsoleto. Esa sentencia y el `INSERT` de la fila que consume el número (hoy,
+un material) van en la **misma transacción**, así que si esa fila falla el
+número no se consume y no quedan huecos. Por el mismo motivo que
+`ot_correlativo` tampoco es una `sequence` de PostgreSQL: las secuencias no
+revierten con la transacción y dejarían huecos permanentes.
+
+**En qué se diferencia de `ot_correlativo`, y por qué no la reemplaza.** El
+correlativo de OT reinicia cada año, así que su PK es literalmente el año
+(`anio integer`). Este correlativo es global y **nunca reinicia**, así que
+generalizar exigía cambiar la PK por el ÁMBITO del contador (`clave text`) en
+vez de un año — forzar un año falso en `ot_correlativo` para reusarla habría
+ensuciado lo que ya funciona ahí. `ot_correlativo` ya tiene datos reales de
+producción y sigue funcionando: no se toca ni se migra. Si algún día se
+decide consolidar los dos, el camino es mover el contador de OT a una fila de
+esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
+entonces conviven a propósito.
+
+**Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy solo
+Materiales la usa (clave `"materiales"`, prefijo `MAT.`, 7 dígitos); el
+mecanismo queda listo para el próximo catálogo que necesite un código
+autogenerado sin año.
+
+---
+
 ## Personal
 
 Primera tabla del nuevo módulo Personal (`modules/personal/`, en desarrollo
@@ -214,16 +264,20 @@ BORRADOR — pero su obligatoriedad y varias reglas de negocio siguen sin
 confirmar, y eso sí sigue abierto (ver más abajo y
 `preguntas-abiertas.md`, decisión 8 de "Catálogos maestros").
 
+**Bloque 12, Parte 3 (2026-09-22): quedaron seis campos de negocio, no
+siete.** `fecha_activacion` se eliminó (ver más abajo) y `codigo_interno`
+dejó de ser un campo que el usuario llena para pasar a autogenerarse — los
+detalles de las dos cosas están en los párrafos siguientes.
+
 | Columna | Tipo en la BD | Obligatorio | Cómo se llena |
 |---|---|---|---|
 | `id` | `text` (PK, UUID) | sí | automático |
-| `codigo_interno` | `text` (**UNIQUE**) | **no** | manual — el código que usa la empresa, distinto del de fábrica |
+| `codigo_interno` | `text` (**UNIQUE**) | **no** | **automático** — generado con el correlativo, formato `MAT.0000001` |
 | `descripcion` | `text` | **no** | manual |
 | `marca` | `text` | **no** | manual |
 | `modelo` | `text` | **no** | manual |
 | `codigo_fabrica` | `text` | **no** | manual — el del fabricante, distinto del interno |
 | `unidad` | `text` | **no** | manual — unidad de medida, texto libre sin catálogo cerrado |
-| `fecha_activacion` | `date` (mode `"string"` en Drizzle) | **no** | manual — fecha de activación del material, sujeta a una validación previa aún sin construir |
 | `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar desde el listado (Bloque 12, Parte 2) |
 | `created_at` / `updated_at` | `timestamp` | sí | automáticos |
 
@@ -235,24 +289,26 @@ los siete se consideró evidente. **Decisión asumida**, no confirmada — ver
 decisión 8 de "Catálogos maestros" en `preguntas-abiertas.md`, con el camino
 para endurecerlo (primero el Zod del módulo, después la columna).
 
-**`UNIQUE` sobre `codigo_interno`, confirmado por el cliente (Bloque 12,
-Parte 2): dos materiales no pueden compartir código interno.** La garantía
-real es el `UNIQUE` de la base, no la validación del formulario — mismo
-razonamiento que `personal.dni`. Sigue sin ser `NOT NULL`: solo se confirmó
-la unicidad, no la obligatoriedad, y en Postgres varias filas con `NULL` no
-chocan entre sí bajo un `UNIQUE`. `codigo_fabrica` sigue SIN `UNIQUE` — no
+**`codigo_interno` pasó de manual a autogenerado (Bloque 12, Parte 3,
+2026-09-22).** Formato `MAT.0000001` — prefijo `MAT.` fijo, correlativo
+global de 7 dígitos con ceros a la izquierda, que **nunca reinicia** (a
+diferencia del correlativo anual de OT). Se reserva con la tabla `correlativo`
+(ver la ficha nueva más abajo), con clave `"materiales"`. El `UNIQUE` de la
+columna **sigue existiendo** pero cambia de papel: ya no es la validación de
+una interacción esperada del usuario (que podía escribir dos veces el mismo
+código), sino la red de seguridad del generador — exactamente el mismo papel
+que cumple el `UNIQUE` de `orden_trabajo.codigo_ot` frente a
+`ot_correlativo`. Sigue sin ser `NOT NULL`: el generador lo llena siempre,
+pero la columna en sí no lo exige. `codigo_fabrica` sigue SIN `UNIQUE` — no
 está confirmado que sea un identificador único, podría haber duplicados
 mientras se depura el catálogo.
 
-**`fecha_activacion` es `date`, no `timestamp`** — regla invariable 10 de
-AGENTS.md, mismo patrón que `personal.fecha_nacimiento`: sin hora, sin el
-problema de zona horaria de las columnas `timestamp` sin zona (ver la deuda
-técnica de `db/index.ts`). Su significado ya está confirmado (Bloque 12,
-Parte 2): es la fecha de activación del material, sujeta a una validación
-previa que todavía no se construye (fuera de alcance por ahora). Lo que
-sigue sin confirmar es si admite fechas futuras (un material podría
-registrarse antes de completar esa validación) — no se impuso ningún `CHECK`
-al respecto, a propósito.
+**La fecha que muestra la interfaz (tabla y vista de detalle) es
+`created_at`, no una columna de negocio propia.** La columna `fecha_activacion`
+existió como `date` independiente (Bloque 12, Parte 2) y se eliminó en el
+Bloque 12, Parte 3 (2026-09-22): la tabla seguía con 0 filas, así que no hubo
+pérdida de datos real, y no se agregó ninguna columna de reemplazo — `created_at`
+ya cubre "cuándo entró este material" sin necesidad de una segunda fecha.
 
 **`activo` es baja lógica, no borrado** — regla invariable 9, mismo criterio
 que `personal.activo`: Materiales no tiene un enum de estado propio que ya
@@ -268,11 +324,85 @@ en la base no lo sea.
 `personal_activo_idx` y `orden_trabajo_estado_idx`: el listado filtra por
 `activo` en la consulta por defecto.
 
+**Tabla hija: `material_caracteristicas`** (ficha propia más abajo, justo
+después de "Correlativo genérico"). Guarda la lista de características
+técnicas de cada material, una fila por línea. A diferencia del resto de
+tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
+DELETE real — es una excepción deliberada, razonada en su propia ficha.
+
 **Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo).
 Sin relación todavía con `lista_precios.material` (borrador, más abajo): esa
 relación —si el `material` de Lista de precios termina siendo una FK real en
 vez de texto libre— es una decisión pendiente por separado (ver
 "Catálogos maestros", decisión 3, en `preguntas-abiertas.md`).
+
+---
+
+## Material — características técnicas (tabla hija de Materiales)
+
+Tabla `material_caracteristicas`, en `db/schema/material-caracteristicas.ts`.
+Creada en el Bloque 12, Parte 4 (2026-09-22). Guarda la lista de
+características técnicas de un material (p.ej. "resistente al agua", "IP65",
+"incluye batería") — una fila por línea de texto, no una columna con todo el
+texto junto, para poder ordenarlas y editarlas una por una desde el modal de
+Materiales.
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `material_id` | `text` (FK → `materiales.id`, `ON DELETE CASCADE`) | sí | automático — el material al que pertenece |
+| `texto` | `text` | sí | manual |
+| `orden` | `integer` | sí | **automático** — posición de entrada, no un campo de negocio |
+| `created_at` | `timestamp` | sí | automático |
+
+**Sin `updated_at`.** A diferencia del resto de tablas del esquema, esta no
+lleva columna de actualización: una característica no se edita in place, se
+borra y se vuelve a crear si el texto cambia (así lo maneja el modal de
+Materiales) — no hay ningún UPDATE que `updated_at` necesite reflejar.
+
+**`orden` es la posición de entrada, no un campo de negocio que el usuario
+elija.** Entero base 0 que asigna la aplicación según la posición en que se
+escribió cada característica en el formulario, para que al reabrir el modal
+aparezcan en el mismo orden en que se capturaron. El usuario no lo ve ni lo
+edita directamente — no hay un control de "mover arriba/abajo" en este
+bloque.
+
+**EXCEPCIÓN DELIBERADA A LA REGLA INVARIABLE 9 de AGENTS.md** ("ningún
+registro se borra en operación normal — se desactiva"). Esta tabla **sí
+permite DELETE real** y, a propósito, **no lleva columna `activo`**.
+
+La razón: una característica no es una entidad de negocio independiente como
+Cliente, Personal o un propio Material — es metadata descriptiva que solo
+existe colgando de su material, y **nada más en el sistema la referencia**
+(ninguna FK apunta a `material_caracteristicas`). Quitar una característica
+de la lista ES la operación que el usuario quiere hacer; no hay un "estado
+inactivo" que signifique algo distinto de "ya no está en la lista".
+
+Compárese con la otra excepción ya razonada en este documento, la de
+`orden_trabajo` (ver más arriba): ahí tampoco hay columna `activo`, pero
+porque el propio enum `estado` ya llega a `Cancelada` y cumple ese papel —
+sigue habiendo una bandera, solo que es una que ya existía por otro motivo.
+Aquí no hay ningún enum ni bandera equivalente: no hace falta ninguna,
+porque la fila deja de tener sentido en el momento en que el usuario decide
+quitarla.
+
+Si algún día otra tabla llegara a referenciar una característica (una FK
+apuntando a `material_caracteristicas.id`), esta excepción deja de ser
+válida y hay que revisarla: en ese momento una característica pasaría a
+comportarse como una entidad con vida propia, no como metadata desechable, y
+correspondería añadir la baja lógica como al resto del esquema.
+
+**`onDelete: "cascade"` en la FK a `materiales`.** Si un material desaparece
+de verdad (DELETE real — Materiales en sí usa baja lógica con `activo`, esto
+solo aplicaría si alguna vez se purgara la tabla), sus características no
+tienen sentido sin él. Es coherente con la excepción de arriba: son metadata
+del material, no entidades con vida propia fuera de él.
+
+**Índices.** `material_caracteristicas_material_id_idx` sobre `material_id`,
+para listar rápido las características de un material dado.
+
+**Consume:** `materiales` (vía `material_id`). **Consumida por:**
+`modules/materiales/` (en desarrollo).
 
 ---
 
