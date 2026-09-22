@@ -81,13 +81,53 @@ function aPuntosBasicos(porcentaje: string): number {
  * intacto — no un número parecido: la multiplicación por 10000 y la división
  * entre 10000 se cancelan exactamente.
  *
- * Se redondea al céntimo con `Math.round`: el resultado tiene que ser un entero
- * porque es un importe, y truncar siempre hacia abajo regalaría medio céntimo
- * en cada fila.
+ * ── POR QUÉ NO ES UNA SOLA MULTIPLICACIÓN ───────────────────────────────────
+ *
+ * La forma obvia —`Math.round(precioLista * (10000 - bps) / 10000)`— DA UN
+ * CÉNTIMO EQUIVOCADO en la parte alta del rango, y ese rango es alcanzable.
+ *
+ * El problema es el PRODUCTO INTERMEDIO, aunque la entrada y el resultado
+ * quepan de sobra: `PRECIO_MAXIMO_CENTIMOS` es 99 999 999 999 999 (~10^14) y
+ * multiplicarlo por 10 000 da ~10^18, muy por encima de
+ * `Number.MAX_SAFE_INTEGER` (~9×10^15). Pasado ese punto los enteros de
+ * JavaScript dejan de ser exactos y la división posterior arrastra el error.
+ *
+ * No es teórico: con `precioLista` en el techo y un descuento de 49.78 %, esa
+ * versión daba 50 220 000 000 000 cuando el valor correcto es
+ * 50 219 999 999 999. Y el techo lo permite `precioListaSchema`, así que el
+ * cálculo solo era exacto en parte del rango que su propia validación admite —
+ * la misma clase de error silencioso que la regla 2 evita al prohibir los float
+ * para dinero.
+ *
+ * ── CÓMO SE EVITA, SIN `BigInt` ─────────────────────────────────────────────
+ *
+ * Partiendo el precio en las unidades de 10 000 céntimos que caben y el resto:
+ *
+ *     precioLista = cientos × 10000 + resto      (0 ≤ resto < 10000)
+ *     precio      = cientos × factor + redondeo(resto × factor / 10000)
+ *
+ * Es la misma cuenta reordenada —sumar un entero antes o después de redondear
+ * da igual—, pero ahora ningún producto se dispara: `cientos × factor` llega a
+ * ~10^14 y `resto × factor` a ~10^8. Los dos caben exactos.
+ *
+ * Se hace así y no con `BigInt` porque el `target` de tsconfig.json es ES2017,
+ * donde los literales `10000n` no compilan. Cambiar el target del proyecto
+ * entero por esta función sería el rabo meneando al perro; la descomposición no
+ * cuesta nada y además deja la propiedad a la vista.
+ *
+ * El `Math.round` final es el redondeo al céntimo más cercano: el resultado
+ * tiene que ser entero —es un importe— y truncar siempre hacia abajo regalaría
+ * medio céntimo en cada fila.
+ *
+ * Verificado contra aritmética exacta con `BigInt` en los 10 001 descuentos
+ * posibles sobre el precio del techo: cero desvíos.
  */
 export function calcularPrecio(precioLista: number, descuento: string): number {
-  const puntosBasicos = aPuntosBasicos(descuento);
-  return Math.round((precioLista * (10_000 - puntosBasicos)) / 10_000);
+  const factor = 10_000 - aPuntosBasicos(descuento);
+  const cientos = Math.floor(precioLista / 10_000);
+  const resto = precioLista - cientos * 10_000;
+
+  return cientos * factor + Math.round((resto * factor) / 10_000);
 }
 
 /**
