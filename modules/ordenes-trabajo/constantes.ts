@@ -3,15 +3,21 @@
 // puede viajar al cliente sin arrastrar Drizzle ni la conexión a la base de
 // datos con él.
 //
-// ESTADOS_OT y MONEDAS son la fuente de verdad única de los enums `ot_estado`
-// y `moneda`: db/schema/orden-trabajo.ts importa los dos arrays de aquí para
-// construir sus `pgEnum`, así que no hay segundas listas que puedan
-// desincronizarse. Por eso modules/ordenes-trabajo/schema.ts ya no tiene los
-// chequeos de compilación que las ataban (ver el comentario que dejaron).
+// ESTADOS_OT es la fuente de verdad única del enum `ot_estado`:
+// db/schema/orden-trabajo.ts importa el array de aquí para construir su
+// `pgEnum`, así que no hay una segunda lista que pueda desincronizarse. Por eso
+// modules/ordenes-trabajo/schema.ts ya no tiene los chequeos de compilación que
+// las ataban (ver el comentario que dejaron).
 //
-// Si tocas cualquiera de las dos listas, estás cambiando el enum de PostgreSQL:
-// hace falta una migración (npx drizzle-kit generate), y quitar un valor que
-// alguna fila ya use exige reasignar esas filas primero.
+// Si tocas esa lista, estás cambiando el enum de PostgreSQL: hace falta una
+// migración (npx drizzle-kit generate), y quitar un valor que alguna fila ya
+// use exige reasignar esas filas primero.
+//
+// MONEDAS YA NO ESTÁ AQUÍ: vive en `core/monedas.ts` desde el 2026-09-22,
+// porque `modules/lista-precios/` la comparte con este módulo y ninguno de los
+// dos debe importar del otro. El movimiento estaba previsto textualmente en la
+// deuda técnica de AGENTS.md. `ESTADOS_OT` se queda: es del ciclo de vida de la
+// OT y de nadie más.
 
 /**
  * Los siete estados de la OT: los cinco de ejecución en campo que ya tenía,
@@ -45,14 +51,8 @@ export const ESTADOS_OT = [
 
 export type EstadoOt = (typeof ESTADOS_OT)[number];
 
-/**
- * Monedas de `precio`, heredadas de Servicio en la fusión. El cliente no
- * mencionó explícitamente que la OT deba conservar moneda; se mantiene porque
- * el precio venía con ella (supuesto 13 de docs/spec/preguntas-abiertas.md).
- */
-export const MONEDAS = ["PEN", "USD"] as const;
-
-export type Moneda = (typeof MONEDAS)[number];
+// Las monedas de `precio` —heredadas de Servicio en la fusión, supuesto 13 de
+// docs/spec/preguntas-abiertas.md— se importan de `@/core/monedas`.
 
 /**
  * Las tres piezas fijas del código `OT.CCM.AAAA.NNNN`. Viven aquí y no

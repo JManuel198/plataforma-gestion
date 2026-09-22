@@ -2,9 +2,10 @@
 - [Generar no es aplicar](feedback_generar_no_aplicar.md) — el usuario separa siempre "generar migración" de "aplicarla", incluso si el agente ve el cambio como seguro
 - [Correlativo de OT por año](ot_correlativo.md) — por qué tabla contadora con upsert atómico y no MAX+1 ni sequence; supuestos 5-9 de la Fase 3
 - [Fusión Servicio + OT](fusion_servicio_ot.md) — servicio desapareció (2026-09-19); se partió en 2 migraciones por bug CASCADE/DROP CONSTRAINT; truco de enum compartido para generar en pasos; receta pexpect sin TTY
-- [ESTADOS_OT fuente única](estados_ot_fuente_unica.md) — (2026-09-19) db/schema importa el array desde modules/ordenes-trabajo/constantes.ts; MONEDAS queda con el mismo problema, sin tocar a propósito
+- [ESTADOS_OT fuente única](estados_ot_fuente_unica.md) — (2026-09-19) db/schema importa el array desde constantes.ts; MONEDAS resuelta 2026-09-22 (movida a core/)
 - [pexpect: elegir "rename column"](pexpect_rename_columna.md) — (2026-09-20) receta inversa a la de la fusión: flecha abajo + enter cuando la opción deseada NO es el default resaltado
 - [Tabla personal](personal_tabla.md) — (2026-09-20) date/mode string para fecha_nacimiento, activo sí aplica aquí (a diferencia de OT), sin columna edad
 - [Tabla materiales](materiales_tabla.md) — (2026-09-21) catálogo maestro; codigo_interno UNIQUE, fecha→fecha_activacion confirmados Parte 2; migración 0009 regenerada desde cero (nunca se había aplicado)
 - [Correlativo genérico](correlativo_generico.md) — (2026-09-22) tabla `correlativo` (clave text PK) hermana de ot_correlativo, no su ALTER; eliminó materiales.fecha_activacion; migración 0010 aplicada
 - [Tabla material_caracteristicas](material_caracteristicas_tabla.md) — (2026-09-22) DELETE real permitido, sin `activo` ni `updated_at`; excepción distinta a la de OT; migración 0011 aplicada
+- [Tabla lista_precios](lista_precios_tabla.md) — (2026-09-22) precio se deriva (no columna); material_id FK real; reusa el correlativo genérico con clave "lista_precios" (OFFT.NNNNNNN, sin año); monedaEnum movido a db/schema/moneda.ts

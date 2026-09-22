@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { AVISOS, ESTADOS_OT, MONEDAS } from "./constantes";
-import { aCentimos, aMontoDecimal } from "./dinero";
+import { aCentimos, aMontoDecimal } from "@/core/dinero";
+import { MONEDAS } from "@/core/monedas";
+import { AVISOS, ESTADOS_OT } from "./constantes";
 
 // Nada que venga de un formulario toca la base de datos sin pasar por aquí
 // (regla 1 de AGENTS.md: la validación y el cálculo viven en el backend).

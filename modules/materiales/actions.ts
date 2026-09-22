@@ -16,6 +16,11 @@ import { reservarCorrelativo, type Transaccion } from "@/core/correlativo";
 import { formatearCodigoMaterial } from "./codigo";
 import { CLAVE_CORRELATIVO, CORRELATIVO_INICIAL } from "./constantes";
 import {
+  buscarMaterialesParaSeleccion,
+  type MaterialSeleccionable,
+} from "./queries";
+import {
+  busquedaSeleccionSchema,
   materialCambioActivoSchema,
   materialCrearSchema,
   materialEditarSchema,
@@ -288,13 +293,52 @@ export async function editarMaterialEnModal(
 }
 
 /**
+ * Busca materiales para que otro formulario elija uno.
+ *
+ * ES UNA LECTURA, y aun así vive aquí y no en queries.ts: la invoca un Client
+ * Component (`BuscadorSeleccion` de core/) mientras el usuario teclea, así que
+ * tiene que ser una Server Action. La consulta en sí sigue en queries.ts, donde
+ * viven todas las lecturas del módulo; esto es solo el envoltorio que la
+ * expone, con la sesión y la validación que exige cualquier otra action.
+ *
+ * QUIÉN LA USA: el modal de Lista de precios, que la recibe como prop desde
+ * `app/(protegido)/lista-precios/page.tsx`. Ese rodeo es deliberado —
+ * `modules/lista-precios/` NO importa de `modules/materiales/`: un módulo de
+ * negocio nunca depende de otro (AGENTS.md, Arquitectura), y quien los junta es
+ * la página, que es la capa de composición.
+ *
+ * Devuelve `[]` ante un texto vacío o absurdo en vez de fallar: para el usuario
+ * "no hay resultados" y "tu texto no vale" son lo mismo aquí, y un buscador que
+ * lanza excepciones mientras se teclea es peor que uno que no encuentra nada.
+ */
+export async function buscarMaterialesParaSeleccionAction(
+  texto: string,
+): Promise<MaterialSeleccionable[]> {
+  await exigirSesion();
+
+  const resultado = busquedaSeleccionSchema.safeParse(texto);
+
+  if (!resultado.success) return [];
+
+  return buscarMaterialesParaSeleccion(resultado.data);
+}
+
+/**
  * Inactiva un material o vuelve a activarlo. Escribe SOLO la columna `activo`.
  *
- * NO ES UN BORRADO, y no debe convertirse en uno. La fila se queda: el día que
- * `lista_precios.material` apunte de verdad a esta tabla (decisión todavía
- * abierta, ver preguntas-abiertas.md), un DELETE dejaría filas de precios
- * señalando a un material que ya no existe. Inactivar conserva el dato y solo
- * lo saca del catálogo vigente.
+ * NO ES UN BORRADO, y no debe convertirse en uno. Esto dejó de ser una
+ * precaución hipotética en el Bloque 13, Parte 1 (2026-09-22): `lista_precios`
+ * ya existe y `lista_precios.material_id` es una FK real contra esta tabla
+ * (decisión 3 de "Catálogos maestros", ya RESUELTA en preguntas-abiertas.md).
+ *
+ * O sea que hoy hay dos redes, y conviene no confundirlas:
+ * - La FK va sin cascada (`ON DELETE NO ACTION`), así que la base RECHAZARÍA
+ *   borrar un material que tenga ofertas. Ese es el suelo.
+ * - Esta acción ni lo intenta: escribe `activo = false` y la fila se queda
+ *   entera, así que las ofertas que la referencian siguen siendo válidas y
+ *   legibles. Lo único que cambia es que ese material deja de ofrecerse para
+ *   ofertas NUEVAS — lo filtra `buscarMaterialesParaSeleccion`, no esta
+ *   acción.
  *
  * Deliberadamente no reutiliza `editarMaterialEnModal`: esa recibe el
  * formulario entero y escribe siete columnas más, así que invocarla desde el

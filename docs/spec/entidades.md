@@ -62,9 +62,17 @@ La regla enunciada (los 7 en orden y por qué `Aceptada` va donde va) está en
 `reglas-negocio.md`.
 
 Desde 2026-09-19, `modules/ordenes-trabajo/constantes.ts` es la única fuente
-de esta lista y también de `MONEDAS`: `db/schema/orden-trabajo.ts` importa los
-dos arrays de ahí para construir sus `pgEnum`, ya no declara los suyos. No
-queda ninguna lista de valores de enum duplicada entre el módulo y el esquema.
+de esta lista: `db/schema/orden-trabajo.ts` importa el array de ahí para
+construir su `pgEnum`, ya no declara el suyo. No queda ninguna lista de valores
+de enum duplicada entre el módulo y el esquema.
+
+`MONEDAS` ya NO vive ahí: desde el Bloque 13, Parte 1 (2026-09-22) está en
+`core/monedas.ts`, y el `pgEnum` lo construye `db/schema/moneda.ts`. El motivo
+es que `lista_precios.moneda` usa el MISMO enum de PostgreSQL, y una lista
+compartida por dos módulos no puede vivir dentro de uno de ellos (AGENTS.md,
+Arquitectura). `ESTADOS_OT` se quedó en el módulo porque es del ciclo de vida
+de la OT y de nadie más. El tipo en Postgres sigue llamándose `moneda`: el
+movimiento no generó ninguna migración.
 
 **Sin `servicio_id`.** La FK a `servicio` (con `ON DELETE RESTRICT`) se
 eliminó junto con la tabla: una OT ya no depende de ningún otro registro para
@@ -75,9 +83,12 @@ no aplican — no hay nada de qué duplicarse.
 (regla 2 de AGENTS.md), `bigint` con `mode: "number"` en Drizzle (para no
 arrastrar `BigInt` por el código — el techo técnico real es
 `Number.MAX_SAFE_INTEGER`), siempre acompañado de su columna `moneda`. La
-conversión monto↔céntimos y el techo de negocio (`PRECIO_MAXIMO_CENTIMOS`)
-viven en el módulo: `modules/ordenes-trabajo/dinero.ts` (movido desde
-Servicios, sin cambios) y `modules/ordenes-trabajo/schema.ts`.
+conversión monto↔céntimos vive en `core/dinero.ts` desde el Bloque 13, Parte 1
+(2026-09-22) — estuvo en `modules/ordenes-trabajo/dinero.ts` mientras la OT era
+la única entidad con importes, y se movió al aparecer la segunda
+(`lista_precios`). El techo de negocio (`PRECIO_MAXIMO_CENTIMOS`) sí sigue en
+`modules/ordenes-trabajo/schema.ts`: es un límite de ESTA entidad, no una
+conversión compartida.
 
 **Sin borrado, sin columna `activo`.** Una OT que no va se marca `Cancelada`.
 Es la excepción consciente al patrón de columna `activo` que usa el resto del
@@ -178,10 +189,20 @@ esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
 entonces conviven a propósito.
 
 **Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy solo
-Materiales la usa (clave `"materiales"`, prefijo `MAT.`, 7 dígitos); el
-mecanismo queda listo para el próximo catálogo que necesite un código
-autogenerado sin año.
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **dos
+ámbitos en uso**, y que el segundo entrara sin tocar ni la tabla ni la
+migración es la prueba de que la generalización era la correcta:
+
+| `clave` | Formato | Quién lo usa |
+|---|---|---|
+| `"materiales"` | `MAT.0000001` — prefijo `MAT`, 7 dígitos | `materiales.codigo_interno` (Bloque 12, Parte 3) |
+| `"lista_precios"` | `OFFT.0000001` — prefijo `OFFT`, 7 dígitos | `lista_precios.codigo_oferta` (Bloque 13, Parte 1) |
+
+Los dos son globales y sin año. Cada módulo declara sus propias constantes
+(prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
+`modules/materiales/constantes.ts` y `modules/lista-precios/constantes.ts`.
+Añadir un tercer ámbito **no exige migración**: es una fila más, creada por
+el propio upsert la primera vez que se reserva.
 
 ---
 
@@ -330,11 +351,155 @@ técnicas de cada material, una fila por línea. A diferencia del resto de
 tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
 DELETE real — es una excepción deliberada, razonada en su propia ficha.
 
-**Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo).
-Sin relación todavía con `lista_precios.material` (borrador, más abajo): esa
-relación —si el `material` de Lista de precios termina siendo una FK real en
-vez de texto libre— es una decisión pendiente por separado (ver
-"Catálogos maestros", decisión 3, en `preguntas-abiertas.md`).
+**Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo) y,
+desde el Bloque 13, Parte 1 (2026-09-22), `lista_precios.material_id` — ver la
+entidad "Lista de precios" más abajo. La relación que aquí se dejaba como
+pendiente ("Catálogos maestros", decisión 3 de `preguntas-abiertas.md`) ya se
+resolvió: es una FK real, no texto libre.
+
+---
+
+## Lista de precios
+
+Segundo catálogo maestro de los cinco que declara el menú (Bloque 11) en
+tener tabla real, después de Materiales. Definida en
+`db/schema/lista-precios.ts`, tabla `lista_precios`. Construida en el
+Bloque 13, Parte 1 (2026-09-22), consumida por `modules/lista-precios/` (en
+desarrollo en paralelo, fuera del alcance de este documento).
+
+Este bloque resuelve las dos decisiones que "Catálogos maestros" dejaba
+pendientes específicamente para esta tabla en `preguntas-abiertas.md`:
+**decisión 3** (`material` es una FK real contra `materiales`, no texto
+libre) y **decisión 4** (`precio` se deriva, no es una columna independiente
+— ver más abajo).
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo_oferta` | `text` (**UNIQUE**) | sí | **automático** — formato `OFFT.0000001`, 7 dígitos, correlativo global sin segmento de año |
+| `material_id` | `text` (FK → `materiales.id`) | sí | manual — selección contra el catálogo de Materiales |
+| `proveedor` | `text` | no | manual — texto libre por ahora; tendrá buscador propio en la Parte 2 |
+| `unidad` | `text` | no | manual — lista fija de 6 valores en la interfaz, sin `pgEnum` (ver más abajo) |
+| `cantidad` | `numeric(14,3)` (mode `"string"` en Drizzle) | no | manual |
+| `precio_lista` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal |
+| `descuento` | `numeric(5,2)` (mode `"string"` en Drizzle), default `0` | sí | automático (`0`) si no se especifica; manual — porcentaje 0–100, con `CHECK` en la base |
+| `moneda` | `moneda` (enum, compartido con `orden_trabajo`) | no | manual |
+| `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar (acción en Parte 2) |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**No existe columna `precio`.** Es la decisión central de esta tabla. El
+precio que se muestra al usuario se calcula siempre al leer la fila:
+
+```
+precio = precio_lista × (1 − descuento / 100)
+```
+
+y nunca se guarda. Mismo principio exacto que `edad` en Personal, que es
+función de `fecha_nacimiento` y no una columna propia («la edad no es un
+dato, es una consecuencia de dos fechas» — comentario de `calcularEdad` en
+`lib/fecha.ts`): aquí el precio es consecuencia de `precio_lista` y
+`descuento`, no un tercer dato capturado a mano. Guardarlo como columna
+habría creado un número que puede contradecir a los otros dos —se edita
+`precio_lista` o `descuento` y `precio` queda desactualizado, o los tres se
+capturan sueltos y nunca cuadran entre sí—, y calcularlo en el backend es
+además lo que exige la regla invariable 1 de AGENTS.md (el frontend nunca
+calcula, solo muestra). El sitio del cálculo es `modules/lista-precios/`,
+fuera del alcance del esquema.
+
+**`material_id` es una FK real, no texto libre.** Resuelve la decisión 3 de
+"Catálogos maestros": la lista de precios no admite filas de materiales que
+no estén ya en el catálogo. `NOT NULL` porque una fila sin material no tiene
+sentido de negocio. Sin `onDelete` explícito (queda en el `NO ACTION` por
+defecto de Postgres/Drizzle): Materiales nunca se borra de verdad (regla
+invariable 9, baja lógica), así que esa protección por defecto es
+justamente la correcta — es la FK que vuelve real el aviso que ya dejaba
+escrito el comentario de `cambiarActivoMaterial` en
+`modules/materiales/actions.ts` sobre filas de precios señalando a un
+material que ya no existe. Índice `lista_precios_material_id_idx`: el listado
+hace JOIN contra `materiales` para mostrar su descripción.
+
+**`codigo_oferta` usa un correlativo global, sin año, distinto del de la
+OT.** Formato `OFFT.0000001` (7 dígitos), reservado atómicamente con la
+misma técnica que `ot_correlativo` pero desde la tabla genérica
+`correlativo` (ver su ficha, más arriba), con la clave `"lista_precios"` —
+la segunda de esa tabla, después de la de Materiales. `NOT NULL` porque lo
+pone siempre el backend; `UNIQUE` como red de seguridad del contador — mismo
+papel que `orden_trabajo.codigo_ot`.
+
+**`cantidad` y `descuento` son `numeric` con `mode: "string"`, nunca
+`float`.** Mismo razonamiento que la regla invariable 2 sobre montos,
+aplicado aquí porque una operación aritmética en coma flotante de JS puede
+perder precisión igual de mal en una cantidad o un porcentaje que en un
+importe. `cantidad` usa `numeric(14,3)`: un material puede venderse por
+fracción (2.5 m, 0.75 kg). `descuento` usa `numeric(5,2)` con `default("0")`:
+dos decimales de porcentaje es precisión de sobra y cabe cómodo en el rango
+0–100.
+
+**`descuento` sí lleva `CHECK` de rango 0–100 — a diferencia de
+`fecha_activacion` de Materiales, donde se evitó a propósito.** La diferencia
+es que ahí el rango no estaba confirmado por el cliente y ponerlo habría
+asumido una respuesta; aquí el rango 0–100 vino dado explícitamente. Un
+descuento fuera de ese rango haría que el precio calculado salga negativo o
+mayor que el de lista, lo cual no tiene lectura de negocio válida bajo
+ninguna interpretación.
+
+**`precio_lista` es `bigint` con `mode: "number"`, idéntico patrón que
+`orden_trabajo.precio`.** La columna en Postgres es de 8 bytes; Drizzle la
+mapea a `number` de JS para no arrastrar `BigInt` por el código (helpers de
+`core/dinero.ts`, formularios, `JSON.stringify` en las Server Actions). El
+techo técnico real es `Number.MAX_SAFE_INTEGER`; el límite de negocio se
+valida en `modules/lista-precios/schema.ts`, no en la columna.
+
+**`unidad` es `text`, no `pgEnum` — a propósito, a diferencia de
+`ot_estado`.** La interfaz ofrecerá una lista fija de 6 valores (`m`, `und`,
+`pzs`, `cja`, `kg`, `lt`), pero esa lista es un borrador sin confirmar con el
+cliente (no se sabe si es exhaustiva o solo ejemplos — pregunta abierta en
+`preguntas-abiertas.md`). Un `pgEnum` exige una migración para añadir o
+quitar un valor; `text` no. La lista vive del lado de la aplicación, en
+`modules/lista-precios/constantes.ts`. El día que se confirme como cerrada,
+el sitio correcto es un `pgEnum` construido desde esa constante, igual que
+`otEstadoEnum` se construye desde `ESTADOS_OT`.
+
+**Obligatoriedad del resto, mismo criterio que Materiales — con una
+excepción deliberada.** `proveedor`, `unidad`, `cantidad`, `precio_lista` y
+`moneda` quedan nullable en la columna aunque el formulario los exija: el
+Zod del módulo puede ser más estricto que la tabla, nunca al revés — mismo
+patrón en dos capas que `responsable` de la OT y los siete campos de
+Materiales. **`descuento` es la excepción: es `NOT NULL`.** Ahí ese
+criterio no aplica, porque `NULL` y `'0'` no son dos formas legítimas de
+decir "no sé" y "sin descuento" — "sin descuento" ya tiene una
+representación exacta, que es `0`, y dejar la columna nullable crearía dos
+formas de decir lo mismo (justo lo que advierte el comentario de
+`textoOpcional` en `modules/materiales/schema.ts`). Lo que decide, más que
+eso: el precio se DERIVA de `descuento` (ver arriba); con `descuento` en
+NULL el precio de esa fila no queda "desconocido", queda **incalculable**, y
+la única salida sería un `?? "0"` en el cálculo — la segunda representación
+que se quiere evitar. `NOT NULL DEFAULT '0'` hace que la columna nunca
+pueda quedar en un estado donde ese cálculo no esté definido: mismo
+criterio exacto por el que `activo` es `NOT NULL` en Materiales, no una
+regla de negocio sin confirmar.
+
+**`moneda` reutiliza el mismo enum de PostgreSQL que `orden_trabajo.moneda`,
+no uno propio.** El `pgEnum("moneda", MONEDAS)` se movió el 2026-09-22 de
+`db/schema/orden-trabajo.ts` a su propio archivo, `db/schema/moneda.ts` —
+ninguna de las dos tablas que lo usan debe parecer la dueña de un enum que
+comparten. El tipo en PostgreSQL sigue llamándose `moneda`; el movimiento no
+generó ningún DDL (la migración `0010_many_psylocke.sql` no crea ni altera
+el enum, solo lo referencia al crear la columna).
+
+**`activo` es baja lógica, no borrado** — regla invariable 9, mismo criterio
+que `materiales.activo`. La columna entra en este bloque; la acción que la
+escribe (inactivar/reactivar desde el listado) es Parte 2, igual que ocurrió
+con Materiales.
+
+**Índices.** `lista_precios_activo_idx` sobre `activo` (mismo criterio que
+`materiales_activo_idx`: el listado filtra por `activo` por defecto) y
+`lista_precios_material_id_idx` sobre `material_id` (el JOIN del listado
+contra `materiales`).
+
+**Consume:** `materiales` (FK de `material_id`), `correlativo` (clave
+`"lista_precios"`). **Consumida por:** `modules/lista-precios/` (en
+desarrollo).
 
 ---
 
@@ -411,11 +576,11 @@ para listar rápido las características de un material dado.
 **Todo lo que sigue es un borrador temporal**, dicho así explícitamente por el
 desarrollador: son los campos tal como se han esbozado hasta el Bloque 11
 (2026-09-21), **no una especificación cerrada ni confirmada con el cliente**.
-De los cinco catálogos maestros del menú, **Materiales ya tiene tabla real**
-(ver la entidad "Materiales" más arriba); los otros cuatro —Lista de
-precios, Servicios, Tarifario de personal y EPPs— siguen sin tabla en
-`db/schema/`, y sus rutas (`/lista-precios`, `/servicios`,
-`/tarifario-personal`, `/epps`) muestran una pantalla "próximamente".
+De los cinco catálogos maestros del menú, **Materiales y Lista de precios ya
+tienen tabla real** (ver las entidades correspondientes más arriba); los
+otros tres —Servicios, Tarifario de personal y EPPs— siguen sin tabla en
+`db/schema/`, y sus rutas (`/servicios`, `/tarifario-personal`, `/epps`)
+muestran una pantalla "próximamente".
 
 A diferencia del resto de este documento, que refleja lo que existe de verdad
 en `db/schema/`, esta sección va por delante del código. **No generes
@@ -426,21 +591,6 @@ Los tipos concretos (`text`, `bigint`, enum…) se deciden al construir cada
 tabla; aquí solo está la lista de campos. Dos reglas del proyecto ya aplican
 sin discusión cuando llegue ese momento: todo importe va en **céntimos**
 (regla 2) y toda fecha sin hora va como **`date`**, no `timestamp` (regla 10).
-
-## BORRADOR — Lista de precios
-
-| Campo | Notas |
-|---|---|
-| código oferta | |
-| material | **sin decidir** si es texto libre o relación real contra Materiales — ver preguntas-abiertas.md |
-| proveedor | |
-| unidad | |
-| cantidad | |
-| precio lista | importe, en céntimos |
-| precio | importe, en céntimos — **sin decidir** si es independiente o se deriva de precio lista menos descuentos |
-| descuentos | |
-| moneda | mismo criterio que la OT: una sola por registro |
-| fecha | |
 
 ## BORRADOR — Servicios (catálogo maestro)
 

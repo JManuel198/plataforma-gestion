@@ -164,5 +164,17 @@ export const filtroInactivosSchema = z
   .optional()
   .catch(undefined);
 
+/**
+ * El texto que llega a la búsqueda de selección (el buscador del modal de Lista
+ * de precios, no el filtro de este listado).
+ *
+ * Aparte de `filtroBusquedaSchema` porque no es el mismo input: aquel viene de
+ * `searchParams` y usa `.catch(undefined)` para ignorar basura; este viene como
+ * argumento de una Server Action, así que se valida y se rechaza. El mínimo de
+ * un carácter evita una consulta con patrón `%%` que traería el catálogo
+ * entero recortado a diez filas al azar.
+ */
+export const busquedaSeleccionSchema = z.string().trim().min(1).max(200);
+
 export type MaterialCrearInput = z.infer<typeof materialCrearSchema>;
 export type MaterialEditarInput = z.infer<typeof materialEditarSchema>;

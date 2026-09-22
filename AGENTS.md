@@ -242,6 +242,40 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   real.
 
 ## Deuda técnica conocida
+- RIESGO ACTIVO, NO RESUELTO (anotado 2026-09-22): **hay una sola base de
+  datos de desarrollo en Neon, compartida por todo el trabajo, sin importar
+  qué rama de git esté activa.** `.env.local` apunta a esa base siempre —
+  cambiar de rama con `git checkout` no cambia de base de datos. Una
+  migración aplicada (`npx drizzle-kit migrate`) desde una rama que
+  **todavía no está fusionada en `main`** deja esas tablas viviendo en Neon
+  igual, y ahí se quedan aunque esa rama nunca llegue a fusionarse todavía.
+  **Cómo se descubrió:** al construir Lista de precios (Bloque 13, Parte 1)
+  sobre `main`, la migración generada intentaba crear una tabla
+  `correlativo` que YA EXISTÍA en Neon — aplicada minutos antes desde
+  `feature/fila-clicable-ot-y-materiales-caracteristicas`, una rama con
+  commits reales (`material_caracteristicas`, el correlativo genérico) que
+  todavía no se había fusionado. El bloqueo no fue un error de Drizzle: fue
+  que el estado de la base de datos había avanzado por delante del código
+  que `main` conocía. Se resolvió fusionando esa rama primero (era
+  fast-forward) y regenerando la migración nueva encima.
+  **Por qué es un riesgo real y no un detalle de esa vez**: este es un
+  proyecto de un solo desarrollador que trabaja con más de una rama activa
+  a la vez (hoy: ramas de features en paralelo con `main`). Nada impide
+  aplicar una migración desde cualquiera de ellas, y no hay ninguna señal
+  en la terminal que recuerde que la base de datos ya no coincide con lo
+  que `main` describe. El síntoma no es siempre un choque de nombres como
+  este: también puede ser una tabla que el código de `main` no espera, una
+  columna de más, o una fila con un contador ya avanzado (el correlativo,
+  concretamente, es sensible a esto: reservar un número en una rama que
+  luego no se fusiona dejaría un hueco).
+  **Qué hacer mientras no haya una base de datos por rama** (que exigiría
+  infraestructura nueva, fuera de alcance de una nota): antes de generar o
+  aplicar una migración, comprobar `git log --oneline <rama-en-uso>..main`
+  y a la inversa para saber si hay trabajo aplicado a Neon que `main`
+  todavía no conoce; y si aparece un choque de nombres al generar una
+  migración («relation ya existe» sin que el schema del repo lo explique),
+  leerlo como señal de que otra rama ya tocó esa base, no como un bug de
+  Drizzle.
 - RESUELTO (2026-09-20): estado-formulario.ts y resultado-accion.ts
   viven ahora en core/, que es lo que esta misma nota dejaba dicho que
   había que hacer "si un módulo futuro lo necesita". Ese módulo llegó:
@@ -317,15 +351,40 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   aviso. La regla general, ya anotada en la skill de convenciones: el
   `render` es correcto siempre que el elemento final coincida con lo que
   declara `nativeButton`, no según qué componente lo use.
-- db/schema/ importa listas compartidas (ESTADOS_OT, MONEDAS) desde
-  modules/ordenes-trabajo/constantes.ts: ese archivo es la fuente de
-  verdad única de ambas y db/schema/orden-trabajo.ts solo las consume
-  para construir sus pgEnum. La dirección va de la capa de datos hacia
-  un módulo de negocio, al revés de lo habitual, y funciona bien con un
-  solo módulo. Si un segundo módulo necesita definir su propio enum
-  compartido con el esquema, mover estas listas a core/ — neutral para
-  ambos lados — en vez de que db/schema/ termine importando de varios
-  módulos de negocio.
+- RESUELTO A MEDIAS, Y A PROPÓSITO (2026-09-22, Bloque 13 Parte 1):
+  db/schema/ importaba DOS listas (ESTADOS_OT y MONEDAS) desde
+  modules/ordenes-trabajo/constantes.ts, con la nota de que si un segundo
+  módulo necesitaba un enum compartido con el esquema había que mover esas
+  listas a core/. Ese segundo módulo llegó — modules/lista-precios/, cuya
+  columna `moneda` usa el MISMO pgEnum que orden_trabajo.
+  **Se movió MONEDAS, no ESTADOS_OT**, y la distinción es la regla que
+  conviene recordar: a core/ sube lo que DOS módulos comparten, no todo lo
+  que estaba al lado. MONEDAS vive ahora en core/monedas.ts y su pgEnum en
+  db/schema/moneda.ts (archivo propio: dos tablas lo usan, así que ninguna
+  debe parecer su dueña). ESTADOS_OT se queda en el módulo porque es del
+  ciclo de vida de la OT y de nadie más — db/schema/orden-trabajo.ts lo
+  sigue importando de ahí, y esa dirección invertida sigue siendo correcta
+  mientras haya un solo consumidor.
+  El tipo en PostgreSQL se sigue llamando `moneda`: el movimiento fue de
+  organización de archivos y NO generó migración. Se verificó
+  explícitamente que `drizzle-kit generate` no emitiera nada sobre el enum.
+  En el mismo cambio y por la misma regla, `dinero.ts` (aCentimos,
+  aMontoDecimal, formatearMonto) pasó de modules/ordenes-trabajo/ a
+  core/dinero.ts. `PRECIO_MAXIMO_CENTIMOS` NO viajó con él: es un límite de
+  negocio de cada entidad, no una conversión compartida, así que cada módulo
+  declara el suyo.
+- Hay DOS implementaciones del mismo upsert de correlativo, y es
+  temporal a sabiendas: `core/correlativo.ts` (tabla `correlativo`, clave de
+  texto, sin año — la usan Materiales y Lista de precios) y
+  `modules/ordenes-trabajo/correlativo.ts` (tabla `ot_correlativo`, PK `anio`,
+  reinicia cada enero). El mecanismo es idéntico; lo único que difiere es la
+  forma de la clave.
+  Lo que frena la unificación NO es un desacuerdo de diseño: plegar
+  `ot_correlativo` en `correlativo` con claves tipo `"orden-trabajo:2026"`
+  exige mover FILAS existentes, y `drizzle-kit generate` solo produce DDL
+  (regla invariable 6). Es una migración de datos, que es un cambio aparte.
+  Mientras tanto vale la lección de `esUniqueViolado`: si aparece un TERCER
+  correlativo, usa `core/correlativo.ts` — no escribas una copia nueva.
 - La suite de tests está apenas empezada, pero existe y corre: no es una
   carpeta vacía. `npm test` ejecuta @playwright/test contra
   playwright.config.ts y hoy son DOS pruebas de humo reales, las dos en

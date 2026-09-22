@@ -131,6 +131,70 @@ async function conCaracteristicas<T extends { id: string }>(filas: T[]) {
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */
 export type FilaMaterial = Awaited<ReturnType<typeof listarMateriales>>[number];
 
+/**
+ * Cuántos resultados devuelve la búsqueda para seleccionar un material.
+ *
+ * El componente que los pinta (`BuscadorSeleccion` en core/) muestra la lista
+ * entera, así que el tope tiene que ponerlo la consulta. Diez es lo que cabe
+ * leer de un vistazo sin desplazarse: si el material buscado no está entre los
+ * diez primeros, la respuesta correcta es afinar el texto, no hacer scroll por
+ * media tabla.
+ */
+const MAXIMO_RESULTADOS_SELECCION = 10;
+
+/**
+ * Busca materiales para ELEGIR UNO dentro de un formulario de otra entidad
+ * (hoy, el modal de Lista de precios).
+ *
+ * No es `listarMateriales`: aquel alimenta la tabla del catálogo, trae todas
+ * las filas que casen y sus filtros viajan en la URL. Este devuelve un puñado
+ * de resultados para un desplegable y nunca toca `searchParams`.
+ *
+ * SOLO DEVUELVE MATERIALES ACTIVOS, y eso es una regla de negocio, no una
+ * comodidad: un material inactivo está fuera del catálogo vigente, así que no
+ * puede ser el material de una oferta nueva. Las ofertas YA creadas sobre un
+ * material que luego se inactiva no se tocan — su FK sigue apuntando a la fila,
+ * que nunca se borra (regla invariable 9).
+ *
+ * Las cuatro columnas buscables son las mismas que el buscador del listado de
+ * Materiales —código interno, descripción, marca y modelo—, y por el mismo
+ * motivo: quien busca escribe lo que recuerda sin saber en qué columna cae.
+ */
+export async function buscarMaterialesParaSeleccion(texto: string) {
+  const patron = patronParcial(texto);
+
+  return db
+    .select({
+      id: materiales.id,
+      codigo_interno: materiales.codigo_interno,
+      descripcion: materiales.descripcion,
+      marca: materiales.marca,
+      modelo: materiales.modelo,
+    })
+    .from(materiales)
+    .where(
+      and(
+        eq(materiales.activo, true),
+        // `ILIKE` sobre una columna NULL da NULL, que dentro de un `or(...)` se
+        // comporta como "esta no casa". Un material sin marca sigue
+        // encontrándose por descripción o por código.
+        or(
+          ilike(materiales.codigo_interno, patron),
+          ilike(materiales.descripcion, patron),
+          ilike(materiales.marca, patron),
+          ilike(materiales.modelo, patron),
+        ),
+      ),
+    )
+    .orderBy(asc(materiales.codigo_interno))
+    .limit(MAXIMO_RESULTADOS_SELECCION);
+}
+
+/** Un resultado de la búsqueda de selección, con el tipo real de la consulta. */
+export type MaterialSeleccionable = Awaited<
+  ReturnType<typeof buscarMaterialesParaSeleccion>
+>[number];
+
 export async function obtenerMaterial(id: string) {
   const [encontrado] = await db
     .select()

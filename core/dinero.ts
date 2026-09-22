@@ -1,4 +1,19 @@
-import type { Moneda } from "./constantes";
+import type { Moneda } from "./monedas";
+
+/**
+ * Conversión y formato de importes.
+ *
+ * VIVE EN core/ DESDE 2026-09-22. Estuvo en `modules/ordenes-trabajo/dinero.ts`
+ * mientras la OT era la única entidad con importes; `modules/lista-precios/` es
+ * la segunda, y la regla de AGENTS.md (Arquitectura) es explícita: cuando una
+ * segunda entidad necesita algo que vive en un módulo, se mueve a core/ —
+ * terreno neutral—, nunca se importa en cruz entre módulos.
+ *
+ * Todo importe del sistema se guarda como entero en la unidad mínima
+ * (céntimos), nunca como float — regla invariable 2 de AGENTS.md. Estas tres
+ * funciones son la única frontera entre ese entero y lo que ve o escribe el
+ * usuario.
+ */
 
 /**
  * Convierte el monto que escribe el usuario ("150.50", "150,5", "150") al

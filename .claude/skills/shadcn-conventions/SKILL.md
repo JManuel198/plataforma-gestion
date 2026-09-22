@@ -383,6 +383,95 @@ sentado— que:**
 6. La consola no suelta avisos — sobre todo los de `useControlled` de Base UI,
    que salen cuando un `defaultValue` cambia bajo un campo que sigue montado.
 
+## Elegir un registro dentro de un formulario (BuscadorSeleccion)
+
+**No lo confundas con el buscador de un listado. Son dos cosas distintas que
+se parecen en pantalla.**
+
+| | Buscador de listado | `BuscadorSeleccion` |
+|---|---|---|
+| Qué hace | Filtra la tabla: se ven menos filas | Elige UNA fila y la mete en un formulario |
+| Dónde vive el estado | `searchParams` (la URL) | Estado local del componente |
+| Ejemplo | `BuscadorMateriales` | El material en el modal de Lista de precios |
+
+El de selección **nunca toca la URL**, y no es un detalle: lo que alguien
+teclea a medio rellenar un modal no es estado de la aplicación que merezca
+compartirse por enlace ni recuperarse con el botón Atrás — y además navegar
+cerraría el modal.
+
+El componente es `core/components/buscador-seleccion.tsx`, **genérico en las
+dos direcciones**: en qué busca (lo decide la Server Action que recibe) y en
+qué muestra (`principalDe` / `secundarioDe`). No sabe qué es un material.
+
+- **La búsqueda la hace SIEMPRE el servidor.** `buscarAction` es una Server
+  Action; el componente nunca recibe el catálogo entero para filtrarlo en
+  memoria (regla 1 de AGENTS.md). La consulta va en el `queries.ts` del módulo
+  dueño de los datos y se expone con un envoltorio mínimo en su `actions.ts`
+  —con `exigirSesion()` y Zod, como cualquier otra action— porque la invoca un
+  Client Component.
+- **La consulta pone un `LIMIT`**, porque la lista se pinta entera.
+  `buscarMaterialesParaSeleccion` usa 10.
+- **Solo ofrece registros activos.** Es regla de negocio, no comodidad: un
+  material inactivo está fuera del catálogo vigente y no puede ser el de una
+  oferta nueva. Lo ya creado sobre un material que luego se inactiva no se
+  toca.
+- **Cómo lo recibe un módulo que no es dueño de esos datos** — el caso
+  importante: `modules/lista-precios/` NO importa de `modules/materiales/`. La
+  acción llega como **prop desde la página**
+  (`app/(protegido)/lista-precios/page.tsx`), que es la capa de composición y
+  el único sitio que conoce a los dos módulos. El módulo consumidor solo
+  declara la FORMA que necesita (`MaterialElegible` en su `tipos.ts`) y
+  TypeScript comprueba la compatibilidad estructural. Así, si el módulo dueño
+  renombra una columna, el error sale en `app/`, que es donde hay contexto
+  para arreglarlo.
+- **El componente pinta su propio `<input type="hidden">`** con el `name` que
+  se le pase, para que el valor elegido entre en el `FormData` sin que quien
+  lo monta tenga que acordarse.
+- **Dos detalles que parecen de más y no lo son**: cada búsqueda se numera con
+  un `ref` y solo la última puede escribir el resultado (dos consultas en
+  vuelo pueden volver en orden distinto al que salieron, y el retardo de
+  tecleo NO evita eso); y el fallo de red se muestra, nunca se traga — si no,
+  el usuario lee "Ningún resultado" y concluye que el registro no existe.
+- Los resultados son **botones normales en una lista**, no un `listbox` con
+  `role="option"`: un listbox de verdad exige navegación con flechas y
+  `aria-activedescendant`, y anunciarlo sin implementarlo es peor que no
+  anunciarlo.
+
+**Un formulario que depende de una selección se muestra en dos fases.** En el
+modal de Lista de precios, antes de elegir material solo se ven el código
+(deshabilitado) y el buscador; el resto **se desmonta**, no se deshabilita —
+un formulario lleno de campos grises se lee como "está roto", uno corto se lee
+como "faltas tú".
+
+## Valores calculados que se muestran en vivo
+
+El precio de Lista de precios (`precio_lista × (1 − descuento/100)`) se
+actualiza mientras se teclea. Eso convive con la regla invariable 1 ("el
+frontend nunca calcula totales, descuentos ni impuestos") **solo si se hace
+así**:
+
+1. **Una sola implementación del cálculo**, en un archivo del módulo sin
+   imports de servidor (`modules/lista-precios/precio.ts`). El listado del
+   servidor y la vista previa del modal llaman a la MISMA función. Lo que la
+   regla prohíbe es que el frontend tenga su propio cálculo, capaz de divergir
+   sin que nada avise — que es exactamente cómo se rompieron `esUniqueViolado`
+   y `patronParcial` cuando estaban copiados.
+2. **El valor calculado no se envía ni se guarda**: el campo no lleva `name`,
+   así que no entra en el `FormData`, y no hay columna donde escribirlo.
+3. **No es un `<input readOnly>`**, que se lee como "editable pero bloqueado".
+   Es un `<output>`: el resultado de una cuenta.
+4. **La validación del texto a medio escribir usa los MISMOS patrones que el
+   Zod** (`PATRON_PRECIO_LISTA`, `PATRON_DESCUENTO` en `constantes.ts`). Si el
+   formulario diera por bueno algo que el servidor rechaza, el usuario vería
+   un precio en pantalla y un error al guardar, sin saber cuál miente.
+5. **Los campos siguen siendo no controlados** (`defaultValue`, sin `value`).
+   El `onChange` solo copia el texto a un estado que alimenta la vista previa;
+   lo que se envía sigue saliendo del DOM.
+
+Si el cálculo se complica (IGV, descuentos encadenados, escalas por cantidad),
+la respuesta NO es duplicarlo en el cliente: es que el modal deje de
+previsualizar en vivo y le pida el valor al servidor.
+
 ## Catálogos maestros
 
 Los cinco catálogos que declara el menú (Materiales, Lista de precios,

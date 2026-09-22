@@ -30,11 +30,16 @@ que también cubre `estado`.
 migrate" — el enum de Postgres es bit a bit igual, solo cambió de dónde viene
 el array en TypeScript. No hizo falta generar ni aplicar nada.
 
-**Deliberadamente NO tocado:** `MONEDAS` sigue duplicada igual que antes
-(mismo patrón, mismos dos archivos, mismo chequeo parcial). El usuario pidió
-explícitamente no tocarla en esta tarea y solo reportar que tiene el mismo
-problema — queda pendiente para una tarea aparte si decide unificarla
-también.
+**RESUELTO (2026-09-22, Bloque 13 Parte 1):** `MONEDAS` ya no está duplicada.
+El usuario la movió a `core/monedas.ts` (junto con los helpers de dinero a
+`core/dinero.ts`) antes de pedir la tabla `lista_precios` — segundo módulo
+que necesita el enum, así que aplicó la regla ya anotada en la deuda técnica
+de AGENTS.md ("si un segundo módulo necesita un enum compartido, mover a
+core/"). Yo (arquitecto-datos) separé además `monedaEnum` de
+`orden-trabajo.ts` a su propio `db/schema/moneda.ts`, porque ahora dos
+TABLAS (`orden_trabajo` y `lista_precios`) lo usan — verificado que ese
+movimiento no genera ningún DDL nuevo (el tipo en Postgres se queda igual).
+Ver [[lista-precios-tabla]].
 
 Ver también [[fusion-servicio-ot]] (de donde salió `ESTADOS_OT` con sus 6
 valores) y [[feedback_generar_no_aplicar]].

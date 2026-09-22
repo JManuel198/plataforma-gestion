@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ESTADOS_OT, MONEDAS } from "../constantes";
-import { aMontoDecimal } from "../dinero";
+import { aMontoDecimal } from "@/core/dinero";
+import { MONEDAS } from "@/core/monedas";
+import { ESTADOS_OT } from "../constantes";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */

@@ -282,19 +282,36 @@ que eran de Materiales se cerraron o se concretaron en la 8.
    `modules/`. Las cinco pantallas viven en `app/(protegido)/` y todavía no
    tienen módulo, así que la decisión sigue abierta y no se ha prejuzgado.
 3. **¿El campo `material` de Lista de precios es texto libre o una
-   relación real contra la tabla Materiales?** Decisión **pospuesta a
-   propósito** por el desarrollador, no olvidada: depende de si la lista de
-   precios puede tener filas de materiales que no estén en el catálogo.
-   Como relación es más correcto y evita nombres desalineados; como texto
-   libre permite cargar una oferta de un material aún no catalogado. Hasta
-   decidirlo no se genera ninguna de las dos tablas.
+   relación real contra la tabla Materiales?** — **RESUELTO (Bloque 13,
+   Parte 1, 2026-09-22): es una relación real.** La columna se llama
+   `material_id`, es `NOT NULL` y tiene FK contra `materiales.id` sin
+   cascada. El modal no deja escribir un material a mano: se elige con un
+   buscador (`BuscadorSeleccion`) que solo ofrece materiales **activos**.
+   Lo que inclinó la decisión fue el argumento que ya estaba escrito aquí —
+   una relación evita nombres desalineados— más uno que apareció al
+   construirlo: sin FK, inactivar un material dejaría ofertas apuntando a un
+   texto que ya no corresponde a nada, y nadie se enteraría.
+   **El caso que este punto dejaba abierto —cotizar un material que aún no
+   está en el catálogo— NO desaparece, se traslada:** hoy la respuesta es
+   "primero das de alta el material, después la oferta". Si eso resulta
+   incómodo en el uso real, la salida prevista es crear el material desde el
+   propio modal de la oferta, que está registrado más abajo como mejora
+   diferida (decisión 14) y no como deuda.
 4. **¿`precio_lista` y `precio` son independientes, o `precio` se deriva de
-   `precio_lista` menos `descuentos`?** Sin confirmar. No es cosmético: si
-   se deriva, `precio` no debe guardarse como columna editable sino
-   calcularse en el backend (regla invariable 1), y `descuentos` necesita
-   un formato definido (¿porcentaje? ¿importe? ¿varios encadenados?). Si
-   son independientes, los tres campos se capturan a mano y pueden no
-   cuadrar entre sí, lo cual hay que aceptar explícitamente.
+   `precio_lista` menos `descuentos`?** — **RESUELTO (Bloque 13, Parte 1,
+   2026-09-22): `precio` se deriva y NO es una columna.** Se calcula como
+   `precio_lista × (1 − descuento/100)` cada vez que se muestra, en
+   `modules/lista-precios/precio.ts`. `descuento` quedó definido como **un
+   solo porcentaje**, `numeric(5,2)` con `DEFAULT 0`, `NOT NULL` y un CHECK
+   de rango 0–100 — no un importe y no varios encadenados, que eran las otras
+   dos lecturas posibles que este punto señalaba.
+   El criterio es el mismo que ya aplicaba `edad` en Personal: un número que
+   es consecuencia de otros dos no se guarda, porque guardado puede
+   contradecirlos y nadie se entera. Eso también cierra el "pueden no cuadrar
+   entre sí" que este punto pedía aceptar explícitamente: ya no puede pasar.
+   **Lo único que quedó sin confirmar es si el descuento único basta.** Si
+   aparecen descuentos encadenados (uno comercial y otro por volumen, por
+   ejemplo), el sitio a cambiar es esa función y la columna, no la interfaz.
 5. **¿`comprobante` en el catálogo de Servicios es un campo de texto o un
    archivo real?** Si es texto (una referencia o número de comprobante), es
    una columna más y no cambia nada. **Si es un archivo, es la primera vez
@@ -430,3 +447,62 @@ que eran de Materiales se cerraron o se concretaron en la 8.
     qué hacer con materiales cargados a mano desde fuera de la aplicación — hoy
     no hay ninguno: la tabla estaba vacía cuando se construyó esto, así que el
     contador arranca limpio en `MAT.0000001` y no hubo nada que resincronizar.
+
+12. **¿`materiales.unidad` debería pasar a la misma lista fija que
+    `lista_precios.unidad`?** Sin decidir, y hoy los dos catálogos tratan
+    "unidad" de forma DISTINTA a propósito, no por descuido:
+    - `materiales.unidad` es **texto libre**, sin catálogo cerrado. Se dejó
+      así en el Bloque 12 porque no estaba confirmado si "UND", "und" y
+      "Unidad" son el mismo valor (ver la ficha de Materiales en
+      `entidades.md`).
+    - `lista_precios.unidad` es una **lista fija** de seis valores (`m`,
+      `und`, `pzs`, `cja`, `kg`, `lt`), declarada en
+      `modules/lista-precios/constantes.ts` y validada por Zod. La columna
+      sigue siendo `text`, no un `pgEnum` — ver la decisión 13.
+    La inconsistencia es visible para el usuario: el mismo concepto se
+    escribe a mano en una pantalla y se elige de un desplegable en la otra.
+    **Lo que hay que preguntar antes de unificar** es si son de verdad el
+    mismo concepto: la unidad en la que se INVENTARÍA un material (una caja
+    de 100 tornillos) no tiene por qué ser aquella en la que un proveedor lo
+    COTIZA (por millar, por kilo). Si son el mismo, la lista se sube a
+    `core/` y Materiales pasa a Select; si no lo son, la duplicación es
+    correcta y hay que dejar de verla como deuda.
+    **Migrar Materiales no es gratis:** sus filas actuales tienen texto libre
+    que habría que mapear a la lista antes de imponerla, y hoy los valores
+    cargados no salen de ella.
+
+13. **¿Los seis valores de `lista_precios.unidad` son exhaustivos, o solo los
+    que aparecieron primero?** Sin confirmar. La lista —`m`, `und`, `pzs`,
+    `cja`, `kg`, `lt`— llegó como parte del encargo del Bloque 13, sin decir
+    si es cerrada.
+    Faltan candidatos evidentes en un contexto de obra (`gal`, `rollo`,
+    `juego`, `m2`, `m3`, `hora`), lo que hace sospechar que son ejemplos y no
+    un catálogo cerrado — pero suponerlo sería inventar, así que la lista
+    quedó exactamente como se pidió.
+    **Qué se hizo mientras tanto, y por qué importa:** la columna es `text` y
+    **no** un `pgEnum`, a diferencia de `ot_estado` y `moneda`. Así, añadir o
+    quitar un valor es editar un array en
+    `modules/lista-precios/constantes.ts` — sin migración. Si la lista fuera
+    un enum, cada valor nuevo costaría una migración, que es un precio alto
+    para algo que se espera que cambie.
+    **Cuando el cliente la confirme**, el sitio correcto SÍ es un `pgEnum`
+    construido desde ese mismo array, igual que `ot_estado`: ahí la
+    restricción pasa a estar también en la base, no solo en el Zod.
+
+14. **Crear un material desde el propio modal de la oferta, cuando no aparece
+    en la búsqueda.** MEJORA DELIBERADAMENTE DIFERIDA — se registra para que
+    no se pierda, **no es deuda técnica ni un pendiente del Bloque 13**: lo
+    construido funciona y está completo sin esto.
+    Hoy, si el material no está en el catálogo, el usuario tiene que salir a
+    `/materiales`, darlo de alta y volver a empezar la oferta. Es el coste
+    directo de haber resuelto la decisión 3 como FK real, y se aceptó a
+    sabiendas.
+    **Por qué no se hizo ya:** obligaría a decidir cosas que nadie ha
+    preguntado todavía — si el material se crea con todos sus campos o con un
+    mínimo, si se guarda antes que la oferta o en la misma transacción, y qué
+    pasa si el usuario cancela la oferta después de haber creado el material.
+    Esa última es la que más pesa: dejaría material huérfano en el catálogo
+    sin que el usuario lo esperara.
+    **Antes de construirlo hay que saber** si el caso ocurre de verdad y con
+    qué frecuencia. Si es raro, el rodeo actual está bien y esta mejora no
+    vale su complejidad.

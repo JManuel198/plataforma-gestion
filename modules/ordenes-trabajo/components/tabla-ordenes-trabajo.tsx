@@ -6,7 +6,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatearFecha } from "@/lib/fecha";
-import { formatearMonto } from "../dinero";
+import { formatearMonto } from "@/core/dinero";
 import type { FilaOrdenTrabajo } from "../queries";
 import { FilaDeOrdenTrabajo } from "./fila-orden-trabajo";
 
