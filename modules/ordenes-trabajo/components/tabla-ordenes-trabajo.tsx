@@ -1,18 +1,14 @@
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { formatearFecha } from "@/lib/fecha";
-import { editarOrdenTrabajoEnModal } from "../actions";
 import { formatearMonto } from "../dinero";
-import { DialogoOrdenTrabajo } from "./dialogo-orden-trabajo";
 import type { FilaOrdenTrabajo } from "../queries";
-import { SelectorEstadoFila } from "./selector-estado-fila";
+import { FilaDeOrdenTrabajo } from "./fila-orden-trabajo";
 
 export function TablaOrdenesTrabajo({
   ordenes,
@@ -36,6 +32,11 @@ export function TablaOrdenesTrabajo({
     );
   }
 
+  // Las filas se pintan en `fila-orden-trabajo.tsx`, que es cliente: cada una
+  // lleva el estado de su modal (vista/edición) y el envoltorio que impide que
+  // sus controles —el desplegable de estado, sobre todo— abran además la
+  // vista. Esta tabla se queda en el servidor y solo arma la cabecera, el
+  // marco y los dos valores formateados.
   return (
     <Table>
       <TableHeader>
@@ -55,53 +56,19 @@ export function TablaOrdenesTrabajo({
       </TableHeader>
       <TableBody>
         {ordenes.map((fila) => (
-          <TableRow key={fila.id}>
-            <TableCell className="font-medium whitespace-nowrap">
-              {fila.codigo_ot}
-            </TableCell>
-            <TableCell>{fila.codigo_cotizacion}</TableCell>
-            <TableCell>{fila.codigo_revision ?? "—"}</TableCell>
-            <TableCell className="max-w-64 truncate" title={fila.servicio}>
-              {fila.servicio}
-            </TableCell>
-            <TableCell>{fila.codigo_oc ?? "—"}</TableCell>
-            <TableCell>{fila.cliente}</TableCell>
-            {/* El monto se guarda en céntimos y solo se formatea aquí: el
-                frontend muestra, no calcula (regla 1 de AGENTS.md). */}
-            <TableCell className="text-right whitespace-nowrap">
-              {formatearMonto(fila.precio, fila.moneda)}
-            </TableCell>
-            <TableCell>{fila.responsable ?? "—"}</TableCell>
-            <TableCell className="whitespace-nowrap">
-              {formatearFecha(fila.fecha_creacion)}
-            </TableCell>
-            {/* Editable en el sitio: cambiar el estado es la operación más
-                frecuente del listado y no merece abrir el formulario entero.
-                Es un Client Component dentro de esta tabla, que sigue siendo
-                un Server Component. */}
-            <TableCell>
-              <SelectorEstadoFila
-                id={fila.id}
-                codigo={fila.codigo_ot}
-                estado={fila.estado}
-              />
-            </TableCell>
-            {/* Editar abre el mismo modal que "Nueva OT", precargado con la
-                fila. La fila del listado ya trae todos los campos que el
-                formulario necesita (ver `OrdenTrabajoEditable` en tipos.ts),
-                así que no hace falta ir a buscar la OT otra vez. */}
-            <TableCell className="text-right">
-              <DialogoOrdenTrabajo
-                guardarAction={editarOrdenTrabajoEnModal}
-                orden={fila}
-                disparador={
-                  <Button variant="ghost" size="sm">
-                    Editar
-                  </Button>
-                }
-              />
-            </TableCell>
-          </TableRow>
+          // El precio y la fecha se formatean AQUÍ, en el servidor, y viajan
+          // como texto a la fila (que es un Client Component). Los dos
+          // dependen de algo que el navegador resolvería distinto: la zona
+          // horaria del negocio (`formatearFecha`, lib/fecha.ts — la columna
+          // es un `timestamp` sin zona guardado en UTC) y `Intl.NumberFormat`,
+          // cuya salida no coincide carácter a carácter entre Node y el
+          // navegador. Mismo criterio que la edad en `TablaPersonal`.
+          <FilaDeOrdenTrabajo
+            key={fila.id}
+            orden={fila}
+            precio={formatearMonto(fila.precio, fila.moneda)}
+            fechaCreacion={formatearFecha(fila.fecha_creacion)}
+          />
         ))}
       </TableBody>
     </Table>

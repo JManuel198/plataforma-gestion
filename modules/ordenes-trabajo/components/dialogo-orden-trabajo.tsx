@@ -15,7 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposOrdenTrabajo } from "./campos-orden-trabajo";
+import { VistaOrdenTrabajo } from "./vista-orden-trabajo";
 import {
   estadoFormularioInicial,
   type EstadoFormulario,
@@ -30,15 +32,53 @@ type Props = {
    * pantallas /nueva y /[id]/editar.
    */
   guardarAction: (formData: FormData) => Promise<EstadoFormulario>;
-  /** El control que abre el modal. Cada sitio trae el suyo. */
-  disparador: ReactElement;
+  /**
+   * El control que abre el modal. Solo lo trae el alta desde la cabecera, que
+   * vive en un Server Component y no puede pasar un `control`.
+   */
+  disparador?: ReactElement;
+  /**
+   * Los tres modos, cuando manda quien monta el modal. Lo pasa la fila, que
+   * tiene dos disparadores para un mismo modal: el clic en la fila lo abre en
+   * "viendo" y el lápiz en "editando". Sin esto el modal lleva su propio
+   * estado y solo conoce dos modos (cerrado y editando).
+   */
+  control?: ControlDetalle;
 } & (
-  | { orden: OrdenTrabajoEditable; fechaHoy?: never }
-  | { orden?: undefined; fechaHoy: string }
+  | {
+      orden: OrdenTrabajoEditable;
+      fechaHoy?: never;
+      /**
+       * El precio y la fecha ya formateados, para el modo "viendo". Vienen de
+       * fuera porque los dos se resuelven en el servidor — la zona horaria del
+       * negocio y `Intl.NumberFormat`; el porqué está en
+       * `vista-orden-trabajo.tsx`.
+       *
+       * Obligatorios cuando hay `orden`, y no opcionales con un "—" de
+       * repuesto: toda OT existente tiene precio y fecha, así que un hueco
+       * aquí sería un olvido de quien monta el modal, no un dato que falta.
+       * Que lo cace el compilador es más barato que descubrirlo mirando la
+       * pantalla.
+       */
+      precio: string;
+      fechaCreacion: string;
+    }
+  | {
+      orden?: undefined;
+      fechaHoy: string;
+      precio?: never;
+      fechaCreacion?: never;
+    }
 );
 
 /**
- * Crear o editar una OT sin salir del listado.
+ * Crear, consultar o editar una OT sin salir del listado.
+ *
+ * LOS DOS MODOS ABIERTOS SON UN SOLO MODAL, no dos. Es el mismo patrón que
+ * `DialogoMaterial` y `DialogoPersona`, con la máquina de estados importada de
+ * `core/fila-clicable.tsx` — no copiada: pasar de "viendo" a "editando" (el
+ * botón "Editar" de la vista) solo cambia lo que se pinta dentro, sin cerrar
+ * ni volver a abrir, así que no hay parpadeo ni foco perdido por el camino.
  *
  * POR QUÉ NO USA `useActionState`, que es el patrón estándar del proyecto:
  * aquí el resultado tiene que mover la interfaz (cerrar el modal, lanzar el
@@ -62,11 +102,20 @@ type Props = {
 export function DialogoOrdenTrabajo({
   guardarAction,
   disparador,
+  control: controlExterno,
   orden,
   fechaHoy,
+  precio,
+  fechaCreacion,
 }: Props) {
   const router = useRouter();
-  const [abierto, setAbierto] = useState(false);
+  // El hook se llama siempre (no puede ser condicional) y se descarta cuando
+  // el control viene de fuera: cuesta un `useState` sin usar y evita tener
+  // dos caminos distintos según quién monte el modal.
+  const controlPropio = useControlDetalle();
+  const control = controlExterno ?? controlPropio;
+  const abierto = control.modo !== "cerrado";
+  const editando = control.modo === "editando";
   const [estado, setEstado] = useState<EstadoFormulario>(
     estadoFormularioInicial,
   );
@@ -103,7 +152,7 @@ export function DialogoOrdenTrabajo({
         return;
       }
 
-      setAbierto(false);
+      control.cambiar("cerrado");
       setEstado(estadoFormularioInicial);
       toast.success(
         orden
@@ -123,11 +172,15 @@ export function DialogoOrdenTrabajo({
       onOpenChange={(siguiente) => {
         // Cerrar por Escape, por el aspa o por el botón Cancelar es lo mismo:
         // soltar lo escrito. No se pide confirmación — nada se ha guardado.
-        setAbierto(siguiente);
+        // Y se vuelve a "cerrado" sin recordar en qué modo estaba: el próximo
+        // clic en la fila tiene que abrir la vista otra vez, no la edición de
+        // antes. Abrir desde el disparador propio es siempre el alta, que solo
+        // tiene sentido en edición.
+        control.cambiar(siguiente ? "editando" : "cerrado");
         if (!siguiente) setEstado(estadoFormularioInicial);
       }}
     >
-      <DialogTrigger render={disparador} />
+      {disparador ? <DialogTrigger render={disparador} /> : null}
 
       {/* `sm:max-w-2xl` porque el ancho por defecto del Dialog (`sm:max-w-sm`)
           parte en dos la rejilla de dos columnas del formulario. El alto se
@@ -162,7 +215,11 @@ export function DialogoOrdenTrabajo({
       <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {orden ? "Editar Orden de Trabajo" : "Nueva Orden de Trabajo"}
+            {orden
+              ? editando
+                ? "Editar Orden de Trabajo"
+                : "Detalle de la Orden de Trabajo"
+              : "Nueva Orden de Trabajo"}
           </DialogTitle>
           <DialogDescription>
             {orden
@@ -180,64 +237,96 @@ export function DialogoOrdenTrabajo({
           </p>
         ) : null}
 
-        <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
-          {orden ? <input type="hidden" name="id" value={orden.id} /> : null}
+        {/* Formulario o vista de solo lectura: son dos remates del MISMO modal
+            abierto, no dos modales. El alta (`!orden`) nunca pasa por la
+            vista — no hay nada que consultar todavía. */}
+        {editando || !orden ? (
+          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+            {orden ? <input type="hidden" name="id" value={orden.id} /> : null}
 
-          {/* `-mx-4 px-4`: el contenedor se estira hasta el borde real del
-              Dialog (que tiene `p-4`) y recupera el margen visual por dentro.
-              Así la barra de scroll queda al ras del borde en vez de flotando
-              a 16px, y el anillo de foco (`ring-3`, 3px por fuera del borde)
-              tiene sitio dentro del área de recorte en vez de cortarse contra
-              ella. `py-1` es lo mismo para el primer y el último campo, que se
-              recortaban por arriba y por abajo. */}
-          <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
-            {/* Render condicional EXPLÍCITO, no por cortesía del Dialog.
-                Base UI NO desmonta a los hijos cuando `open` pasa a false:
-                `DialogPortal` se monta según `mounted` (DialogPortal.js:32),
-                que es el estado con conciencia de animación de
-                `useTransitionStatus` y sigue en `true` hasta que la animación
-                de salida termina (`useOpenChangeComplete`, DialogPopup.js:51).
-                Con `duration-100` en el popup son ~100 ms en los que estos
-                campos siguen vivos mientras el `router.refresh()` de
-                `alEnviar` trae la fila nueva del servidor. El Select de moneda
-                recibía entonces un `defaultValue` distinto del que capturó al
-                abrirse, y avisaba: "changing the default value state of an
-                uncontrolled Select after being initialized"
-                (@base-ui/utils/useControlled.js:37-42, que lo compara POR
-                VALOR contra el del primer render).
-                Atarlo a `abierto` los desmonta de golpe al cerrar, que es lo
-                que el comentario anterior daba por hecho sin que lo fuera. No
-                se convierten a controlados: sería sincronizar el estado de
-                nueve campos para arreglar un problema de desmontaje. */}
-            {abierto ? (
-              orden ? (
-                <CamposOrdenTrabajo
+            {/* `-mx-4 px-4`: el contenedor se estira hasta el borde real del
+                Dialog (que tiene `p-4`) y recupera el margen visual por
+                dentro. Así la barra de scroll queda al ras del borde en vez
+                de flotando a 16px, y el anillo de foco (`ring-3`, 3px por
+                fuera del borde) tiene sitio dentro del área de recorte en vez
+                de cortarse contra ella. `py-1` es lo mismo para el primer y el
+                último campo, que se recortaban por arriba y por abajo. */}
+            <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
+              {/* Render condicional EXPLÍCITO, no por cortesía del Dialog.
+                  Base UI NO desmonta a los hijos cuando `open` pasa a false:
+                  `DialogPortal` se monta según `mounted` (DialogPortal.js:32),
+                  que es el estado con conciencia de animación de
+                  `useTransitionStatus` y sigue en `true` hasta que la animación
+                  de salida termina (`useOpenChangeComplete`, DialogPopup.js:51).
+                  Con `duration-100` en el popup son ~100 ms en los que estos
+                  campos siguen vivos mientras el `router.refresh()` de
+                  `alEnviar` trae la fila nueva del servidor. El Select de moneda
+                  recibía entonces un `defaultValue` distinto del que capturó al
+                  abrirse, y avisaba: "changing the default value state of an
+                  uncontrolled Select after being initialized"
+                  (@base-ui/utils/useControlled.js:37-42, que lo compara POR
+                  VALOR contra el del primer render).
+                  Atarlo a `abierto` los desmonta de golpe al cerrar, que es lo
+                  que el comentario anterior daba por hecho sin que lo fuera. No
+                  se convierten a controlados: sería sincronizar el estado de
+                  nueve campos para arreglar un problema de desmontaje. */}
+              {abierto ? (
+                orden ? (
+                  <CamposOrdenTrabajo
+                    orden={orden}
+                    errores={estado.errores ?? {}}
+                  />
+                ) : (
+                  <CamposOrdenTrabajo
+                    fechaHoy={fechaHoy}
+                    errores={estado.errores ?? {}}
+                  />
+                )
+              ) : null}
+            </div>
+
+            <DialogFooter>
+              {/* Cancelar es un `DialogClose`, no un Link: aquí no se navega a
+                  ninguna parte, solo se cierra la ventana. */}
+              <DialogClose
+                render={<Button type="button" variant="outline" />}
+                disabled={enviando}
+              >
+                Cancelar
+              </DialogClose>
+              <Button type="submit" disabled={enviando}>
+                {enviando ? "Guardando…" : orden ? "Guardar cambios" : "Crear OT"}
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : (
+          <>
+            <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
+              {/* Mismo render condicional que los campos, por la misma razón:
+                  Base UI no desmonta a los hijos al cerrar. Aquí no hay
+                  `defaultValue` que se queje, pero el criterio es uno solo
+                  para todo el modal. */}
+              {abierto ? (
+                <VistaOrdenTrabajo
                   orden={orden}
-                  errores={estado.errores ?? {}}
+                  precio={precio}
+                  fechaCreacion={fechaCreacion}
                 />
-              ) : (
-                <CamposOrdenTrabajo
-                  fechaHoy={fechaHoy}
-                  errores={estado.errores ?? {}}
-                />
-              )
-            ) : null}
-          </div>
+              ) : null}
+            </div>
 
-          <DialogFooter>
-            {/* Cancelar es un `DialogClose`, no un Link: aquí no se navega a
-                ninguna parte, solo se cierra la ventana. */}
-            <DialogClose
-              render={<Button type="button" variant="outline" />}
-              disabled={enviando}
-            >
-              Cancelar
-            </DialogClose>
-            <Button type="submit" disabled={enviando}>
-              {enviando ? "Guardando…" : orden ? "Guardar cambios" : "Crear OT"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cerrar
+              </DialogClose>
+              {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
+                  esto es el mismo salto a edición para quien llegó mirando. */}
+              <Button type="button" onClick={() => control.cambiar("editando")}>
+                Editar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

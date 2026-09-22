@@ -150,6 +150,50 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
+- Una fila de listado que abre su registro (hoy Materiales, Personal y Órdenes
+  de Trabajo, y los catálogos que vengan) sigue el patrón compartido de
+  `core/fila-clicable.tsx`: tres modos
+  —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
+  con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que
+  viva dentro de ella va envuelto en `SinPropagacion`**, el modal y los
+  `alert-dialog` incluidos. El motivo de fondo: los eventos de React burbujean
+  por el árbol de componentes, así que un portal a `document.body` NO libra a
+  la fila de recibirlos — un clic en "Cancelar" dentro del diálogo de
+  confirmación llega igual al `onClick` del `<tr>`. El ejemplo que mejor lo
+  ilustra NO es la equis de inactivar (un `<button>` de verdad, que la red de
+  abajo sí ataja) sino la celda de estado de OT: sus opciones son
+  `role="option"` sobre un `<div>` y su confirmación vive en otro portal.
+  `propsFilaClicable` trae además una red de seguridad (`esClicDeLaFila`) que
+  descarta lo que nace fuera de la fila en el DOM o dentro de un control
+  nativo, así que hoy un botón suelto sin envolver no rompería nada. **Eso no
+  sustituye al envoltorio**: lo que la red NO cubre es un control que no sea
+  `button`/`a`/`input`/`select`/`textarea`/`label`/`[role=button]` — un
+  `role="switch"` o un `role="checkbox"` pintados sobre un `<span>`, por
+  ejemplo. Envolver siempre sale más barato que acordarse de esta lista. El
+  detalle está en la skill de convenciones, sección "Fila clicable → vista →
+  editar".
+- **La propagación de clics es el riesgo permanente de este patrón, y hay que
+  vigilarla en CUALQUIER fila que combine clic-para-abrir con controles
+  interactivos adentro.** No es una tarea que se cierre al montar la fila: se
+  reabre cada vez que alguien mete un control nuevo en una celda. Tres cosas
+  que llevarse:
+  1. **No hay nada que avise.** Ni `tsc` ni el lint ven la diferencia entre una
+     fila bien envuelta y una mal envuelta; el síntoma es un modal que se abre
+     de más, y solo se ve probando a mano.
+  2. **Lo peligroso no es el botón, es el control que abre otra cosa.** El caso
+     que costó en Órdenes de Trabajo es el desplegable de estado
+     (`SelectorEstadoFila`): despliega sus opciones y además abre un
+     `alert-dialog` de confirmación para `Facturado` y `Cancelada`, y las dos
+     superficies se portan a `document.body`. El envoltorio va alrededor del
+     componente entero, no de su disparador. Un icono pequeño es el caso fácil;
+     un `Select`, un `Popover` o un menú dentro de una celda son el difícil.
+  3. **La red de `esClicDeLaFila` no es la garantía.** Las opciones de un
+     `Select` de Base UI son `role="option"` sobre un `<div>` —fuera de la
+     lista de controles nativos que descarta— y solo se salvan porque nacen en
+     un portal. Eso es un detalle de implementación de Base UI, no un contrato.
+  Al tocar una de estas filas se vuelve a probar la combinación completa, no
+  solo el camino feliz: la lista está en la skill de convenciones, al final de
+  "Fila clicable → vista → editar".
 - Para dejar un elemento inalcanzable (no solo oculto) se usa `inert`, no
   `disabled`: varios componentes de Base UI pasan
   `focusableWhenDisabled: true`, así que `disabled` puede dejar un control

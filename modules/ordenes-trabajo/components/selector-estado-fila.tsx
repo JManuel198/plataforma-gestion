@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,49 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { actualizarEstadoOrdenTrabajo } from "../actions";
+import { BadgeEstado } from "./badge-estado";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { ESTADOS_OT, type EstadoOt } from "../constantes";
-
-/**
- * Un tono distinto por estado: con siete, dos que compartan variante dejan
- * de comunicar nada. El eje es cuánto peso visual merece cada punto del
- * ciclo, y `Facturado` no puede compartir tono con `Finalizada` — una es el
- * cierre técnico (el trabajo terminó) y la otra el cierre comercial (se
- * cobró), que es justo la distinción que el listado tiene que dejar ver.
- *
- * `dashed`, `success` e `info` se agregaron a components/ui/badge.tsx para
- * esto: el tema es monocromo (solo `destructive` tenía color), así que siete
- * rellenos de gris distinguibles no existían. `Pausada` pasa a distinguirse
- * por trazo punteado — lo interrumpido se lee mejor así que como un gris
- * más —, `Facturado` estrena el token `--success` y `Aceptada` el token
- * `--info`, los dos con el mismo patrón de tinte que `destructive`.
- *
- * `Aceptada` va en azul y no en otro verde a propósito: es el visto bueno
- * para arrancar, no el cobro, y con `Facturado` a un par de filas de
- * distancia dos verdes se leerían como el mismo estado de un vistazo.
- *
- * Vive aquí y ya no en tabla-ordenes-trabajo.tsx porque la celda dejó de ser
- * un Badge suelto: el color ahora se pinta dentro del disparador del Select,
- * que es lo único que queda de aquella celda.
- */
-const variantePorEstado: Record<
-  EstadoOt,
-  | "default"
-  | "secondary"
-  | "outline"
-  | "destructive"
-  | "dashed"
-  | "success"
-  | "info"
-> = {
-  Pendiente: "outline",
-  Aceptada: "info",
-  "En ejecución": "default",
-  Pausada: "dashed",
-  Finalizada: "secondary",
-  Facturado: "success",
-  Cancelada: "destructive",
-};
 
 /**
  * Los dos estados que se confirman antes de aplicarse.
@@ -216,13 +175,11 @@ export function SelectorEstadoFila({
         >
           {/* El Badge se conserva dentro del disparador: los siete estados se
               siguen distinguiendo por color, que es lo que hacía legible el
-              listado de un vistazo antes de que la celda fuera editable. */}
+              listado de un vistazo antes de que la celda fuera editable. El
+              mapa de colores ya no vive aquí — lo comparte con la vista de
+              solo lectura del modal, ver badge-estado.tsx. */}
           <SelectValue>
-            {(valor) => (
-              <Badge variant={variantePorEstado[valor as EstadoOt]}>
-                {valor as EstadoOt}
-              </Badge>
-            )}
+            {(valor) => <BadgeEstado estado={valor as EstadoOt} />}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

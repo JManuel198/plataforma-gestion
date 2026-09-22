@@ -263,6 +263,126 @@ servidor.** La referencia a copiar es
   spinners elaborados — es una herramienta interna de un solo usuario, no
   necesita ese nivel de pulido todavía.
 
+## Fila clicable → vista → editar
+
+**Este es EL estándar de todo listado que abra su registro: los catálogos
+maestros que existen y los que vengan, y cualquier otro listado con el mismo
+gesto.** No es una variante de Materiales ni algo a decidir por módulo — un
+listado nuevo lo hereda entero, y desviarse de él se justifica en el propio
+archivo.
+
+Vive en **`core/`**, no en ningún módulo: `core/fila-clicable.tsx` (estado y
+comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
+Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
+lo usan varios módulos y ninguno puede importar de otro.
+
+Aplicado ya en los tres listados que existen, y en este orden por dificultad:
+
+| Listado | Fila | Vista | Modal | Lo interactivo de la fila |
+| --- | --- | --- | --- | --- |
+| Materiales | `fila-material.tsx` | `vista-material.tsx` | `dialogo-material.tsx` | lápiz + equis (+ su `alert-dialog`) |
+| Personal | `fila-persona.tsx` | `vista-persona.tsx` | `dialogo-persona.tsx` | "Editar" + `BotonBaja` (+ su `alert-dialog`) |
+| Órdenes de Trabajo | `fila-orden-trabajo.tsx` | `vista-orden-trabajo.tsx` | `dialogo-orden-trabajo.tsx` | **`SelectorEstadoFila`** (+ su desplegable y su `alert-dialog`) + lápiz |
+
+La máquina de estados se importa, nunca se copia.
+
+- **Tres modos, un solo modal.** `ModoDetalle` es `"cerrado" | "viendo" |
+  "editando"`, y los tres los lleva `useControlDetalle()`, que monta LA FILA
+  (no el modal): en la fila hay dos disparadores —el clic abre en "viendo", el
+  lápiz en "editando"— para un único `Dialog`. El botón "Editar" de la vista
+  solo cambia el modo: no cierra ni vuelve a abrir, así que no hay parpadeo ni
+  foco perdido. Nada de un booleano `abierto` más otro `editando`, que admite
+  el estado imposible "cerrado pero editando".
+- El modal acepta `control` (lo pasa la fila) **o** `disparador` (un
+  `DialogTrigger` propio, que es lo que usa el "Nuevo …" de la cabecera, un
+  Server Component que no puede pasar estado). Cuando no le dan `control`, se
+  monta el suyo y nunca pasa por "viendo".
+- **La fila sigue siendo un `<tr>`.** `propsFilaClicable(alAbrir)` le añade
+  `tabIndex={0}`, `aria-haspopup="dialog"` y Enter/Espacio (con
+  `preventDefault()` en Espacio, o la página salta). **Nunca** se envuelve en
+  un `<button>` ni se cambia por un `<div role="button">`: eso le quita a la
+  tabla el `role="row"`, la cuenta de filas y la relación con los encabezados.
+  El foco se marca con `outline`, no con el `ring` de shadcn: el anillo es un
+  `box-shadow` y sobre un `<tr>` con `border-collapse: collapse` (lo que impone
+  el preflight de Tailwind) no se pinta de forma fiable.
+- **Todo lo interactivo de la fila va dentro de un `SinPropagacion`**, EL MODAL
+  Y LOS `alert-dialog` INCLUIDOS. Sin eso, el clic en la equis de inactivar
+  burbujea hasta el `onClick` de la fila y abre la vista encima de la
+  confirmación. Es un envoltorio, no un `stopPropagation` suelto por
+  componente, para que la regla se vea de un vistazo y se copie entera.
+  **El motivo de incluir al modal no se ve venir**: el contenido de un `Dialog`
+  se porta a `document.body`, pero los eventos de React burbujean por el árbol
+  de COMPONENTES, no por el DOM — un clic en "Cancelar" dentro del diálogo
+  llega igualmente al `onClick` del `<tr>`.
+  Sin `className` sale como `display: contents` y no toca el layout; con
+  `className` hace además de contenedor (la fila de botones de acción le pasa
+  sus clases de flex en vez de anidar otro `<div>`).
+- **`propsFilaClicable` trae una red de seguridad, que no sustituye al
+  envoltorio.** `esClicDeLaFila()` descarta lo que no está dentro del `<tr>` en
+  el DOM (portales) y lo que nace en un control nativo
+  (`button, a, input, select, textarea, label, [role="button"]`), para que
+  olvidar el `SinPropagacion` no se convierta en un bug silencioso — nada en
+  `tsc` ni en el lint avisaría. Lo que esa lista NO cubre es un control con
+  `role="switch"` o `role="checkbox"` pintado sobre un `<span>`/`<div>`: ahí el
+  envoltorio vuelve a ser lo único que corta la propagación. Por eso la regla
+  sigue siendo envolver, no confiar en la lista.
+- **Un control compuesto en línea es el caso que más se escapa, y OT es el
+  ejemplo.** La celda de estado de `fila-orden-trabajo.tsx` no es un botón: es
+  un `Select` editable en el sitio que despliega sus siete opciones **y** abre
+  un `alert-dialog` de confirmación para `Facturado` y `Cancelada`. Son TRES
+  superficies —disparador, desplegable, diálogo— y las dos últimas se portan a
+  `document.body`, así que el envoltorio tiene que ir alrededor del COMPONENTE
+  ENTERO, no del disparador. Y aquí la red de seguridad no alcanza: las
+  opciones de Base UI son `role="option"` sobre un `<div>`, que no está en la
+  lista de `esClicDeLaFila`; solo se salvan por el criterio del portal, que es
+  un detalle de implementación del que no conviene depender. Regla práctica:
+  **si dentro de la fila hay algo que abre otra cosa, envuélvelo entero y
+  pruébalo con el desplegable abierto**, no solo cerrado.
+- **Un módulo puede tener más de un `SinPropagacion` por fila.** OT lleva dos
+  —uno en la celda de estado y otro en la de acciones— en vez de uno grande:
+  cada celda envuelve lo suyo. Es lo mismo para la propagación y deja el
+  envoltorio pegado a lo que protege.
+- La vista de solo lectura se arma con `ListaDatos` + `Dato` de
+  `core/vista-detalle.tsx`: un `<dl>`, para que un lector de pantalla anuncie
+  "Marca: Bosch" y no dos textos sueltos. `Dato` pasa el texto por `oVacio()`
+  —el guion de "no tiene", que también usan las celdas de la tabla— y acepta
+  `children` cuando el valor no es texto (un `Badge` de situación).
+- Enseña las mismas columnas que el formulario y en el mismo orden, más lo que
+  el formulario no edita (la situación activo/inactivo). Si un chip ya existe
+  en la tabla, aquí se usa **la misma variante**: es el mismo dato.
+- **Lo calculado se sigue calculando en el servidor y baja como prop.** La
+  fila pasa a ser un Client Component, pero eso no debe arrastrar al cliente
+  cuentas que dependen de "hoy": `TablaPersonal` llama a `calcularEdad`
+  (lib/fecha.ts) y le pasa `edad` a `FilaDePersona`, que a su vez se la pasa al
+  modal. Hacerlo en el navegador metería dayjs con sus plugins de utc/timezone
+  en el bundle, dejaría el número a merced del reloj del equipo y podría
+  desajustar la hidratación si servidor y cliente caen a distinto lado de la
+  medianoche. Formatear una columna `date` (un `YYYY-MM-DD` literal) sí puede
+  hacerse en el cliente: no depende de "hoy" ni de la zona.
+- **Lo que cambia de un listado a otro es solo el envoltorio.** Personal usa
+  botones con texto ("Editar", "Dar de baja") en vez de los iconos de los
+  catálogos —decisión ya tomada por el ancho de cada tabla— y el papel de
+  atajo a edición lo hace ahí el botón "Editar". OT vuelve al lápiz, por ser
+  la tabla más ancha del proyecto (once columnas), y no lleva equis de
+  inactivar: ese papel lo cumple el estado `Cancelada` (regla invariable 9).
+  El patrón no obliga a unificar eso: obliga a los tres modos, al `<tr>`
+  accionable y al `SinPropagacion`.
+
+**Al aplicarlo a un listado nuevo, se comprueba en el navegador —no se da por
+sentado— que:**
+
+1. El clic en la fila, fuera de cualquier control, abre la vista.
+2. Cada control de la fila hace lo suyo y **no** abre además la vista. Uno por
+   uno, incluidos los que despliegan o confirman: abrir el desplegable, elegir
+   una opción, y cancelar y confirmar el diálogo.
+3. El atajo a edición (lápiz o botón) abre el formulario directamente, sin
+   pasar por la vista.
+4. El botón "Editar" de la vista cambia a edición en el mismo modal.
+5. Cerrar el modal por cualquier vía lo deja en "cerrado": volver a la fila
+   abre otra vez la vista, no la edición de antes.
+6. La consola no suelta avisos — sobre todo los de `useControlled` de Base UI,
+   que salen cuando un `defaultValue` cambia bajo un campo que sigue montado.
+
 ## Catálogos maestros
 
 Los cinco catálogos que declara el menú (Materiales, Lista de precios,
@@ -271,11 +391,10 @@ Servicios, Tarifario de personal, EPPs) comparten forma. **Materiales
 ahí, no se reinventa.
 
 - **Dos iconos de acción por fila, no tres.** Lápiz (`PencilIcon`) para editar
-  y equis (`XIcon`) para inactivar. **No hay lupa de "ver detalle"** y es
-  deliberado: una fila de catálogo cabe entera en la tabla, así que una
-  pantalla de solo lectura no enseñaría nada nuevo — y el modal de edición ya
-  sirve para mirar, porque se cierra sin guardar. Añadir la lupa sería una
-  pantalla más que mantener a cambio de nada.
+  y equis (`XIcon`) para inactivar. **No hay lupa de "ver detalle"**: la vista
+  de solo lectura se abre haciendo clic en la fila (ver "Fila clicable → vista
+  → editar" más arriba, que es obligatorio en todo catálogo), así que un tercer icono sería un botón de más para lo que ya hace la
+  fila entera. El lápiz se queda como atajo directo a edición.
 - El componente es `components/acciones-material.tsx`. Los dos botones son
   `Button variant="ghost" size="icon-sm"`, cada uno con su nombre en un
   `<span class="sr-only">` (lo que lee un lector de pantalla) **y** un `title`
