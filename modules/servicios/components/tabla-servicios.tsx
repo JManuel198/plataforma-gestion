@@ -9,15 +9,21 @@ import { formatearFecha } from "@/lib/fecha";
 import type { FilaServicio } from "../queries";
 import { FilaDeServicio } from "./fila-servicio";
 
-export function TablaServicios({ servicios }: { servicios: FilaServicio[] }) {
+export function TablaServicios({
+  servicios,
+  filtrado = false,
+}: {
+  servicios: FilaServicio[];
+  /** Si hay filtros puestos (búsqueda o categoría) — cambia el mensaje de
+   * lista vacía. Llega en la Parte 2, junto con el buscador y el filtro. */
+  filtrado?: boolean;
+}) {
   if (servicios.length === 0) {
-    // Sin variante "ningún resultado coincide con los filtros", a diferencia de
-    // Materiales y Lista de precios: en la Parte 1 no hay filtros, así que una
-    // lista vacía solo puede significar una cosa. La prop `filtrado` llega
-    // cuando llegue el buscador, no antes.
     return (
       <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No hay servicios registrados todavía.
+        {filtrado
+          ? "Ningún servicio coincide con los filtros."
+          : "No hay servicios registrados todavía."}
       </p>
     );
   }

@@ -15,6 +15,7 @@ import { MONEDAS, type Moneda } from "@/core/monedas";
 import { UNIDADES } from "@/core/unidades";
 import {
   CATEGORIAS_SERVICIO,
+  capitalizarCategoria,
   type CategoriaServicio,
 } from "../constantes";
 import type { FilaServicio } from "../queries";
@@ -115,34 +116,34 @@ export function CamposServicio({ servicio, errores }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="categoria">Categoría</Label>
-        {/* LISTA CERRADA — ver la cabecera de este archivo. `capitalize` es solo
-            presentación: lo que se guarda es el valor en minúscula de
-            `CATEGORIAS_SERVICIO`, que es el que valida el Zod. Pintar aquí una
-            etiqueta distinta del valor crearía dos vocabularios para lo mismo;
-            una clase de Tailwind no. */}
+        {/* LISTA CERRADA — ver la cabecera de este archivo. `capitalizarCategoria`
+            (../constantes.ts) es solo presentación: lo que se guarda y lo que
+            valida el Zod es el valor en minúscula de `CATEGORIAS_SERVICIO`.
+            Pintar aquí una etiqueta distinta del valor crearía dos vocabularios
+            para lo mismo; una función que solo cambia cómo se ve, no. NO es
+            `className="capitalize"` de Tailwind — esa clase mayusculiza CADA
+            palabra, así que el `placeholder` de abajo ("Elige una categoría")
+            saldría como "Elige Una Categoría". Ver el comentario de
+            `capitalizarCategoria` para el detalle completo. */}
         <Select
           name="categoria"
           defaultValue={categoriaInicial}
           items={CATEGORIAS_SERVICIO.map((categoria) => ({
-            label: categoria,
+            label: capitalizarCategoria(categoria),
             value: categoria,
           }))}
         >
           <SelectTrigger
             id="categoria"
-            className="w-full capitalize"
+            className="w-full"
             aria-invalid={Boolean(errores.categoria)}
           >
             <SelectValue placeholder="Elige una categoría" />
           </SelectTrigger>
           <SelectContent>
             {CATEGORIAS_SERVICIO.map((categoria) => (
-              <SelectItem
-                key={categoria}
-                value={categoria}
-                className="capitalize"
-              >
-                {categoria}
+              <SelectItem key={categoria} value={categoria}>
+                {capitalizarCategoria(categoria)}
               </SelectItem>
             ))}
           </SelectContent>

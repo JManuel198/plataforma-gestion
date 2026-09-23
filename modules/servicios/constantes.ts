@@ -57,6 +57,33 @@ export const CATEGORIAS_SERVICIO = [
 export type CategoriaServicio = (typeof CATEGORIAS_SERVICIO)[number];
 
 /**
+ * `"alquiler"` → `"Alquiler"`, para mostrar la categoría con mayúscula inicial
+ * sin cambiar lo que se guarda ni lo que viaja en la URL del filtro.
+ *
+ * NO ES `className="capitalize"` DE TAILWIND, Y ESO ES DELIBERADO —esto
+ * arregla un error real de la Parte 1 (2026-09-23), donde sí se usó esa clase
+ * en `SelectTrigger`. `text-transform: capitalize` de CSS pone mayúscula en
+ * CADA palabra del texto que envuelve, no solo en la primera: sirve para un
+ * valor de una sola palabra como "alquiler", pero el mismo `SelectTrigger`
+ * también enseña el `placeholder` ("Elige una categoría") cuando no hay nada
+ * elegido, y ese placeholder heredaba la misma transformación — se veía
+ * "Elige Una Categoría". El filtro de esta Parte 2 tiene el mismo problema con
+ * su opción "Todas las categorías". Una función que solo toca la primera letra
+ * del valor real —nunca el texto que la envuelve— no puede arrastrar ese
+ * error.
+ *
+ * Recibe `string`, no `CategoriaServicio`: la columna en Postgres es `text`
+ * sin restricción (ver ../schema.ts), así que una fila cargada fuera del
+ * formulario podría traer cualquier cosa. Tipar el parámetro como el enum
+ * estricto sería fingir una garantía que la base no da.
+ */
+export function capitalizarCategoria(categoria: string): string {
+  return categoria.length > 0
+    ? categoria.charAt(0).toUpperCase() + categoria.slice(1)
+    : categoria;
+}
+
+/**
  * El formato que admite el campo de precio.
  *
  * Vive aquí y no dentro del Zod por el mismo motivo que los patrones de Lista

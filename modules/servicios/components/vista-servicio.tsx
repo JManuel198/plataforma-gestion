@@ -1,5 +1,6 @@
 import { formatearMonto } from "@/core/dinero";
 import { Dato, ListaDatos } from "@/core/vista-detalle";
+import { capitalizarCategoria } from "../constantes";
 import type { FilaServicio } from "../queries";
 
 /**
@@ -30,10 +31,12 @@ export function VistaServicio({
   return (
     <ListaDatos>
       <Dato etiqueta="Código" valor={servicio.codigo} />
-      {/* `capitalize` por lo mismo que en el formulario: lo guardado es el valor
-          en minúscula de `CATEGORIAS_SERVICIO`, y esto es solo cómo se lee. */}
-      <Dato etiqueta="Categoría" className="capitalize">
-        {servicio.categoria?.trim() || "—"}
+      {/* `capitalizarCategoria` por lo mismo que en el formulario: lo guardado
+          es el valor en minúscula de `CATEGORIAS_SERVICIO`, y esto es solo
+          cómo se lee. NO es `className="capitalize"` de Tailwind — ver el
+          comentario de esa función en ../constantes.ts. */}
+      <Dato etiqueta="Categoría">
+        {servicio.categoria ? capitalizarCategoria(servicio.categoria) : "—"}
       </Dato>
       <Dato
         etiqueta="Servicio"

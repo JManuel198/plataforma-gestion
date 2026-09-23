@@ -11,6 +11,7 @@ import {
 import { formatearMonto } from "@/core/dinero";
 import { oVacio } from "@/core/vista-detalle";
 import { editarServicioEnModal } from "../actions";
+import { capitalizarCategoria } from "../constantes";
 import type { FilaServicio } from "../queries";
 import { DialogoServicio } from "./dialogo-servicio";
 
@@ -79,10 +80,13 @@ export function FilaDeServicio({
       >
         {oVacio(servicio.servicio)}
       </TableCell>
-      {/* `capitalize` es solo presentación: lo guardado es el valor en minúscula
-          de `CATEGORIAS_SERVICIO`. Ver el comentario del campo en
-          `campos-servicio.tsx`. */}
-      <TableCell className="capitalize">{oVacio(servicio.categoria)}</TableCell>
+      {/* `capitalizarCategoria` es solo presentación: lo guardado es el valor
+          en minúscula de `CATEGORIAS_SERVICIO`. NO es `className="capitalize"`
+          de Tailwind — ver el comentario de esa función en ../constantes.ts
+          para el error que evita. */}
+      <TableCell>
+        {servicio.categoria ? capitalizarCategoria(servicio.categoria) : "—"}
+      </TableCell>
       <TableCell>{oVacio(servicio.unidad)}</TableCell>
       {/* Las dos columnas admiten NULL y el precio no se enseña sin su moneda:
           un número suelto se leería como soles por defecto y podría no serlo.

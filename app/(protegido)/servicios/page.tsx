@@ -1,8 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { crearServicioEnModal } from "@/modules/servicios/actions";
+import { BuscadorServicios } from "@/modules/servicios/components/buscador-servicios";
 import { DialogoServicio } from "@/modules/servicios/components/dialogo-servicio";
+import { FiltroCategoria } from "@/modules/servicios/components/filtro-categoria";
 import { TablaServicios } from "@/modules/servicios/components/tabla-servicios";
+import {
+  hayFiltros,
+  type FiltrosServicios,
+} from "@/modules/servicios/filtros";
 import { listarServicios } from "@/modules/servicios/queries";
+import {
+  filtroBusquedaSchema,
+  filtroCategoriaSchema,
+} from "@/modules/servicios/schema";
 
 // Ruta plana a propósito: el encabezado "Catálogos maestros" bajo el que
 // aparece este enlace es solo una etiqueta del menú y nunca entra en la URL.
@@ -20,19 +30,28 @@ export const metadata = { title: "Servicios" };
 /**
  * El catálogo de servicios.
  *
- * SIN `searchParams`, a diferencia de las páginas de Materiales, Lista de
- * precios, Personal y OT: en la Parte 1 no hay ni buscador ni filtro de
- * inactivos, así que no hay nada que leer de la URL y nada que validar con Zod.
- * Cuando llegue el buscador (Parte 2), el patrón completo —parseo con
- * `.catch(undefined)` para que un parámetro inventado se ignore en vez de
- * reventar la pantalla— está en `app/(protegido)/lista-precios/page.tsx`.
+ * DOS FILTROS, NO TRES: buscador de texto y categoría, ambos en `searchParams`
+ * y combinados con AND en la consulta (ver `listarServicios`). Sin filtro de
+ * inactivos, a diferencia de Materiales y Lista de precios — esta tabla no
+ * tiene columna `activo` (decisión 16 de "Catálogos maestros" en
+ * docs/spec/preguntas-abiertas.md), así que no hay nada que alternar.
  *
- * Tampoco hay filtro de inactivos, y ese no llega en la Parte 2 por sí solo:
- * depende de que se confirme si este catálogo necesita inactivar/reactivar, que
- * hoy es una pregunta abierta y por eso la tabla no tiene columna `activo`.
+ * Mismo patrón que `app/(protegido)/ordenes-trabajo/page.tsx` combinando
+ * `estado`, `busqueda` y fechas: cada valor de la URL pasa por su propio Zod
+ * con `.catch(undefined)` antes de usarse, así que un parámetro inventado o
+ * repetido se ignora en vez de reventar la pantalla.
  */
-export default async function PaginaServicios() {
-  const servicios = await listarServicios();
+export default async function PaginaServicios({
+  searchParams,
+}: PageProps<"/servicios">) {
+  const { busqueda, categoria } = await searchParams;
+
+  const filtros: FiltrosServicios = {
+    busqueda: filtroBusquedaSchema.parse(busqueda),
+    categoria: filtroCategoriaSchema.parse(categoria),
+  };
+
+  const servicios = await listarServicios(filtros);
 
   return (
     <div className="space-y-6">
@@ -49,7 +68,14 @@ export default async function PaginaServicios() {
         />
       </div>
 
-      <TablaServicios servicios={servicios} />
+      {/* Cada control recibe los filtros completos, no solo el suyo: así el
+          que cambia conserva al otro en la URL en vez de pisarlo. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <BuscadorServicios filtros={filtros} />
+        <FiltroCategoria filtros={filtros} />
+      </div>
+
+      <TablaServicios servicios={servicios} filtrado={hayFiltros(filtros)} />
     </div>
   );
 }

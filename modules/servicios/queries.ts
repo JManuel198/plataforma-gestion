@@ -1,6 +1,8 @@
-import { asc } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { servicios } from "@/db/schema/servicios";
+import { patronParcial } from "@/core/busqueda";
+import type { FiltrosServicios } from "./filtros";
 
 /**
  * Las columnas que muestra el listado.
@@ -25,24 +27,49 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista el catálogo de servicios entero.
+ * Lista el catálogo de servicios aplicando los filtros que vengan.
  *
- * SIN FILTROS TODAVÍA, y es el estado real de la Parte 1, no un olvido:
+ * Los dos filtros se combinan con AND entre sí — elegir una categoría no borra
+ * el texto buscado, y viceversa. Mismo criterio que `listarOrdenesTrabajo`
+ * combinando `estado`, `busqueda` y fechas.
  *
- * - No hay buscador. Llega en la Parte 2, igual que en Materiales y Lista de
- *   precios, y cuando llegue el patrón es `patronParcial` de core/busqueda.ts
- *   sobre `codigo` y `servicio` — nunca una copia nueva del escape de
- *   comodines (esa lección la dejó escrita la deuda técnica de AGENTS.md).
- * - No hay filtro de inactivos porque no hay columna `activo`. Mientras no la
- *   haya, esta consulta devuelve TODO lo que existe, y eso es lo correcto: no
- *   hay nada oculto que un filtro pudiera revelar.
+ * SIN FILTRO DE INACTIVOS, a diferencia de `listarMateriales` y
+ * `listarPrecios`: esta tabla no tiene columna `activo`, así que no hay nada
+ * que alternar y la consulta siempre devuelve todo lo que exista (dentro de
+ * los filtros de texto/categoría que se pidan).
  *
- * Cuando aparezcan, se resuelven en la consulta y nunca en el navegador.
+ * Todo se resuelve aquí, nunca en el navegador.
  */
-export async function listarServicios() {
+export async function listarServicios(filtros: FiltrosServicios = {}) {
+  const { busqueda, categoria } = filtros;
+  const patron = busqueda ? patronParcial(busqueda) : null;
+
+  const condiciones = [
+    categoria ? eq(servicios.categoria, categoria) : undefined,
+    // Las tres columnas del buscador. `codigo` y `servicio` son las mismas que
+    // en cualquier catálogo; `unidad` SÍ entra aquí a diferencia de Materiales
+    // y Lista de precios — ver el comentario de `busqueda` en ../filtros.ts
+    // para el porqué de esa diferencia deliberada.
+    //
+    // Las tres son nullable, y eso importa: `ILIKE` sobre NULL da NULL, no
+    // `false` — pero dentro de un `or(...)` eso se comporta como "esta no
+    // casa", que es exactamente lo que se quiere. Un servicio sin unidad no
+    // desaparece de la búsqueda: sigue pudiendo casar por código o por nombre.
+    patron
+      ? or(
+          ilike(servicios.codigo, patron),
+          ilike(servicios.servicio, patron),
+          ilike(servicios.unidad, patron),
+        )
+      : undefined,
+  ];
+
   return db
     .select(columnasListado)
     .from(servicios)
+    // `and()` ignora los `undefined` y devuelve `undefined` si no queda
+    // ninguna condición — que es exactamente "sin WHERE".
+    .where(and(...condiciones))
     // Por código, que desde que se autogenera es además el orden de alta:
     // `SRV.0000001`, `SRV.0000002`… Con 7 dígitos fijos y ceros a la izquierda,
     // el orden alfabético y el numérico coinciden, así que ordenar el texto no

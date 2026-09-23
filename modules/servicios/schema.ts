@@ -149,12 +149,41 @@ export const servicioEditarSchema = servicioCrearSchema.extend({
 
 // --- Filtros del listado ---------------------------------------------------
 //
-// Todavía NO HAY NINGUNO, y por eso este archivo no declara
-// `filtroBusquedaSchema` ni `filtroInactivosSchema` como sus hermanos. El
-// buscador es Parte 2, y el filtro de inactivos no puede existir mientras no
-// haya columna `activo`. Cuando lleguen, el patrón está en
-// modules/lista-precios/schema.ts: `.optional().catch(undefined)`, para que un
-// parámetro inventado o repetido no reviente la pantalla, solo se ignore.
+// Vienen de `searchParams`, o sea que son input del usuario. Mismo patrón que
+// en Materiales, Lista de precios, Personal y OT: `.optional().catch(undefined)`
+// para que un parámetro inventado o repetido no reviente la pantalla, solo se
+// ignore.
+//
+// SOLO DOS, NO TRES: no hay `filtroInactivosSchema` como en Materiales y Lista
+// de precios — esta tabla no tiene columna `activo`, así que no hay nada que
+// alternar. Ver la decisión 16 de "Catálogos maestros" en
+// docs/spec/preguntas-abiertas.md.
+
+/**
+ * Texto de búsqueda. El tope de 200 no es una regla de negocio: evita mandar a
+ * la base de datos un `ILIKE '%...%'` con una cadena enorme desde la URL.
+ * Mismo criterio y mismo número que `filtroBusquedaSchema` en los otros tres
+ * módulos.
+ */
+export const filtroBusquedaSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .catch(undefined);
+
+/**
+ * `?categoria=alquiler` filtra el listado a esa categoría. Reusa
+ * `categoriaSchema` — la lista cerrada es la MISMA que valida el formulario,
+ * así que un valor inventado en la URL no cuela aquí tampoco: `.catch(undefined)`
+ * lo descarta como "sin filtro" en vez de reventar la pantalla, que es la
+ * postura de siempre ante un parámetro de `searchParams` que no viene de un
+ * control propio.
+ */
+export const filtroCategoriaSchema = categoriaSchema
+  .optional()
+  .catch(undefined);
 
 export type ServicioCrearInput = z.infer<typeof servicioCrearSchema>;
 export type ServicioEditarInput = z.infer<typeof servicioEditarSchema>;
