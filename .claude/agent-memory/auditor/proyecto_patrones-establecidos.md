@@ -54,4 +54,33 @@ futuros que toquen dinero o Server Actions:
   `ILIKE`/`LIKE` parametrizado con datos reales en vez de darlo por bueno
   leyendo el código, en cualquier módulo futuro que arme un patrón a mano.
 
+- **Lista de precios (Bloque 13, Partes 1 y 2, auditado 2026-09-22 — sin
+  hallazgos).** Segundo catálogo maestro con tabla real, y primer módulo con
+  un campo derivado (`precio = precio_lista × (1 − descuento/100)`, nunca
+  columna) y un campo de texto libre con sugerencias (`proveedor`, sin tabla
+  propia). Confirma que el patrón de Materiales (fila clicable, filtro
+  inactivos que ALTERNA con `eq(activo, inactivos ? false : true)`, dos
+  Server Actions `cambiarActivoX`/`buscarXAction` con `exigirSesion()` +
+  Zod mínimo) se replica sin desviarse también en un tercer/cuarto módulo.
+  Piezas nuevas de interés como referencia futura:
+  - `core/components/busqueda-remota.ts`: motor compartido (`useBusquedaRemota`)
+    entre `BuscadorSeleccion` (elige un registro existente) y
+    `CampoConSugerencias` (texto libre que sugiere lo ya usado) — extraído
+    directo a `core/` en su segundo uso, sin pasar primero por la fase de
+    "copiarlo y esperar una tercera vez" que sí tuvieron `patronParcial` y
+    `esUniqueViolado`. Aplicar el mismo criterio si aparece un tercer
+    consumidor de ese motor.
+  - El cálculo de precio evita `BigInt` con una descomposición en
+    `cientos × 10000 + resto` porque el producto intermedio
+    `precioLista × factor` puede superar `Number.MAX_SAFE_INTEGER` antes de
+    dividir — vale la pena revisar con la misma sospecha cualquier cálculo
+    monetario nuevo que multiplique un céntimo grande por un factor de escala
+    antes de dividir.
+  - `useFiltros` de este módulo es el CUARTO hook idéntico (materiales,
+    personal, ordenes-trabajo, lista-precios) y deliberadamente NO se subió a
+    core/: el criterio de "mover a la tercera copia" aplica a lógica que puede
+    divergir en silencio (regex, parseo de errores), no a ocho líneas sin
+    lógica propia donde el síntoma de una divergencia sería visible al tocar
+    el filtro. Útil como criterio para no exigir de más en una futura auditoría.
+
 Ver también [[proyecto-verificacion-tecnica]].
