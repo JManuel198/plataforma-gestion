@@ -272,7 +272,7 @@ consecuencias ya anotadas en `preguntas-abiertas.md` (supuesto 3 de Personal).
 `orden_trabajo_estado_idx`: el listado filtra por `activo` en la consulta por
 defecto.
 
-**Consume:** nada. **Consumida por:** `modules/personal/` (en desarrollo). Sin
+**Consume:** nada. **Consumida por:** `modules/personal/`. Sin
 relación todavía con `orden_trabajo.responsable`, que sigue siendo texto
 libre — ver deuda técnica en AGENTS.md sobre esa columna.
 
@@ -361,7 +361,7 @@ técnicas de cada material, una fila por línea. A diferencia del resto de
 tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
 DELETE real — es una excepción deliberada, razonada en su propia ficha.
 
-**Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo) y,
+**Consume:** nada. **Consumida por:** `modules/materiales/` y,
 desde el Bloque 13, Parte 1 (2026-09-22), `lista_precios.material_id` — ver la
 entidad "Lista de precios" más abajo. La relación que aquí se dejaba como
 pendiente ("Catálogos maestros", decisión 3 de `preguntas-abiertas.md`) ya se
@@ -550,8 +550,7 @@ con Materiales.
 contra `materiales`).
 
 **Consume:** `materiales` (FK de `material_id`), `correlativo` (clave
-`"lista_precios"`). **Consumida por:** `modules/lista-precios/` (en
-desarrollo).
+`"lista_precios"`). **Consumida por:** `modules/lista-precios/`.
 
 ---
 
@@ -619,7 +618,7 @@ del material, no entidades con vida propia fuera de él.
 para listar rápido las características de un material dado.
 
 **Consume:** `materiales` (vía `material_id`). **Consumida por:**
-`modules/materiales/` (en desarrollo).
+`modules/materiales/`.
 
 ---
 
@@ -736,7 +735,7 @@ defecto ni ninguna FK que sostenga un JOIN — a diferencia de `lista_precios`,
 no hay caso real hoy que justifique uno.
 
 **Consume:** `correlativo` (clave `"servicios"`). **Consumida por:**
-`modules/servicios/` (en desarrollo).
+`modules/servicios/`.
 
 ## Tarifario de personal (catálogo maestro)
 
@@ -849,7 +848,7 @@ periodo de tiempo («¿qué cargos tengo tarifados por mes?»). `costo` y `moned
 quedan fuera, mismo criterio que en el resto de catálogos.
 
 **Consume:** `correlativo` (clave `"tarifario_personal"`). **Consumida
-por:** `modules/tarifario-personal/` (en desarrollo). **Sin relación con
+por:** `modules/tarifario-personal/`. **Sin relación con
 `personal`** (ver arriba).
 
 ## EPPs (catálogo maestro)
