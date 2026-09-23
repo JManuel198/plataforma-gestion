@@ -1,8 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import type { FiltrosPersonal } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosPersonal } from "../filtros";
 
 /**
  * Cambia el listado a la vista de personal dado de baja.
@@ -22,7 +22,7 @@ import { useFiltros } from "./use-filtros";
  * (y hay que instalarlo con el CLI, nunca a mano — regla 5 de AGENTS.md).
  */
 export function FiltroInactivos({ filtros }: { filtros: FiltrosPersonal }) {
-  const { navegar } = useFiltros(filtros);
+  const { navegar } = useFiltrosListado(filtros, urlListado);
 
   return (
     <div className="flex items-center gap-2">

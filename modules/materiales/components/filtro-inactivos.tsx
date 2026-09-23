@@ -1,8 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import type { FiltrosMateriales } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosMateriales } from "../filtros";
 
 /**
  * Cambia el listado a la vista de materiales inactivos.
@@ -26,7 +26,7 @@ import { useFiltros } from "./use-filtros";
  * hay que instalarlo con el CLI, nunca a mano — regla 5 de AGENTS.md).
  */
 export function FiltroInactivos({ filtros }: { filtros: FiltrosMateriales }) {
-  const { navegar } = useFiltros(filtros);
+  const { navegar } = useFiltrosListado(filtros, urlListado);
 
   return (
     <div className="flex items-center gap-2">

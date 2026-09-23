@@ -1,8 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import type { FiltrosTarifario } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosTarifario } from "../filtros";
 
 /**
  * Cambia el listado a la vista de tarifas inactivas.
@@ -33,7 +33,7 @@ import { useFiltros } from "./use-filtros";
  * precios: es el mismo control, no debe verse ni llamarse de dos maneras.
  */
 export function FiltroInactivos({ filtros }: { filtros: FiltrosTarifario }) {
-  const { navegar } = useFiltros(filtros);
+  const { navegar } = useFiltrosListado(filtros, urlListado);
 
   return (
     <div className="flex items-center gap-2">

@@ -1,8 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import type { FiltrosListaPrecios } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosListaPrecios } from "../filtros";
 
 /**
  * Cambia el listado a la vista de ofertas inactivas.
@@ -31,7 +31,7 @@ export function FiltroInactivos({
 }: {
   filtros: FiltrosListaPrecios;
 }) {
-  const { navegar } = useFiltros(filtros);
+  const { navegar } = useFiltrosListado(filtros, urlListado);
 
   return (
     <div className="flex items-center gap-2">

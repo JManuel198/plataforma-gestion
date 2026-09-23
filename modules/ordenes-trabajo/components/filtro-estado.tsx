@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
 import { ESTADOS_OT } from "../constantes";
-import type { FiltrosOt } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { urlListado, type FiltrosOt } from "../filtros";
 
 const TODOS = "todos";
 
@@ -25,7 +25,7 @@ const TODOS = "todos";
  * juntos.
  */
 export function FiltroEstado({ filtros }: { filtros: FiltrosOt }) {
-  const { navegar, navegando } = useFiltros(filtros);
+  const { navegar, navegando } = useFiltrosListado(filtros, urlListado);
 
   const opciones = [
     { label: "Todos los estados", value: TODOS },

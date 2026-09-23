@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { FiltrosServicios } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosServicios } from "../filtros";
 
 /**
  * Pausa de tecleo antes de navegar. Sin ella cada letra sería una consulta a
@@ -36,7 +36,7 @@ const RETARDO_MS = 400;
  * quedara esperando a la respuesta del servidor entre letra y letra.
  */
 export function BuscadorServicios({ filtros }: { filtros: FiltrosServicios }) {
-  const { navegar } = useFiltros(filtros);
+  const { navegar } = useFiltrosListado(filtros, urlListado);
   const [texto, setTexto] = useState(filtros.busqueda ?? "");
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 

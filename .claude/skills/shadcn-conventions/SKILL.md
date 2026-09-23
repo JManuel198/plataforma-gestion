@@ -215,7 +215,11 @@ servidor.** La referencia a copiar es
 - **Varios filtros a la vez**: se combinan, no se pisan. Cada control recibe
   los filtros completos y navega con `{ ...filtros, loQueCambia }`; la URL la
   construye una sola función (`urlListado` en `modules/<entidad>/filtros.ts`) y
-  la navegación compartida vive en un hook (`use-filtros.ts`). En la consulta
+  la navegación compartida sale de `useFiltrosListado` (**`core/use-filtros-listado.ts`**,
+  importado, nunca copiado): recibe los filtros y el `urlListado` del módulo, y
+  devuelve `navegar` y `navegando`. Hasta el 2026-09-23 era un
+  `components/use-filtros.ts` copiado en cada módulo — seis copias idénticas —
+  y se unificó por la regla de las tres copias. En la consulta
   se unen con `and(...)`, que ignora los `undefined`. Ojo: el hook tiene que
   llamarse `useAlgo` aunque el resto del módulo esté en español —
   `react-hooks/rules-of-hooks` reconoce los hooks por ese prefijo.
@@ -700,8 +704,12 @@ con lo que habría que añadir el día que se confirme.
   (`cantidad`, `precio_lista`, `descuento`): una coincidencia parcial donde
   "150" casa con 1.50, 150 y 2150 no ayuda a nadie.
 - El reparto de archivos del módulo es el de siempre (`schema.ts`, `tipos.ts`,
-  `queries.ts`, `actions.ts`, `filtros.ts`, `components/`), más
-  `components/use-filtros.ts` para la navegación de los filtros.
+  `queries.ts`, `actions.ts`, `filtros.ts`, `components/`). **Ya NO hay un
+  `components/use-filtros.ts` por módulo**: la navegación de los filtros la pone
+  `useFiltrosListado` de `core/use-filtros-listado.ts`, y lo propio del módulo
+  —qué campos lleva y cómo se escriben en la URL— sigue en su `filtros.ts`
+  (`urlListado`, que se le pasa al hook como segundo argumento). Un listado
+  nuevo NO escribe ese archivo: importa el hook.
 
 ## Acciones destructivas
 

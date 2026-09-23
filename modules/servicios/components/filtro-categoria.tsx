@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
 import { CATEGORIAS_SERVICIO, capitalizarCategoria } from "../constantes";
-import type { FiltrosServicios } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { urlListado, type FiltrosServicios } from "../filtros";
 
 const TODAS = "todas";
 
@@ -38,7 +38,7 @@ const TODAS = "todas";
  * queda exactamente como se escribió.
  */
 export function FiltroCategoria({ filtros }: { filtros: FiltrosServicios }) {
-  const { navegar, navegando } = useFiltros(filtros);
+  const { navegar, navegando } = useFiltrosListado(filtros, urlListado);
 
   const opciones = [
     { label: "Todas las categorías", value: TODAS },

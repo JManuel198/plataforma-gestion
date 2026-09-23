@@ -294,6 +294,34 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   arreglo en una copia no llega a las otras y nada avisa de que divergieron.
   Criterio para lo que venga: a la tercera copia se mueve a core/, sin esperar
   a una cuarta.
+- RESUELTO (2026-09-23): el hook de navegación de los filtros de listado
+  (`components/use-filtros.ts`) llegó a estar copiado en SEIS módulos —
+  ordenes-trabajo, personal, materiales, lista-precios, servicios y
+  tarifario-personal— antes de unificarse. Vive ahora en
+  `core/use-filtros-listado.ts` como `useFiltrosListado<F>(filtros, urlListado)`
+  y los trece componentes de filtro lo importan de ahí; los seis archivos de
+  módulo se eliminaron.
+  **Es el caso que peor cumplió la regla de las tres copias de aquí arriba**, y
+  conviene entender por qué se dejó llegar a seis en vez de fingir que no pasó:
+  cada copia traía escrito su propio razonamiento de por qué no se movía
+  todavía, y los razonamientos eran ciertos —no hay lógica que pueda romperse
+  en silencio, solo tres líneas de navegación, y una copia divergente se vería
+  al instante al pulsar el filtro, no semanas después—. El problema es que ese
+  argumento no caduca solo: sirve igual para la séptima copia que para la
+  cuarta, así que nunca llega el momento en que "toca". La lección no es que el
+  riesgo fuera alto (no lo era), sino que **una excepción bien argumentada que
+  se puede repetir indefinidamente no es una excepción, es la regla nueva** — y
+  si la regla nueva es "no unificamos", eso hay que decidirlo a propósito, no
+  acumularlo copia a copia.
+  Antes de fusionar se compararon las seis una contra otra en vez de darlas por
+  equivalentes de vista: normalizando comentarios y el nombre del tipo, las seis
+  producían el mismo texto salvo un salto de línea de Prettier. Lo que cambia
+  entre listados —OT combina estado, rango de fechas y búsqueda; Servicios,
+  categoría y búsqueda; los otros cuatro, búsqueda e inactivos— no vivía en el
+  hook sino en el tipo de filtros y en `urlListado`, que siguen siendo de cada
+  módulo. Por eso `urlListado` entra como PARÁMETRO: generalizarlo obligaría a
+  `core/` a conocer los parámetros de URL de todos los módulos, que es el
+  acoplamiento que core/ existe para evitar.
 - El código de empresa "CCM" en el correlativo de OT vive en
   modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
   como dice la convención de Correlativos en AGENTS.md —

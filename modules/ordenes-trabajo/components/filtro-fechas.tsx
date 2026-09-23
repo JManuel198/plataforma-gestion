@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { FiltrosOt } from "../filtros";
-import { useFiltros } from "./use-filtros";
+import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { urlListado, type FiltrosOt } from "../filtros";
 
 /**
  * Filtro por rango de `fecha_creacion`, en la URL
@@ -22,7 +22,7 @@ import { useFiltros } from "./use-filtros";
  * transición de navegación termine.
  */
 export function FiltroFechas({ filtros }: { filtros: FiltrosOt }) {
-  const { navegar, navegando } = useFiltros(filtros);
+  const { navegar, navegando } = useFiltrosListado(filtros, urlListado);
   const [desde, setDesde] = useState(filtros.desde ?? "");
   const [hasta, setHasta] = useState(filtros.hasta ?? "");
 

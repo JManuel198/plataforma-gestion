@@ -24,7 +24,7 @@ dirección. Ver la decisión 1 de "Catálogos maestros" en
 | `filtros.ts` | El tipo `FiltrosTarifario`, `urlListado` y `hayFiltros` — la navegación por URL, sin Drizzle. |
 | `queries.ts` | El listado con sus dos filtros combinados por AND, y la búsqueda de cargos para las sugerencias del modal. |
 | `actions.ts` | Alta, edición, inactivar/reactivar y el envoltorio de la búsqueda de cargos. La reserva del correlativo va en la misma transacción que el INSERT. |
-| `components/` | Tabla, fila clicable, modal de tres modos, vista de solo lectura, buscador, filtro de inactivos y las dos acciones de fila. |
+| `components/` | Tabla, fila clicable, modal de tres modos, vista de solo lectura, buscador, filtro de inactivos y las dos acciones de fila. La navegación de los filtros NO vive aquí: sale de `useFiltrosListado` (`core/use-filtros-listado.ts`), al que cada control le pasa el `urlListado` de `filtros.ts`. |
 
 ## Tres cosas que lo distinguen de sus hermanos
 
