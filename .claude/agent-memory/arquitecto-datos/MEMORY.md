@@ -10,3 +10,4 @@
 - [Tabla material_caracteristicas](material_caracteristicas_tabla.md) — (2026-09-22) DELETE real permitido, sin `activo` ni `updated_at`; excepción distinta a la de OT; migración 0011 aplicada
 - [Tabla lista_precios](lista_precios_tabla.md) — (2026-09-22) precio se deriva (no columna); material_id FK real; reusa el correlativo genérico con clave "lista_precios" (OFFT.NNNNNNN, sin año); monedaEnum movido a db/schema/moneda.ts
 - [unidad texto libre unificado](unidad_texto_libre_unificado.md) — (2026-09-22) sin CHECK/ENUM en Neon, restricción vivía solo en Zod; sin migración; UNIDADES→core/unidades.ts (+"gal")
+- [Tabla servicios](servicios_tabla.md) — (2026-09-23) precio directo NO derivado (a diferencia de lista_precios); categoria text no enum; sin activo (pregunta abierta); tercer ámbito "servicios" del correlativo genérico (SRV.); migración 0013 aplicada a Neon

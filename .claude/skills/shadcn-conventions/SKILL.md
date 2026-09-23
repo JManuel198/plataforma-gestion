@@ -587,10 +587,28 @@ y fila clicable. Sirve de segundo ejemplo de que el patrón se importa sin
 retocarlo — lo único propio suyo es qué columnas busca y que el texto del
 diálogo habla de "la lista de precios vigente" en vez de "el catálogo".
 
-- **Dos iconos de acción por fila, no tres.** Lápiz (`PencilIcon`) para editar
-  y equis (`XIcon`) para inactivar. **No hay lupa de "ver detalle"**: la vista
-  de solo lectura se abre haciendo clic en la fila (ver "Fila clicable → vista
-  → editar" más arriba, que es obligatorio en todo catálogo), así que un tercer icono sería un botón de más para lo que ya hace la
+**OJO: dos de las reglas de abajo —"dos iconos por fila" y "el botón de
+inactivar obliga a tener el filtro Ver solo inactivos"— presuponen que el
+catálogo tiene columna `activo`, y no todos la tienen.** Cuando se escribieron,
+los dos catálogos con tabla real la tenían y la condición no se veía. **Servicios
+(Bloque 14, Parte 1, 2026-09-23) es el primero que no**: inactivar no está
+confirmado para ese catálogo y la columna no se creó, así que su fila lleva **un
+solo icono** (el lápiz, inline en `fila-servicio.tsx`, sin `acciones-*.tsx`
+propio porque un archivo para un botón es ceremonia) y **no tiene filtro de
+inactivos** — no porque falte, sino porque no hay nada que filtrar. Lo mismo vale
+para su `vista-*.tsx`, que no pinta el dato "Situación". Si construyes un
+catálogo nuevo copiando de Servicios, no busques lo que no está; si lo copias de
+Materiales o de Lista de precios y tu catálogo **sí** tiene `activo`, las dos
+reglas aplican enteras. El porqué de que Servicios no la tenga está en la
+decisión 16 de "Catálogos maestros" en `docs/spec/preguntas-abiertas.md`, junto
+con lo que habría que añadir el día que se confirme.
+
+- **Dos iconos de acción por fila, no tres** —con `activo`; sin él, solo el
+  lápiz (ver el aviso de arriba). Lápiz (`PencilIcon`) para editar y equis
+  (`XIcon`) para inactivar. **No hay lupa de "ver detalle"**: la vista de solo
+  lectura se abre haciendo clic en la fila (ver "Fila clicable → vista →
+  editar" más arriba, que es obligatorio en todo catálogo, tenga `activo` o
+  no), así que un tercer icono sería un botón de más para lo que ya hace la
   fila entera. El lápiz se queda como atajo directo a edición.
 - El componente es `components/acciones-material.tsx`. Los dos botones son
   `Button variant="ghost" size="icon-sm"`, cada uno con su nombre en un
@@ -609,7 +627,10 @@ diálogo habla de "la lista de precios vigente" en vez de "el catálogo".
   guardar el formulario entero. El texto del diálogo habla de "dejar de
   aparecer en el catálogo", no de columnas.
 - **El botón de inactivar obliga a tener el filtro "Ver solo inactivos"**
-  (`components/filtro-inactivos.tsx`). Sin él la fila desaparece sin vuelta
+  (`components/filtro-inactivos.tsx`). La obligación es del BOTÓN, no del
+  catálogo: sin columna `activo` no hay botón, y entonces tampoco hay filtro que
+  echar en falta (caso de Servicios — ver el aviso al principio de esta
+  sección). Sin él la fila desaparece sin vuelta
   atrás posible desde la interfaz, y el botón de reactivar no tendría cómo
   mostrarse nunca: inactivar sería un borrado irreversible de cara al usuario
   aunque no lo sea en la base.

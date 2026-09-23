@@ -511,3 +511,106 @@ que eran de Materiales se cerraron o se concretaron en la 8.
     **Antes de construirlo hay que saber** si el caso ocurre de verdad y con
     qué frecuencia. Si es raro, el rodeo actual está bien y esta mejora no
     vale su complejidad.
+
+15. **Nota sobre la decisión 12, revisada al construir Servicios (Bloque 14,
+    Parte 1, 2026-09-23): SIGUE RESUELTA IGUAL, y ahora son tres catálogos.**
+    No es una pregunta nueva — se anota aquí porque al montar el tercer
+    catálogo volvió a plantearse si `unidad` debía cerrarse a la lista fija
+    (esta vez empezando por Servicios, no por Materiales), y la respuesta fue
+    la misma: **texto libre con sugerencias en los tres**.
+    `servicios.unidad` es `text` en la base y `textoObligatorio(…, 20)` en el
+    Zod, exactamente como `materiales.unidad` y `lista_precios.unidad`. Los
+    tres montan el mismo `core/components/campo-lista-sugerida.tsx` con las
+    mismas `UNIDADES` de `core/unidades.ts`, y en los tres lo que no esté en la
+    lista se guarda igual.
+    **Por qué importa dejarlo escrito:** el modal de Servicios tiene, uno al
+    lado del otro, un campo que SÍ restringe (`categoria`, un `Select` con
+    `z.enum`) y otro que NO (`unidad`). Se parecen desde fuera y la asimetría
+    parece un descuido si no se conoce esta decisión. El criterio que las
+    separa: las cinco categorías se propusieron como la lista del negocio,
+    mientras que `UNIDADES` nunca se confirmó como exhaustiva (decisión 13) y
+    cerrarla dejaría al usuario sin poder registrar una unidad real.
+    Lo que sigue abierto no cambia: la decisión 13 (si `UNIDADES` es
+    exhaustiva) y, desde este bloque, el punto 17 de aquí abajo.
+
+16. **¿El catálogo de Servicios necesita inactivar/reactivar, y con qué
+    criterio?** SIN CONFIRMAR, y por eso `servicios` **no tiene columna
+    `activo`** (Bloque 14, Parte 1, 2026-09-23).
+    Es la decisión deliberada de este bloque y va en dirección contraria a
+    `lista_precios.activo`, que sí entró de antemano "para no requerir una
+    segunda migración solo por esto". Aquí se prefirió lo contrario: añadir la
+    columna antes de saber si hace falta presupone una respuesta que todavía
+    no existe, y una columna `activo` que nadie escribe nunca es peor que no
+    tenerla — parece un mecanismo y no lo es.
+    **Consecuencia que hay que asumir con los ojos abiertos: hoy este catálogo
+    NO cumple la regla invariable 9** (ningún registro se borra, se desactiva).
+    No la incumple por borrar —no hay ninguna acción de borrado, ni la habrá—
+    sino por no tener todavía el mecanismo de baja que esa regla presupone. Un
+    servicio registrado por error se queda en el catálogo hasta que esto se
+    resuelva. Es una ausencia conocida, no un descuido.
+    **Qué hay que preguntar:** si un servicio deja de ofrecerse alguna vez
+    (¿un alquiler de un equipo que se vendió?, ¿un servicio de temporada?), si
+    al dejar de ofrecerse debe desaparecer del catálogo o solo marcarse, y qué
+    pasa con lo que ya lo referencie el día que algo lo referencie — hoy nada
+    lo hace: `servicios` no tiene ninguna FK entrante.
+    **Si se confirma que hace falta**, el camino está trillado y es corto:
+    columna `activo boolean DEFAULT true NOT NULL` + índice, su propia acción
+    confirmada desde el listado (`cambiarActivoServicio`, nunca una casilla
+    dentro del formulario), su esquema mínimo aparte, y el filtro "Ver solo
+    inactivos" — ojo, ALTERNANDO entre dos vistas excluyentes
+    (`eq(activo, inactivos ? false : true)`), nunca `inactivos ? undefined : …`,
+    que es el bug que estuvo en Materiales y Personal (deuda técnica de
+    AGENTS.md, 2026-09-21).
+
+17. **Unidades: un valor "ninguna" para los servicios que no tienen unidad
+    real.** PLANTEADO POR EL CLIENTE, PENDIENTE DE CONVERSAR, y **explícitamente
+    NO construido en el Bloque 14** — se anota tal cual se planteó para que no
+    se pierda ni se dé por hecho.
+    La idea venía en dos partes y conviene separarlas, porque una ya está
+    resuelta y la otra no:
+    - **Permitir texto libre fuera de la lista de unidades** — YA ES ASÍ, y no
+      por este bloque: lo resolvió la decisión 12 el 2026-09-22 para los tres
+      catálogos. Escribir "rollo" en el campo Unidad de un servicio funciona
+      hoy. Esta mitad de la idea no está pendiente.
+    - **Un valor "ninguna", para servicios que no se miden en nada** — ESTO SÍ
+      SIGUE PENDIENTE. Hoy `unidad` es obligatoria en el Zod de los tres
+      catálogos, así que un servicio sin unidad real (una consultoría a precio
+      cerrado, por ejemplo) obliga a escribir algo igualmente. Lo que el
+      usuario hará mientras tanto es inventarse un valor —"und", "serv", un
+      guion— y cada quien uno distinto, que es exactamente el problema que las
+      sugerencias vinieron a evitar.
+    **Las dos salidas posibles, y no son equivalentes:** (a) añadir `"ninguna"`
+    a `UNIDADES`, que es editar un array y nada más, pero mete un valor
+    centinela dentro de una lista de unidades de medida reales; o (b) hacer
+    `unidad` opcional en el Zod de Servicios y dejar la columna en NULL, que es
+    más honesto —"no tiene unidad" no es una unidad— pero abre la pregunta de
+    qué se pinta en la tabla y si eso debe aplicar también a Materiales y Lista
+    de precios. **No elegir una de las dos sin preguntar**: la diferencia se
+    nota en los datos años después, no en la pantalla de hoy.
+
+18. **¿Los cinco valores de `CATEGORIAS_SERVICIO` son exhaustivos, o solo los
+    que aparecieron primero?** (Bloque 14, Parte 1, 2026-09-23.) **Menor
+    prioridad** — `otros` ya cubre el caso general, así que un valor faltante no
+    bloquea a nadie: se registra el servicio en `otros` y se reclasifica el día
+    que la lista crezca.
+    Los cinco son: `alquiler`, `fabricación`, `consultoría`, `alimentación`,
+    `otros`. Tienen pinta de ser los que surgieron de la conversación y no un
+    catálogo cerrado — es la misma sospecha que la decisión 13 tiene sobre
+    `UNIDADES`, y allí se confirmó (la lista creció de seis a siete valores).
+    **A diferencia de `unidad`, esta lista SÍ restringe**: el modal la pinta con
+    un `Select` y `categoriaSchema` la valida con `z.enum`, así que un valor de
+    fuera se rechaza. Que restrinja y la de unidades no es deliberado — ver la
+    decisión 15 de aquí arriba.
+    **Lo que se mantiene igual que en la decisión 13:** la columna es `text`,
+    **no** un `pgEnum`, a diferencia de `ot_estado` y `moneda`. Así, añadir o
+    quitar una categoría es editar el array `CATEGORIAS_SERVICIO` en
+    `modules/servicios/constantes.ts` — sin migración. La restricción vive del
+    lado de la aplicación justamente porque la lista es un borrador.
+    **Cuando el cliente confirme una lista cerrada**, el sitio correcto sí es un
+    `pgEnum` construido DESDE ese array, igual que `ot_estado` se construye
+    desde `ESTADOS_OT` — nunca un segundo array literal. Y si en el camino se
+    quita un valor que alguna fila ya use, hay que reasignar esas filas primero.
+    **Lo que sí conviene preguntar aunque esto no urja:** si el negocio espera
+    poder FILTRAR el catálogo por categoría. Hoy no se puede (la Parte 1 no
+    tiene filtros) y nadie lo ha pedido, pero es la razón más probable por la
+    que la lista tendría que cerrarse de verdad.

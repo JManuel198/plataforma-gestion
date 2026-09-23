@@ -189,20 +189,22 @@ esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
 entonces conviven a propósito.
 
 **Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **dos
-ámbitos en uso**, y que el segundo entrara sin tocar ni la tabla ni la
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **tres
+ámbitos en uso**, y que cada uno entrara sin tocar ni la tabla ni la
 migración es la prueba de que la generalización era la correcta:
 
 | `clave` | Formato | Quién lo usa |
 |---|---|---|
 | `"materiales"` | `MAT.0000001` — prefijo `MAT`, 7 dígitos | `materiales.codigo_interno` (Bloque 12, Parte 3) |
 | `"lista_precios"` | `OFFT.0000001` — prefijo `OFFT`, 7 dígitos | `lista_precios.codigo_oferta` (Bloque 13, Parte 1) |
+| `"servicios"` | `SRV.0000001` — prefijo `SRV.`, 7 dígitos | `servicios.codigo` (Bloque 14, Parte 1) |
 
-Los dos son globales y sin año. Cada módulo declara sus propias constantes
+Los tres son globales y sin año. Cada módulo declara sus propias constantes
 (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
-`modules/materiales/constantes.ts` y `modules/lista-precios/constantes.ts`.
-Añadir un tercer ámbito **no exige migración**: es una fila más, creada por
-el propio upsert la primera vez que se reserva.
+`modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts` y
+`modules/servicios/constantes.ts`. Añadir un ámbito nuevo **no exige
+migración**: es una fila más, creada por el propio upsert la primera vez que
+se reserva.
 
 ---
 
@@ -634,22 +636,94 @@ tabla; aquí solo está la lista de campos. Dos reglas del proyecto ya aplican
 sin discusión cuando llegue ese momento: todo importe va en **céntimos**
 (regla 2) y toda fecha sin hora va como **`date`**, no `timestamp` (regla 10).
 
-## BORRADOR — Servicios (catálogo maestro)
+## Servicios (catálogo maestro)
 
-**Ojo con el nombre:** este catálogo NO es la entidad Servicio fusionada en OT
-el 2026-09-19 (ver la primera sección de este documento). Comparten nombre y
-ruta (`/servicios`), y esa colisión está registrada como pregunta abierta.
+Tercer catálogo maestro de los cinco que declara el menú (Bloque 11) en tener
+tabla real, después de Materiales y Lista de precios. Definida en
+`db/schema/servicios.ts`, tabla `servicios`. Construida en el Bloque 14,
+Parte 1 (2026-09-23), consumida por `modules/servicios/` (en desarrollo en
+paralelo, fuera del alcance de este documento).
 
-| Campo | Notas |
-|---|---|
-| código | |
-| servicio | |
-| categoría | |
-| unidad | |
-| precio | importe, en céntimos |
-| moneda | |
-| comprobante | **sin decidir** si es texto (referencia/número) o un archivo real — si es archivo, es infraestructura nueva para el proyecto |
-| fecha de actualización | **automática** en cada edición, nunca manual |
+**Ojo con el nombre: esta tabla NO es la entidad `Servicio` fusionada en
+Orden de Trabajo el 2026-09-19** (ver "Servicio — fusionada en Orden de
+Trabajo" al principio de este documento, y la decisión 7 de "Catálogos
+maestros" en `preguntas-abiertas.md` sobre la colisión de nombre en la ruta
+`/servicios`). Aquella era el ciclo de vida completo de un trabajo (estado,
+responsable, fechas de ejecución) y ya no existe como entidad separada — todo
+lo que describía vive hoy en `orden_trabajo`. Esta es un catálogo de
+**servicios con precios fijos reutilizables**, sin estado ni ciclo de vida
+propio: la entidad que `docs/spec/alcance-v2-servicios-ot.md` difería a su
+sección 5. Comparten nombre y ruta (`/servicios`) por coincidencia de
+vocabulario del cliente, no porque sean la misma cosa.
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `SRV.0000001`, 7 dígitos, correlativo global sin segmento de año |
+| `servicio` | `text` | no | manual — nombre/descripción del servicio |
+| `categoria` | `text` | no | manual — lista fija de interfaz sin cerrar (ver abajo) |
+| `unidad` | `text` | no | manual — texto libre con sugerencias, sin `pgEnum` ni CHECK (ver "Lista de precios" arriba) |
+| `precio` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal; **directo, no derivado** (ver abajo) |
+| `moneda` | `moneda` (enum, compartido con `orden_trabajo` y `lista_precios`) | no | manual |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**`codigo` usa el correlativo genérico, ámbito `"servicios"` — tercera clave
+de esa tabla.** Formato `SRV.0000001` (7 dígitos), reservado atómicamente con
+la misma técnica que `materiales.codigo_interno` y
+`lista_precios.codigo_oferta`, desde la tabla `correlativo` (ver su ficha más
+arriba). Global, sin segmento de año, igual que las otras dos. `NOT NULL`
+porque lo pone siempre el backend; `UNIQUE` como red de seguridad del
+contador, mismo papel que `orden_trabajo.codigo_ot`. La tabla de ámbitos de
+"Correlativo genérico" (arriba) ya incluye esta tercera fila.
+
+**`categoria` es `text`, a propósito NO un `pgEnum`.** Mismo criterio exacto
+que `lista_precios.unidad` frente a `ot_estado`/`moneda`: un `pgEnum` exige
+una migración para añadir o quitar un valor, y la lista propuesta (alquiler,
+fabricación, consultoría, alimentación, otros) es un borrador que nadie ha
+confirmado como exhaustivo con el cliente — pregunta abierta en
+`preguntas-abiertas.md`. La lista fija vive del lado de la aplicación, en
+`modules/servicios/constantes.ts` (`CATEGORIAS_SERVICIO`); la columna en
+Postgres no la restringe. El día que el cliente la cierre, el sitio correcto
+es un `pgEnum` construido desde esa constante, igual que `otEstadoEnum` se
+construye desde `ESTADOS_OT`.
+
+**`unidad` es texto libre con sugerencias desde el primer día**, sin pasar
+por la fase de lista cerrada que tuvo `lista_precios.unidad` antes del
+2026-09-22 — llega directamente al estado final que comparten Materiales y
+Lista de precios (ver esa ficha arriba). Sin CHECK ni ENUM en la base.
+
+**`precio` es un campo directo, no derivado — a diferencia de
+`lista_precios.precio`.** Es la diferencia de fondo entre las dos tablas
+hermanas: Lista de precios NO tiene columna `precio` porque se calcula de
+`precio_lista × (1 − descuento / 100)` (ver esa ficha arriba). Este catálogo
+no tiene `precio_lista` ni `descuento` — no hay nada de lo que derivar un
+precio, así que `precio` es simplemente el importe que se captura. Mismo tipo
+que `orden_trabajo.precio` y `lista_precios.precio_lista`: `bigint` con
+`mode: "number"` en Drizzle, céntimos, nunca `float` (regla invariable 2). El
+límite de negocio (equivalente a `PRECIO_MAXIMO_CENTIMOS`) se valida en
+`modules/servicios/schema.ts`, no en la columna.
+
+**SIN columna `activo`, y es deliberado — hoy esta tabla NO cumple la regla
+invariable 9 por ausencia de mecanismo, no porque se haya decidido que no
+aplica.** Inactivar/reactivar un servicio no está confirmado con el cliente;
+añadir la columna antes de saber si hace falta presupondría una respuesta que
+no existe — pregunta abierta en `preguntas-abiertas.md`. Contrasta con
+`lista_precios.activo`, que sí entró de antemano en su primera migración
+porque la baja lógica de esa tabla ya estaba decidida. Si se confirma que
+Servicios necesita baja lógica, el camino es una migración que añada
+`activo boolean DEFAULT true NOT NULL`, mismo patrón que las otras tablas.
+
+**Obligatoriedad, mismo criterio que Materiales y Lista de precios.**
+`servicio`, `categoria`, `unidad`, `precio` y `moneda` quedan nullable en la
+columna: el Zod de `modules/servicios/schema.ts` puede ser más estricto que
+la tabla, nunca al revés.
+
+**Sin índices.** No hay columna `activo` que filtrar en el listado por
+defecto ni ninguna FK que sostenga un JOIN — a diferencia de `lista_precios`,
+no hay caso real hoy que justifique uno.
+
+**Consume:** `correlativo` (clave `"servicios"`). **Consumida por:**
+`modules/servicios/` (en desarrollo).
 
 ## BORRADOR — tarifario_personal
 
