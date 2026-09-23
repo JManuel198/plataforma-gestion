@@ -171,5 +171,54 @@ export const precioEditarSchema = precioCrearSchema.extend({
   id: z.string().trim().min(1, "Falta el identificador de la oferta."),
 });
 
+/**
+ * Inactivar o reactivar una oferta desde el listado. Esquema aparte y mínimo a
+ * propósito, igual que `materialCambioActivoSchema` y
+ * `personaCambioActivoSchema`: la acción que lo usa escribe una sola columna,
+ * así que nada más puede viajar con él aunque alguien invoque la acción con un
+ * POST directo.
+ */
+export const precioCambioActivoSchema = z.object({
+  id: z.string().trim().min(1, "Falta el identificador de la oferta."),
+  activo: z.boolean(),
+});
+
+// --- Filtros del listado ---------------------------------------------------
+//
+// Vienen de `searchParams`, o sea que son input del usuario. Mismo patrón que
+// en Materiales, Personal y OT: `.optional().catch(undefined)` para que un
+// parámetro inventado o repetido no reviente la pantalla, solo se ignore.
+
+export const filtroBusquedaSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .catch(undefined);
+
+/**
+ * `?inactivos=1` cambia el listado a la vista de ofertas inactivas. Cualquier
+ * otro valor —o ninguno— lo deja en su comportamiento por defecto: solo
+ * activas.
+ */
+export const filtroInactivosSchema = z
+  .literal("1")
+  .optional()
+  .catch(undefined);
+
+/**
+ * El texto que llega a la búsqueda de proveedores (las sugerencias del campo
+ * del modal, no el filtro de este listado).
+ *
+ * Aparte de `filtroBusquedaSchema` porque no es el mismo input, por la misma
+ * razón que `busquedaSeleccionSchema` en Materiales: aquel viene de
+ * `searchParams` y usa `.catch(undefined)` para ignorar basura; este viene como
+ * argumento de una Server Action, así que se valida y se rechaza. El mínimo de
+ * un carácter evita una consulta con patrón `%%` que devolvería diez
+ * proveedores al azar como si fueran sugerencias.
+ */
+export const busquedaProveedorSchema = z.string().trim().min(1).max(200);
+
 export type PrecioCrearInput = z.infer<typeof precioCrearSchema>;
 export type PrecioEditarInput = z.infer<typeof precioEditarSchema>;

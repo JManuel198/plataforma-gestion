@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBusquedaRemota } from "./busqueda-remota";
 
 /**
  * Buscador que SELECCIONA un registro dentro de un formulario.
@@ -12,23 +12,28 @@ import { Label } from "@/components/ui/label";
  * NO CONFUNDIR CON EL BUSCADOR DE UN LISTADO. Son dos cosas distintas que se
  * parecen en la pantalla, y mezclarlas sería el error fácil:
  *
- * - `BuscadorMateriales` (modules/materiales/components/) **filtra una tabla**.
- *   El texto viaja en `searchParams`, la consulta la resuelve el servidor al
- *   navegar, y el resultado es que se ven menos filas. Es compartible por URL y
- *   sobrevive a un refresh, que es justo lo que se quiere de un filtro.
+ * - `BuscadorListaPrecios` (modules/lista-precios/components/) o
+ *   `BuscadorMateriales` **filtran una tabla**. El texto viaja en
+ *   `searchParams`, la consulta la resuelve el servidor al navegar, y el
+ *   resultado es que se ven menos filas. Es compartible por URL y sobrevive a
+ *   un refresh, que es justo lo que se quiere de un filtro.
  * - Este componente **elige UNA fila** para meterla en un formulario. No toca
  *   la URL en ningún momento, y no debe: lo que el usuario está tecleando a
  *   medio rellenar un modal no es un estado de la aplicación que merezca
  *   compartirse ni recuperarse con el botón Atrás. Además, navegar cerraría el
  *   modal.
  *
+ * TAMPOCO ES `CampoConSugerencias`, que es su vecino y vive al lado. Allí el
+ * texto tecleado ES el valor y lo encontrado son solo sugerencias; aquí solo
+ * vale un registro existente, y mientras no se elija uno el formulario no
+ * tiene nada que enviar. Material se elige así (existe o no existe); Proveedor
+ * no (se escribe el que sea). Los dos comparten el motor de búsqueda
+ * (`useBusquedaRemota`), no la semántica.
+ *
  * ES GENÉRICO EN LAS DOS DIRECCIONES, y por eso vive en core/ y no en un
  * módulo: genérico en QUÉ BUSCA (la Server Action que recibe decide contra qué
  * columnas casa) y en QUÉ MUESTRA (las funciones `principalDe`/`secundarioDe`
- * deciden cómo se lee cada resultado). El componente no sabe qué es un material
- * ni un proveedor. Su primer uso es el material en el modal de Lista de precios;
- * el segundo será Proveedor en la Parte 2, y probablemente después
- * Personal ↔ tarifario_personal.
+ * deciden cómo se lee cada resultado). El componente no sabe qué es un material.
  *
  * LA BÚSQUEDA LA HACE EL SERVIDOR, SIEMPRE. `buscarAction` es una Server Action:
  * este componente nunca recibe el catálogo entero para filtrarlo en memoria
@@ -37,9 +42,6 @@ import { Label } from "@/components/ui/label";
  * que permite que un módulo use la búsqueda de otro sin importarlo: quien los
  * junta es `app/`, no el módulo (AGENTS.md, Arquitectura).
  */
-
-/** Pausa de tecleo antes de consultar. Sin ella cada letra sería una consulta. */
-const RETARDO_MS = 300;
 
 type Props<T> = {
   /** `id` del input, para atarlo a su `<Label>`. Único en la pantalla. */
@@ -82,63 +84,14 @@ export function BuscadorSeleccion<T>({
   name,
   invalido,
 }: Props<T>) {
-  const [texto, setTexto] = useState("");
-  const [resultados, setResultados] = useState<T[] | null>(null);
-  const [fallo, setFallo] = useState(false);
-  const [buscando, iniciarBusqueda] = useTransition();
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Cada búsqueda se numera y solo la última puede escribir el resultado. El
-  // retardo de tecleo NO basta para esto: dos consultas ya lanzadas pueden
-  // volver en orden distinto al que salieron, y sin este contador la respuesta
-  // lenta de "tal" pisaría la rápida de "taladro" que el usuario ya está
-  // leyendo.
-  const ultimaBusqueda = useRef(0);
-
-  function cancelarPendiente() {
-    if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = null;
-  }
-
-  useEffect(() => cancelarPendiente, []);
-
-  function buscar(valor: string) {
-    cancelarPendiente();
-    const limpio = valor.trim();
-    const turno = ultimaBusqueda.current + 1;
-    ultimaBusqueda.current = turno;
-
-    if (limpio === "") {
-      setResultados(null);
-      setFallo(false);
-      return;
-    }
-
-    iniciarBusqueda(async () => {
-      try {
-        const encontrados = await buscarAction(limpio);
-        if (ultimaBusqueda.current !== turno) return;
-        setResultados(encontrados);
-        setFallo(false);
-      } catch (error) {
-        if (ultimaBusqueda.current !== turno) return;
-        // Un fallo mudo aquí es lo peor que puede pasar: el usuario vería
-        // "ningún resultado" y concluiría que el material no existe, cuando lo
-        // que pasó es que la consulta no llegó.
-        console.error("[BuscadorSeleccion] falló la búsqueda", error);
-        setResultados(null);
-        setFallo(true);
-      }
-    });
-  }
+  // La pausa de tecleo, el turno de cada consulta y el fallo visible están en
+  // el hook — ver `busqueda-remota.ts` para por qué los tres van juntos.
+  const busqueda = useBusquedaRemota<T>(buscarAction);
 
   function elegir(item: T) {
-    cancelarPendiente();
-    // El turno avanza para que una búsqueda en vuelo no repueble la lista
-    // justo después de elegir.
-    ultimaBusqueda.current += 1;
-    setTexto("");
-    setResultados(null);
-    setFallo(false);
+    // La caja se vacía: lo elegido pasa a la tarjeta de abajo, así que dejar
+    // el texto ahí sería enseñar lo mismo dos veces.
+    busqueda.cerrar("");
     onSeleccionar(item);
   }
 
@@ -189,23 +142,18 @@ export function BuscadorSeleccion<T>({
           type="search"
           className="pl-9"
           placeholder={placeholder}
-          value={texto}
+          value={busqueda.texto}
           autoComplete="off"
           aria-invalid={invalido}
           aria-describedby={`${id}-estado`}
-          onChange={(evento) => {
-            const valor = evento.target.value;
-            setTexto(valor);
-            cancelarPendiente();
-            temporizador.current = setTimeout(() => buscar(valor), RETARDO_MS);
-          }}
+          onChange={(evento) => busqueda.escribir(evento.target.value)}
           onKeyDown={(evento) => {
             // Enter no espera la pausa — y sobre todo no envía el formulario:
             // este input vive dentro de un `<form>` y su Enter significa
             // "busca ya", nunca "guarda".
             if (evento.key === "Enter") {
               evento.preventDefault();
-              buscar(texto);
+              busqueda.buscarAhora();
             }
           }}
         />
@@ -216,9 +164,9 @@ export function BuscadorSeleccion<T>({
           gestión de `aria-activedescendant`, y anunciarlo sin implementarlo es
           peor que no anunciarlo. Así cada resultado es alcanzable con Tab y se
           activa con Enter, que es lo que un botón ya promete. */}
-      {resultados && resultados.length > 0 ? (
+      {busqueda.resultados && busqueda.resultados.length > 0 ? (
         <ul className="max-h-56 divide-y overflow-y-auto rounded-lg border">
-          {resultados.map((item) => (
+          {busqueda.resultados.map((item) => (
             <li key={claveDe(item)}>
               <button
                 type="button"
@@ -246,15 +194,15 @@ export function BuscadorSeleccion<T>({
         className="text-xs text-muted-foreground"
         aria-live="polite"
       >
-        {fallo
+        {busqueda.fallo
           ? "No se pudo buscar. Intenta de nuevo."
-          : buscando
+          : busqueda.buscando
             ? "Buscando…"
-            : resultados === null
+            : busqueda.resultados === null
               ? "Escribe para buscar."
-              : resultados.length === 0
+              : busqueda.resultados.length === 0
                 ? "Ningún resultado."
-                : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}.`}
+                : `${busqueda.resultados.length} resultado${busqueda.resultados.length === 1 ? "" : "s"}.`}
       </p>
     </div>
   );

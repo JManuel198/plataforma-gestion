@@ -276,11 +276,12 @@ comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
 Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
 lo usan varios módulos y ninguno puede importar de otro.
 
-Aplicado ya en los tres listados que existen, y en este orden por dificultad:
+Aplicado ya en los cuatro listados que existen, y en este orden por dificultad:
 
 | Listado | Fila | Vista | Modal | Lo interactivo de la fila |
 | --- | --- | --- | --- | --- |
 | Materiales | `fila-material.tsx` | `vista-material.tsx` | `dialogo-material.tsx` | lápiz + equis (+ su `alert-dialog`) |
+| Lista de precios | `fila-lista-precio.tsx` | `vista-lista-precio.tsx` | `dialogo-lista-precio.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesPrecio` |
 | Personal | `fila-persona.tsx` | `vista-persona.tsx` | `dialogo-persona.tsx` | "Editar" + `BotonBaja` (+ su `alert-dialog`) |
 | Órdenes de Trabajo | `fila-orden-trabajo.tsx` | `vista-orden-trabajo.tsx` | `dialogo-orden-trabajo.tsx` | **`SelectorEstadoFila`** (+ su desplegable y su `alert-dialog`) + lápiz |
 
@@ -443,6 +444,43 @@ modal de Lista de precios, antes de elegir material solo se ven el código
 un formulario lleno de campos grises se lee como "está roto", uno corto se lee
 como "faltas tú".
 
+### Su hermano: `CampoConSugerencias` (texto libre con sugerencias)
+
+`core/components/campo-con-sugerencias.tsx`. Se parece en pantalla y comparte
+el motor (`core/components/busqueda-remota.ts`), pero **significa lo
+contrario** y elegir mal rompe el formulario:
+
+| | `BuscadorSeleccion` | `CampoConSugerencias` |
+|---|---|---|
+| Qué vale como valor | solo un registro existente | lo que el usuario escriba |
+| Si no hay resultados | no se puede continuar | se guarda lo tecleado |
+| Qué se envía | la clave del elegido, en un `input` oculto | el texto mismo (el input lleva el `name`) |
+| Su caso | Material (existe o no existe) | Proveedor en Lista de precios |
+
+**El criterio es si los datos tienen tabla.** Material la tiene, así que solo
+vale uno de verdad. Proveedor NO: el "catálogo" es un `SELECT DISTINCT` sobre
+la propia columna, así que con la tabla vacía no hay nada que sugerir y un
+selector estricto dejaría la primera fila del sistema sin poder guardarse. Las
+sugerencias existen para evitar la disgregación por tecleo ("Ferretería Lima"
+vs "ferreteria lima"), no para cerrar la lista.
+
+- Ahí el input va **controlado**, rompiendo la convención de campos no
+  controlados, porque pulsar una sugerencia tiene que escribir en la caja. A
+  cambio no hay input oculto: lo que se ve es lo que se envía.
+- Ningún mensaje suyo dice "no existe" — dice "se guardará tal como lo
+  escribas". Si dijera lo primero, el usuario se quedaría esperando a
+  encontrar algo que no tiene por qué existir.
+- La consulta **no filtra por `activo`**: el proveedor de una oferta
+  inactivada sigue siendo un proveedor real, y esconderlo provoca justo el
+  tecleo divergente que esto evita.
+
+**El motor de los dos está en `busqueda-remota.ts`, y se importa, nunca se
+copia.** Lo que comparten son los tres detalles que no avisan cuando faltan:
+la pausa de tecleo, el turno de cada consulta (dos respuestas pueden volver
+desordenadas; el retardo NO lo evita) y el fallo de red visible. Era la
+tercera vez que ese patrón iba a copiarse en este repositorio — ver
+`esUniqueViolado` y `patronParcial`.
+
 ## Valores calculados que se muestran en vivo
 
 El precio de Lista de precios (`precio_lista × (1 − descuento/100)`) se
@@ -478,6 +516,12 @@ Los cinco catálogos que declara el menú (Materiales, Lista de precios,
 Servicios, Tarifario de personal, EPPs) comparten forma. **Materiales
 (`modules/materiales/`) es la referencia**: el que venga después se copia de
 ahí, no se reinventa.
+
+**Lista de precios ya lo heredó entero** (Bloque 13, Parte 2, 2026-09-22):
+buscador de tabla, filtro «Ver solo inactivas», inactivar con `alert-dialog`
+y fila clicable. Sirve de segundo ejemplo de que el patrón se importa sin
+retocarlo — lo único propio suyo es qué columnas busca y que el texto del
+diálogo habla de "la lista de precios vigente" en vez de "el catálogo".
 
 - **Dos iconos de acción por fila, no tres.** Lápiz (`PencilIcon`) para editar
   y equis (`XIcon`) para inactivar. **No hay lupa de "ver detalle"**: la vista
@@ -520,6 +564,13 @@ ahí, no se reinventa.
   Materiales cubre `codigo_interno`, `descripcion`, `marca` y `modelo`, y
   deja fuera `unidad` —un puñado de valores repetidos que traería medio
   catálogo— y `codigo_fabrica`.
+  **Una columna buscable puede vivir en otra tabla**: Lista de precios busca
+  en `codigo_oferta`, `proveedor` y la `descripcion` del material, que sale
+  del `innerJoin` contra `materiales` que la consulta ya hacía para pintarla.
+  Eso no es un caso especial del buscador, es la razón de que el filtro se
+  resuelva en la consulta y no en memoria. Fuera quedan los números
+  (`cantidad`, `precio_lista`, `descuento`): una coincidencia parcial donde
+  "150" casa con 1.50, 150 y 2150 no ayuda a nadie.
 - El reparto de archivos del módulo es el de siempre (`schema.ts`, `tipos.ts`,
   `queries.ts`, `actions.ts`, `filtros.ts`, `components/`), más
   `components/use-filtros.ts` para la navegación de los filtros.

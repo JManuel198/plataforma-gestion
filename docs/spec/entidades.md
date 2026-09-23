@@ -378,13 +378,13 @@ libre) y **decisión 4** (`precio` se deriva, no es una columna independiente
 | `id` | `text` (PK, UUID) | sí | automático |
 | `codigo_oferta` | `text` (**UNIQUE**) | sí | **automático** — formato `OFFT.0000001`, 7 dígitos, correlativo global sin segmento de año |
 | `material_id` | `text` (FK → `materiales.id`) | sí | manual — selección contra el catálogo de Materiales |
-| `proveedor` | `text` | no | manual — texto libre por ahora; tendrá buscador propio en la Parte 2 |
+| `proveedor` | `text` | no | manual — **texto libre**, con sugerencias de los proveedores ya usados (ver abajo) |
 | `unidad` | `text` | no | manual — lista fija de 6 valores en la interfaz, sin `pgEnum` (ver más abajo) |
 | `cantidad` | `numeric(14,3)` (mode `"string"` en Drizzle) | no | manual |
 | `precio_lista` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal |
 | `descuento` | `numeric(5,2)` (mode `"string"` en Drizzle), default `0` | sí | automático (`0`) si no se especifica; manual — porcentaje 0–100, con `CHECK` en la base |
 | `moneda` | `moneda` (enum, compartido con `orden_trabajo`) | no | manual |
-| `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar (acción en Parte 2) |
+| `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar o reactivar desde el listado (baja lógica, regla invariable 9) |
 | `created_at` / `updated_at` | `timestamp` | sí | automáticos |
 
 **No existe columna `precio`.** Es la decisión central de esta tabla. El
@@ -417,6 +417,27 @@ escrito el comentario de `cambiarActivoMaterial` en
 `modules/materiales/actions.ts` sobre filas de precios señalando a un
 material que ya no existe. Índice `lista_precios_material_id_idx`: el listado
 hace JOIN contra `materiales` para mostrar su descripción.
+
+**`proveedor` es texto libre y NO tiene tabla propia — pero el formulario
+sugiere los ya usados.** Es la otra mitad de la decisión 3: el material se
+eligió como relación real, el proveedor no. No hay entidad Proveedor en
+ninguna parte del sistema, así que el "catálogo" de proveedores es
+literalmente lo ya escrito en otras filas de esta tabla: el modal consulta
+un `SELECT DISTINCT proveedor … ILIKE` sobre `lista_precios`
+(`buscarProveedores` en `modules/lista-precios/queries.ts`) y ofrece las
+coincidencias mientras se teclea.
+Lo que eso resuelve es la disgregación por tecleo —"Ferretería Lima" y
+"ferreteria lima" conviviendo como si fueran dos proveedores—; lo que
+deliberadamente NO hace es impedir un nombre nuevo, porque con la tabla
+vacía no habría nada que sugerir y la primera oferta del sistema no se
+podría guardar. Las sugerencias **no filtran por `activo`**: el proveedor de
+una oferta inactivada sigue siendo un proveedor real, y esconderlo
+provocaría justo el tecleo divergente que esto evita.
+**Si algún día se confirma que Proveedor es una entidad** (con RUC,
+contacto, condiciones de pago), esto se convierte en una FK como
+`material_id` y la migración tiene que mapear los textos existentes a filas
+—con los duplicados por tecleo que hayan entrado— antes de imponerla. Las
+sugerencias reducen ese trabajo futuro, no lo eliminan.
 
 **`codigo_oferta` usa un correlativo global, sin año, distinto del de la
 OT.** Formato `OFFT.0000001` (7 dígitos), reservado atómicamente con la

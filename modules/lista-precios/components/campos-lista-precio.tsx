@@ -11,8 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BuscadorSeleccion } from "@/core/components/buscador-seleccion";
+import { CampoConSugerencias } from "@/core/components/campo-con-sugerencias";
 import { aMontoDecimal, formatearMonto } from "@/core/dinero";
 import { MONEDAS, type Moneda } from "@/core/monedas";
+import { buscarProveedoresAction } from "../actions";
 import { UNIDADES } from "../constantes";
 import { calcularPrecioDesdeTexto } from "../precio";
 import type { MaterialElegible, PrecioEditable } from "../tipos";
@@ -159,17 +161,29 @@ export function CamposListaPrecio({
       {material ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="proveedor">Proveedor</Label>
-            {/* Texto libre por ahora. En la Parte 2 pasa a tener su propio
-                `BuscadorSeleccion`, que es justo el segundo uso para el que se
-                escribió genérico ese componente. */}
-            <Input
+            {/* SIGUE SIENDO TEXTO LIBRE, con sugerencias encima. No es un
+                `BuscadorSeleccion` como el material de arriba, y la diferencia
+                es de fondo: no hay tabla de proveedores, así que no existe un
+                registro que elegir — el "catálogo" es lo ya escrito en otras
+                ofertas (`selectDistinct` en ../queries.ts). Con un selector
+                estricto, la primera oferta del sistema no se podría guardar:
+                no habría nada que sugerir. Ver `CampoConSugerencias` en
+                core/components/ para la tabla comparativa completa.
+
+                La acción se importa directa y no llega como prop, al revés que
+                `buscarMaterialAction`: ese rodeo existe solo porque el material
+                es de OTRO módulo (AGENTS.md, Arquitectura). El proveedor sale
+                de `lista_precios`, que es de este. */}
+            <CampoConSugerencias
               id="proveedor"
               name="proveedor"
-              defaultValue={precio?.proveedor ?? ""}
+              etiqueta="Proveedor"
               placeholder="Quién ofrece este precio"
-              required
-              aria-invalid={Boolean(errores.proveedor)}
+              valorInicial={precio?.proveedor ?? ""}
+              buscarAction={buscarProveedoresAction}
+              requerido
+              invalido={Boolean(errores.proveedor)}
+              ayuda="Escribe el proveedor. Si ya lo usaste en otra oferta, aparecerá debajo."
             />
             <MensajeError errores={errores.proveedor} />
           </div>

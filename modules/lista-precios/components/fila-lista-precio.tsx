@@ -1,8 +1,6 @@
 "use client";
 
-import { PencilIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatearMonto } from "@/core/dinero";
 import {
@@ -15,6 +13,7 @@ import { editarPrecioEnModal } from "../actions";
 import { formatearNumerico } from "../numeros";
 import type { FilaPrecio } from "../queries";
 import type { MaterialElegible } from "../tipos";
+import { AccionesPrecio } from "./acciones-lista-precio";
 import { DialogoListaPrecio } from "./dialogo-lista-precio";
 
 /**
@@ -31,9 +30,8 @@ import { DialogoListaPrecio } from "./dialogo-lista-precio";
  *    DOM, así que un clic dentro de un diálogo portado a `document.body` llega
  *    igualmente al `onClick` de esta fila si no se corta aquí.
  *
- * En la Parte 1 la única acción es el lápiz, así que va suelto aquí dentro. Al
- * llegar la equis de inactivar (Parte 2), las dos se agrupan en un
- * `acciones-lista-precio.tsx` propio, como hace Materiales.
+ * Las dos acciones (lápiz e inactivar) viven agrupadas en `AccionesPrecio`,
+ * como en Materiales: la fila solo decide dónde van y que no propaguen el clic.
  */
 export function FilaDePrecio({
   precio,
@@ -93,15 +91,7 @@ export function FilaDePrecio({
       </TableCell>
       <TableCell className="text-right whitespace-nowrap">
         <SinPropagacion className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Editar"
-            onClick={() => control.cambiar("editando")}
-          >
-            <PencilIcon />
-            <span className="sr-only">Editar {precio.codigo_oferta}</span>
-          </Button>
+          <AccionesPrecio precio={precio} control={control} />
           <DialogoListaPrecio
             guardarAction={editarPrecioEnModal}
             buscarMaterialAction={buscarMaterialAction}

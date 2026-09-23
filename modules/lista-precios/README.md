@@ -8,7 +8,7 @@ modal sobre el listado y mismo "fila clicable → vista → editar"
 (`core/fila-clicable.tsx`). Si algo aquí se aparta de Materiales, es porque
 esta entidad lo exige — y está comentado en el archivo donde ocurre.
 
-## Las dos decisiones que conviene entender antes de tocar nada
+## Las decisiones que conviene entender antes de tocar nada
 
 **1. `precio` NO es una columna.** Se calcula al mostrarlo, siempre:
 
@@ -46,6 +46,35 @@ catálogo hay que darlo de alta primero. Crear el material desde este mismo
 modal está registrado como **mejora deliberadamente diferida** (decisión 14 de
 `preguntas-abiertas.md`), no como pendiente técnico.
 
+**3. Proveedor NO se convirtió en un selector, y eso fue un cambio de plan.**
+La Parte 1 dejó escrito aquí que en la Parte 2 `proveedor` pasaría a tener su
+propio `BuscadorSeleccion`. **No fue así, y conviene saber por qué antes de
+"arreglarlo".**
+
+`BuscadorSeleccion` solo admite un registro existente: mientras no se elige
+uno, el formulario no tiene nada que enviar. Eso funciona para el material
+—que tiene tabla— y **no puede funcionar para el proveedor**, que no la tiene:
+el "catálogo" de proveedores es el `SELECT DISTINCT` de esta misma columna, así
+que con la tabla vacía no habría nada que elegir y la primera oferta del
+sistema no se podría guardar.
+
+Lo que se construyó es `CampoConSugerencias` (`core/components/`): texto libre
+—lo que se escriba se guarda tal cual— que ofrece los proveedores ya usados
+mientras se teclea. Resuelve el problema real, que es la disgregación por
+tecleo ("Ferretería Lima" y "ferreteria lima" como si fueran dos), sin impedir
+un nombre nuevo.
+
+Los dos comparten el motor de búsqueda (`core/components/busqueda-remota.ts`:
+pausa de tecleo, turno de cada consulta y fallo visible), que se extrajo en vez
+de copiarse — habría sido la tercera copia del mismo patrón en este repositorio,
+y las dos anteriores (`esUniqueViolado`, `patronParcial`) acabaron divergiendo
+en silencio.
+
+El día que Proveedor sea una entidad de verdad (con RUC, contacto, condiciones
+de pago), entonces sí es una FK y un `BuscadorSeleccion` — y la migración
+tendrá que mapear los textos ya guardados, duplicados incluidos. Ver la ficha
+de la tabla en `docs/spec/entidades.md`.
+
 ## Archivos
 
 - `constantes.ts` — sin imports, seguro para el cliente: `UNIDADES`, las
@@ -58,25 +87,33 @@ modal está registrado como **mejora deliberadamente diferida** (decisión 14 de
   número es `reservarCorrelativo` de `core/correlativo.ts`.
 - `schema.ts` — validaciones Zod. Más estricto que la tabla, nunca al revés.
 - `tipos.ts` — el contrato del material elegible y el tipo del formulario.
-- `queries.ts` — el listado, con el JOIN a `materiales` y el precio ya
-  calculado en el servidor.
-- `actions.ts` — Server Actions de crear y editar. Verifican sesión. El alta
-  reserva el correlativo y hace el INSERT **en la misma transacción**, para
-  que un fallo no deje huecos en la numeración.
-- `components/` — campos, modal (tres modos), vista de detalle, fila y tabla.
+- `filtros.ts` — la forma de los filtros del listado y cómo se escriben en la
+  URL. Sin imports de servidor: lo usan la consulta y los controles, que son
+  cliente. `RUTA_LISTADO` no se redeclara aquí, viene de `constantes.ts`.
+- `queries.ts` — el listado (JOIN a `materiales`, filtros y precio ya
+  calculado en el servidor) y las sugerencias de proveedor.
+- `actions.ts` — Server Actions: crear, editar, cambiar `activo` y buscar
+  proveedores. Todas verifican sesión. El alta reserva el correlativo y hace
+  el INSERT **en la misma transacción**, para que un fallo no deje huecos en
+  la numeración.
+- `components/` — campos, modal (tres modos), vista de detalle, fila, tabla,
+  acciones de fila (lápiz + inactivar), buscador de tabla, filtro de
+  inactivas y el hook de navegación de los filtros.
 
 Tabla en `db/schema/lista-precios.ts`. Pantalla en
 `app/(protegido)/lista-precios/page.tsx` — ruta plana a propósito: el
 encabezado "Catálogos maestros" del menú es solo una etiqueta y nunca entra en
 la URL (ver la convención en AGENTS.md).
 
-## Qué falta (Parte 2)
+## Lo que trajo la Parte 2
 
-Buscador de tabla, filtro "Ver solo inactivos" y la acción de inactivar. Van
-juntos a propósito: sin el filtro, inactivar sería irreversible de cara al
-usuario aunque en la base no lo sea. La columna `activo` y su índice ya
-existen, y el listado ya filtra por ella.
+Buscador de tabla (contra `codigo_oferta`, `proveedor` y la `descripcion` del
+material, esta última vía el JOIN que la consulta ya hacía), filtro «Ver solo
+inactivas» e inactivar/reactivar con confirmación. Los tres van juntos a
+propósito: sin el filtro, inactivar sería irreversible de cara al usuario
+aunque en la base no lo sea.
 
-También en la Parte 2: `proveedor` deja de ser texto libre y pasa a tener su
-propio `BuscadorSeleccion` — que es el segundo uso para el que ese componente
-se escribió genérico.
+Todo importado de lo ya construido, sin reescribirlo: el estándar de fila
+clicable viene de `core/fila-clicable.tsx`, el escape de comodines de
+`core/busqueda.ts`, y la forma de las acciones y del filtro se copia de
+Materiales, que es la referencia de los catálogos maestros.

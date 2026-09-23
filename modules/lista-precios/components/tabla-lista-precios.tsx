@@ -19,28 +19,28 @@ import { FilaDePrecio } from "./fila-lista-precio";
  * `timestamp` sin zona guardado en UTC, así que formatearlo en el navegador
  * usaría el reloj del equipo y desajustaría la hidratación.
  *
- * LISTADO BÁSICO A PROPÓSITO (Parte 1): sin buscador de tabla y sin inactivar.
- * Los dos llegan en la Parte 2 — la consulta ya trae solo las ofertas activas,
- * así que el listado significa lo mismo antes y después de que exista el
- * filtro. No hay icono de inactivar todavía porque sin el filtro «Ver solo
- * inactivos» que lo acompaña, inactivar sería irreversible de cara al usuario
- * aunque en la base no lo sea: los dos van juntos o no va ninguno (ver la
- * sección "Catálogos maestros" de la skill de convenciones).
- *
- * La columna de situación sí existe ya, aunque hoy nunca pinte nada: la trae
- * la consulta y la Parte 2 la necesita tal cual.
+ * FILTRADO Y BÚSQUEDA VIVEN EN LA CONSULTA, no aquí: esta tabla recibe las
+ * filas que ya casan y las pinta. Lo único que sabe de los filtros es si había
+ * alguno puesto, y solo para el mensaje de lista vacía — "no hay nada" y "nada
+ * coincide" son dos situaciones distintas y el usuario tiene que poder
+ * distinguirlas sin mirar la URL.
  */
 export function TablaListaPrecios({
   precios,
   buscarMaterialAction,
+  filtrado = false,
 }: {
   precios: FilaPrecio[];
   buscarMaterialAction: (texto: string) => Promise<MaterialElegible[]>;
+  /** Si hay filtros puestos — cambia el mensaje de lista vacía. */
+  filtrado?: boolean;
 }) {
   if (precios.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No hay ofertas registradas todavía.
+        {filtrado
+          ? "Ninguna oferta coincide con los filtros."
+          : "No hay ofertas registradas todavía."}
       </p>
     );
   }

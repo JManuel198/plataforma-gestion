@@ -10,6 +10,7 @@ import { db } from "@/db";
 import { listaPrecios } from "@/db/schema/lista-precios";
 import { reservarCorrelativo } from "@/core/correlativo";
 import type { EstadoFormulario } from "@/core/estado-formulario";
+import type { ResultadoAccion } from "@/core/resultado-accion";
 import { esUniqueViolado } from "@/core/errores-postgres";
 import { formatearCodigoOferta } from "./codigo";
 import {
@@ -17,7 +18,13 @@ import {
   CORRELATIVO_OFERTA_INICIAL,
   RUTA_LISTADO,
 } from "./constantes";
-import { precioCrearSchema, precioEditarSchema } from "./schema";
+import { buscarProveedores } from "./queries";
+import {
+  busquedaProveedorSchema,
+  precioCambioActivoSchema,
+  precioCrearSchema,
+  precioEditarSchema,
+} from "./schema";
 
 /**
  * Una Server Action se puede invocar con un POST directo, sin pasar por la
@@ -149,6 +156,92 @@ export async function editarPrecioEnModal(
   } catch (error) {
     console.error("[Lista de precios] fallo inesperado al editar la oferta", error);
     return { mensaje: MENSAJE_FALLO_GUARDADO };
+  }
+
+  revalidatePath(RUTA_LISTADO);
+
+  return { ok: true };
+}
+
+/**
+ * Busca proveedores ya usados, para que el modal los sugiera.
+ *
+ * ES UNA LECTURA, y aun así vive aquí y no en queries.ts: la invoca un Client
+ * Component (`CampoConSugerencias` de core/) mientras el usuario teclea, así
+ * que tiene que ser una Server Action. La consulta en sí sigue en queries.ts,
+ * donde viven todas las lecturas del módulo; esto es solo el envoltorio que la
+ * expone, con la sesión y la validación que exige cualquier otra action. Mismo
+ * reparto que `buscarMaterialesParaSeleccionAction` en Materiales.
+ *
+ * LO QUE AQUÍ NO HACE FALTA, Y ALLÍ SÍ: esta acción NO viaja como prop desde la
+ * página. Aquel rodeo existe porque el material lo busca OTRO módulo y
+ * `modules/lista-precios/` no puede importar de `modules/materiales/`
+ * (AGENTS.md, Arquitectura). El proveedor sale de `lista_precios`, que es la
+ * tabla de este módulo, así que el componente de campos la importa directo —
+ * igual que la fila importa `editarPrecioEnModal`.
+ *
+ * Devuelve `[]` ante un texto vacío o absurdo en vez de fallar: un campo que
+ * lanza excepciones mientras se teclea es peor que uno que no sugiere nada, y
+ * aquí todavía menos grave — sin sugerencias el usuario escribe el nombre y
+ * sigue.
+ */
+export async function buscarProveedoresAction(
+  texto: string,
+): Promise<string[]> {
+  await exigirSesion();
+
+  const resultado = busquedaProveedorSchema.safeParse(texto);
+
+  if (!resultado.success) return [];
+
+  return buscarProveedores(resultado.data);
+}
+
+/**
+ * Inactiva una oferta o vuelve a activarla. Escribe SOLO la columna `activo`.
+ *
+ * NO ES UN BORRADO (regla invariable 9): la fila se queda entera y se puede
+ * volver a activar desde «Ver solo inactivos». Que no lo sea importa aquí más
+ * que en Materiales por una razón concreta: `codigo_oferta` sale de un
+ * correlativo que no reinicia nunca, así que borrar una oferta dejaría un hueco
+ * permanente en la numeración que nadie podría explicar después.
+ *
+ * ACCIÓN PROPIA Y MÍNIMA, nunca la de guardar el formulario entero: aquella
+ * reescribe las siete columnas de negocio y aquí solo hay que tocar una. El
+ * esquema (`precioCambioActivoSchema`) no admite nada más, así que un POST
+ * directo con campos de propina no puede colar una edición disfrazada de baja.
+ *
+ * Recibe argumentos sueltos y devuelve `ResultadoAccion` —no `FormData` ni
+ * `EstadoFormulario`—: no hay formulario detrás, solo un botón. Mismo patrón
+ * que `cambiarActivoMaterial` y `SelectorEstadoFila`.
+ */
+export async function cambiarActivoPrecio(
+  id: string,
+  activo: boolean,
+): Promise<ResultadoAccion> {
+  await exigirSesion();
+
+  // Los tipos de los parámetros no protegen nada en runtime: una Server Action
+  // es un endpoint y puede llegar cualquier cosa.
+  const resultado = precioCambioActivoSchema.safeParse({ id, activo });
+
+  if (!resultado.success) {
+    return { ok: false, mensaje: "Esa petición no es válida." };
+  }
+
+  try {
+    const actualizadas = await db
+      .update(listaPrecios)
+      .set({ activo: resultado.data.activo })
+      .where(eq(listaPrecios.id, resultado.data.id))
+      .returning({ id: listaPrecios.id });
+
+    if (actualizadas.length === 0) {
+      return { ok: false, mensaje: "Esa oferta ya no existe." };
+    }
+  } catch (error) {
+    console.error("[Lista de precios] fallo inesperado al cambiar el activo", error);
+    return { ok: false, mensaje: "No se pudo completar. Intenta de nuevo." };
   }
 
   revalidatePath(RUTA_LISTADO);
