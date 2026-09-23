@@ -298,7 +298,7 @@ detalles de las dos cosas están en los párrafos siguientes.
 | `marca` | `text` | **no** | manual |
 | `modelo` | `text` | **no** | manual |
 | `codigo_fabrica` | `text` | **no** | manual — el del fabricante, distinto del interno |
-| `unidad` | `text` | **no** | manual — unidad de medida, texto libre sin catálogo cerrado |
+| `unidad` | `text` | **no** | manual — unidad de medida, texto libre con sugerencias de una lista fija (`core/unidades.ts`), sin restricción en la base ni en el Zod — ver la ficha de Lista de precios más abajo, "`unidad` es texto libre en las dos tablas" |
 | `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar desde el listado (Bloque 12, Parte 2) |
 | `created_at` / `updated_at` | `timestamp` | sí | automáticos |
 
@@ -379,7 +379,7 @@ libre) y **decisión 4** (`precio` se deriva, no es una columna independiente
 | `codigo_oferta` | `text` (**UNIQUE**) | sí | **automático** — formato `OFFT.0000001`, 7 dígitos, correlativo global sin segmento de año |
 | `material_id` | `text` (FK → `materiales.id`) | sí | manual — selección contra el catálogo de Materiales |
 | `proveedor` | `text` | no | manual — **texto libre**, con sugerencias de los proveedores ya usados (ver abajo) |
-| `unidad` | `text` | no | manual — lista fija de 6 valores en la interfaz, sin `pgEnum` (ver más abajo) |
+| `unidad` | `text` | no | manual — texto libre con sugerencias de una lista fija en la interfaz, sin `pgEnum` ni CHECK (ver más abajo) |
 | `cantidad` | `numeric(14,3)` (mode `"string"` en Drizzle) | no | manual |
 | `precio_lista` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal |
 | `descuento` | `numeric(5,2)` (mode `"string"` en Drizzle), default `0` | sí | automático (`0`) si no se especifica; manual — porcentaje 0–100, con `CHECK` en la base |
@@ -471,15 +471,36 @@ mapea a `number` de JS para no arrastrar `BigInt` por el código (helpers de
 techo técnico real es `Number.MAX_SAFE_INTEGER`; el límite de negocio se
 valida en `modules/lista-precios/schema.ts`, no en la columna.
 
-**`unidad` es `text`, no `pgEnum` — a propósito, a diferencia de
-`ot_estado`.** La interfaz ofrecerá una lista fija de 6 valores (`m`, `und`,
-`pzs`, `cja`, `kg`, `lt`), pero esa lista es un borrador sin confirmar con el
-cliente (no se sabe si es exhaustiva o solo ejemplos — pregunta abierta en
-`preguntas-abiertas.md`). Un `pgEnum` exige una migración para añadir o
-quitar un valor; `text` no. La lista vive del lado de la aplicación, en
-`modules/lista-precios/constantes.ts`. El día que se confirme como cerrada,
-el sitio correcto es un `pgEnum` construido desde esa constante, igual que
-`otEstadoEnum` se construye desde `ESTADOS_OT`.
+**`unidad` es texto libre en las dos tablas — decisión unificada
+(2026-09-22).** Hasta este cambio, Materiales trataba `unidad` como texto
+libre sin ninguna sugerencia y Lista de precios la restringía a una lista
+cerrada de 6 valores mediante `z.enum(UNIDADES)` en
+`modules/lista-precios/schema.ts` — la columna en Postgres nunca estuvo
+restringida en ninguna de las dos tablas, la única restricción vivía en ese
+Zod. Esa inconsistencia era justo la que registraba la decisión 12 de
+"Catálogos maestros" en `preguntas-abiertas.md`, y se resolvió a favor de
+texto libre en ambas: la columna sigue siendo `text` nullable, sin `pgEnum`
+ni `CHECK`, en `materiales.unidad` y en `lista_precios.unidad` por igual.
+**Verificado contra la base real de Neon (2026-09-22):** ninguna de las dos
+columnas tenía CHECK ni ENUM asociado — se consultó `information_schema.columns`
+y `pg_constraint` para ambas tablas; los únicos enums existentes en la base
+son `moneda` y `ot_estado`, ninguno relacionado con `unidad`. No hizo falta
+ninguna migración porque no había nada que quitar de la base.
+La lista de valores conocidos —`m`, `und`, `pzs`, `cja`, `kg`, `lt`, y desde
+este cambio también `gal`— se movió a `core/unidades.ts` (antes vivía solo en
+`modules/lista-precios/constantes.ts`), compartida entre Materiales y Lista
+de precios, y Servicios cuando se construya (regla de AGENTS.md: lo que usan
+dos o más módulos sube a `core/`, mismo criterio que `MONEDAS` en
+`core/monedas.ts`). Deja de ser una restricción de Zod y pasa a ser
+SUGERENCIA de interfaz —vía `core/components/campo-lista-sugerida.tsx`—: el
+usuario puede escribir y guardar un valor que no esté en la lista (p. ej.
+"rollo"), igual que ya podía hacerlo con `proveedor` en esta misma tabla (ver
+arriba).
+**El día que el cliente confirme una lista exhaustiva** (decisión 13 de
+"Catálogos maestros", que sigue abierta), el sitio correcto para endurecerla
+SÍ sigue siendo un `pgEnum` construido desde `UNIDADES`, igual que
+`otEstadoEnum` se construye desde `ESTADOS_OT` — esa decisión no se ha
+tomado todavía, y este cambio no la prejuzga.
 
 **Obligatoriedad del resto, mismo criterio que Materiales — con una
 excepción deliberada.** `proveedor`, `unidad`, `cantidad`, `precio_lista` y

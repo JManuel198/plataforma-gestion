@@ -2,6 +2,8 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CampoListaSugerida } from "@/core/components/campo-lista-sugerida";
+import { UNIDADES } from "@/core/unidades";
 import { CaracteristicasMaterial } from "./caracteristicas-material";
 import type { MaterialEditable } from "../tipos";
 
@@ -75,17 +77,26 @@ export function CamposMaterial({ material, errores }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="unidad">Unidad</Label>
-        {/* Texto libre y no un Select: no hay catálogo de unidades confirmado.
-            Cuando lo haya, esto pasa a ser un Select con su lista en
-            constantes.ts, como `MONEDAS` en Órdenes de Trabajo. */}
-        <Input
+        {/* SIGUE SIENDO TEXTO LIBRE — el esquema no cambió y el Zod tampoco—,
+            pero ahora sugiere. Antes era un `<input>` a secas y la unidad se
+            tecleaba entera cada vez, que es como acaban conviviendo "und",
+            "UND" y "Und" como si fueran tres unidades distintas. Las
+            sugerencias de `UNIDADES` (core/unidades.ts) evitan eso sin cerrar
+            nada: lo que no esté en la lista se guarda igual.
+
+            Deliberadamente NO es un `Select`, aunque la lista sea fija: nadie
+            confirmó que esos valores sean todas las unidades que el negocio
+            usa, y un Select convertiría un borrador en una prohibición. Ver
+            core/unidades.ts. */}
+        <CampoListaSugerida
           id="unidad"
           name="unidad"
-          defaultValue={material?.unidad ?? ""}
-          placeholder="ej. UND, MT, KG"
-          required
-          aria-invalid={Boolean(errores.unidad)}
+          etiqueta="Unidad"
+          placeholder="ej. und"
+          opciones={UNIDADES}
+          valorInicial={material?.unidad ?? ""}
+          requerido
+          invalido={Boolean(errores.unidad)}
         />
         <MensajeError errores={errores.unidad} />
       </div>

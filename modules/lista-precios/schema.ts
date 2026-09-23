@@ -5,7 +5,6 @@ import {
   PATRON_CANTIDAD,
   PATRON_DESCUENTO,
   PATRON_PRECIO_LISTA,
-  UNIDADES,
 } from "./constantes";
 
 // Nada que venga del formulario toca la base sin pasar por aquí (regla 1 de
@@ -146,9 +145,28 @@ export const descuentoSchema = z
     "El descuento tiene que estar entre 0 y 100.",
   );
 
-export const unidadSchema = z.enum(UNIDADES, {
-  error: "Elige una de las unidades de la lista.",
-});
+/**
+ * La unidad de medida. TEXTO LIBRE, no una lista cerrada.
+ *
+ * Era un `z.enum(UNIDADES)` y dejó de serlo a propósito. `UNIDADES`
+ * (core/unidades.ts) nunca se confirmó con el cliente como exhaustiva, así que
+ * rechazar "rollo" era imponer un borrador: el usuario se quedaba sin poder
+ * registrar una oferta real por una lista que nadie había cerrado. Ahora esa
+ * lista solo alimenta el desplegable de sugerencias del modal, y aquí se valida
+ * lo único que sí se sabe cierto — que venga algo y que quepa en la columna.
+ *
+ * Con esto los dos catálogos tratan `unidad` igual: Materiales ya la validaba
+ * así (ver `textoObligatorio` en modules/materiales/schema.ts). La
+ * inconsistencia entre ambos que estaba registrada como pregunta abierta se
+ * resolvió por aquí, no cerrando la de Materiales.
+ *
+ * El máximo de 20 es el mismo que `unidad` en Materiales, y que sea el mismo
+ * importa: un valor que una pantalla acepta y la otra rechaza sería una
+ * diferencia invisible hasta que alguien la sufre. Las dos columnas son `text`
+ * sin longitud, así que el límite es solo cordura — una unidad de medida no
+ * ocupa veinte caracteres.
+ */
+export const unidadSchema = textoObligatorio("La unidad", 20);
 
 export const monedaSchema = z.enum(MONEDAS, {
   error: "La moneda debe ser PEN o USD.",

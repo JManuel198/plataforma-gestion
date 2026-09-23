@@ -9,3 +9,4 @@
 - [Correlativo genérico](correlativo_generico.md) — (2026-09-22) tabla `correlativo` (clave text PK) hermana de ot_correlativo, no su ALTER; eliminó materiales.fecha_activacion; migración 0010 aplicada
 - [Tabla material_caracteristicas](material_caracteristicas_tabla.md) — (2026-09-22) DELETE real permitido, sin `activo` ni `updated_at`; excepción distinta a la de OT; migración 0011 aplicada
 - [Tabla lista_precios](lista_precios_tabla.md) — (2026-09-22) precio se deriva (no columna); material_id FK real; reusa el correlativo genérico con clave "lista_precios" (OFFT.NNNNNNN, sin año); monedaEnum movido a db/schema/moneda.ts
+- [unidad texto libre unificado](unidad_texto_libre_unificado.md) — (2026-09-22) sin CHECK/ENUM en Neon, restricción vivía solo en Zod; sin migración; UNIDADES→core/unidades.ts (+"gal")

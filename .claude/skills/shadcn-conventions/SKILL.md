@@ -481,6 +481,70 @@ desordenadas; el retardo NO lo evita) y el fallo de red visible. Era la
 tercera vez que ese patrón iba a copiarse en este repositorio — ver
 `esUniqueViolado` y `patronParcial`.
 
+### El tercero: `CampoListaSugerida` (lista fija, en memoria)
+
+`core/components/campo-lista-sugerida.tsx`. Es el caso de `unidad` en
+Materiales y en Lista de precios: un input de texto que al enfocarse o al
+hacer clic despliega una lista fija (`UNIDADES`, en `core/unidades.ts`) y la
+filtra en vivo mientras se teclea.
+
+**NO lo fusiones con `CampoConSugerencias` por parecido superficial** — es la
+confusión que este apartado existe para evitar. En pantalla son casi lo
+mismo; lo que cambia es **de dónde salen las sugerencias**, y eso decide todo
+lo demás:
+
+| | `CampoConSugerencias` | `CampoListaSugerida` |
+|---|---|---|
+| De dónde salen | `SELECT DISTINCT` en el servidor | una constante del código |
+| Cuándo cambian | con cada alta que hace un usuario | con un commit |
+| Dónde se filtran | en el servidor, en cada consulta | en memoria, `.filter()` |
+| Pausa de tecleo | imprescindible | no tiene sentido |
+| Turno de respuestas | imprescindible | no existe |
+| Puede fallar | sí, es red — y se muestra | no |
+| Con el campo vacío | no sugiere nada | ofrece la lista entera |
+| Su caso | Proveedor | Unidad |
+
+**Por eso NO reutiliza `busqueda-remota.ts`, y no es una excepción a la regla
+de "el motor se importa, nunca se copia": es que no hay motor que compartir.**
+Ese hook resuelve tres problemas que solo existen cuando la respuesta viaja
+por la red. Con siete cadenas ya presentes en el bundle, montarlo encima
+obligaría a envolver el array en una promesa falsa y a esperar 300 ms para
+enseñar algo que ya está en memoria. Nada se copió de él: no hay pausa, ni
+turno, ni estado de fallo.
+
+**La regla para elegir entre los tres, en una línea: la fuente de los datos
+decide el componente, no su aspecto.**
+
+- El valor TIENE que existir como registro → `BuscadorSeleccion`.
+- El catálogo vive en el servidor y cambia solo → `CampoConSugerencias`.
+- El catálogo vive en el código y cambia con un commit → `CampoListaSugerida`.
+
+Detalles suyos que parecen de más y no lo son:
+
+- **La lista se pinta en el flujo, no en una capa flotante ni en un portal.**
+  El cuerpo de los modales está en `overflow-y-auto`, así que un desplegable
+  posicionado en absoluto se recortaría contra ese borde.
+- **`onMouseDown` con `preventDefault` en cada sugerencia**, o el `blur` del
+  input cerraría la lista antes de que llegara el `click` y no se podría
+  elegir nunca.
+- **El `onBlur` va en el contenedor y mira `relatedTarget`**, para que salir
+  con Tab cierre la lista pero moverse dentro de ella no.
+- **Escape lleva `stopPropagation`**: sin él llegaría al Dialog y cerraría el
+  modal entero con lo que el usuario llevara escrito. Enter con la lista
+  abierta la cierra y **no envía** el formulario.
+- **La lista no valida nada.** Si algún día hay que cerrar el conjunto, el
+  sitio es el Zod del módulo y un `CHECK` en la columna — una comprobación
+  que solo viva en el cliente no es una comprobación (regla 1 de AGENTS.md).
+
+**`unidad` es texto libre en los dos catálogos, y es una decisión, no un
+descuido** (2026-09-22). Antes Lista de precios la restringía con
+`z.enum(UNIDADES)` y Materiales no restringía nada. Se unificó bajando Lista
+de precios al nivel de Materiales: `UNIDADES` subió a `core/unidades.ts` y
+pasó de ser restricción a ser sugerencia. Se puede guardar "rollo". El
+porqué, y qué haría falta para cerrarla algún día, está en
+`docs/spec/entidades.md` y en las decisiones 12 y 13 de
+`docs/spec/preguntas-abiertas.md`.
+
 ## Valores calculados que se muestran en vivo
 
 El precio de Lista de precios (`precio_lista × (1 − descuento/100)`) se

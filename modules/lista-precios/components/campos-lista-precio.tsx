@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/select";
 import { BuscadorSeleccion } from "@/core/components/buscador-seleccion";
 import { CampoConSugerencias } from "@/core/components/campo-con-sugerencias";
+import { CampoListaSugerida } from "@/core/components/campo-lista-sugerida";
 import { aMontoDecimal, formatearMonto } from "@/core/dinero";
 import { MONEDAS, type Moneda } from "@/core/monedas";
+import { UNIDADES } from "@/core/unidades";
 import { buscarProveedoresAction } from "../actions";
-import { UNIDADES } from "../constantes";
 import { calcularPrecioDesdeTexto } from "../precio";
 import type { MaterialElegible, PrecioEditable } from "../tipos";
 
@@ -189,34 +190,29 @@ export function CamposListaPrecio({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unidad">Unidad</Label>
-            {/* Lista cerrada, al revés que la `unidad` de Materiales, que es
-                texto libre. Esa inconsistencia entre los dos catálogos está
-                registrada como pregunta abierta a propósito — no la resuelvas
-                aquí. La lista vive en ../constantes.ts. */}
-            <Select
+            {/* TEXTO LIBRE con sugerencias, ya NO un `Select`. `UNIDADES`
+                (core/unidades.ts) dejó de ser la lista cerrada de este campo:
+                nadie la confirmó como exhaustiva, así que ahora solo sugiere y
+                se puede guardar una unidad que no esté en ella. El Zod de
+                ../schema.ts se aflojó en el mismo cambio — si solo se cambiara
+                esto, el servidor seguiría rechazando lo que el campo permite
+                escribir.
+
+                Es `CampoListaSugerida` y no `CampoConSugerencias` (el de
+                Proveedor, aquí al lado) porque la lista vive en el código y no
+                en la base: no hay consulta, ni pausa de tecleo, ni fallo de red
+                que enseñar. La tabla comparativa completa está en la cabecera
+                del componente. */}
+            <CampoListaSugerida
+              id="unidad"
               name="unidad"
-              defaultValue={precio?.unidad ?? undefined}
-              items={UNIDADES.map((unidad) => ({
-                label: unidad,
-                value: unidad,
-              }))}
-            >
-              <SelectTrigger
-                id="unidad"
-                className="w-full"
-                aria-invalid={Boolean(errores.unidad)}
-              >
-                <SelectValue placeholder="Elige una unidad" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNIDADES.map((unidad) => (
-                  <SelectItem key={unidad} value={unidad}>
-                    {unidad}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              etiqueta="Unidad"
+              placeholder="ej. und"
+              opciones={UNIDADES}
+              valorInicial={precio?.unidad ?? ""}
+              requerido
+              invalido={Boolean(errores.unidad)}
+            />
             <MensajeError errores={errores.unidad} />
           </div>
 

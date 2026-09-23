@@ -29,3 +29,13 @@ módulo: `monedas.ts` (la lista `MONEDAS`, que comparte el `pgEnum` con
 dos casos el criterio fue el mismo: sube lo que comparten dos módulos, no todo
 lo que estaba al lado — `ESTADOS_OT` se quedó en Órdenes de Trabajo, y
 `PRECIO_MAXIMO_CENTIMOS` en el `schema.ts` de cada entidad.
+
+Por esa misma regla subió después `unidades.ts` (la lista `UNIDADES`, que
+estaba en `modules/lista-precios/constantes.ts` mientras la usaba un solo
+módulo) junto con `components/campo-lista-sugerida.tsx`, que la pinta. Ojo con
+este último: **es un componente distinto de `campo-con-sugerencias.tsx` a
+propósito, y no deben fusionarse.** Se parecen en pantalla, pero uno sugiere
+desde una consulta al servidor y el otro desde una constante del código, y de
+ahí sale todo lo demás (pausa de tecleo, turnos, fallo de red: imprescindibles
+en el primero, inexistentes en el segundo). La tabla comparativa está en la
+cabecera del propio archivo y en la skill de convenciones.

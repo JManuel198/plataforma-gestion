@@ -449,45 +449,50 @@ que eran de Materiales se cerraron o se concretaron en la 8.
     contador arranca limpio en `MAT.0000001` y no hubo nada que resincronizar.
 
 12. **¿`materiales.unidad` debería pasar a la misma lista fija que
-    `lista_precios.unidad`?** Sin decidir, y hoy los dos catálogos tratan
-    "unidad" de forma DISTINTA a propósito, no por descuido:
-    - `materiales.unidad` es **texto libre**, sin catálogo cerrado. Se dejó
-      así en el Bloque 12 porque no estaba confirmado si "UND", "und" y
-      "Unidad" son el mismo valor (ver la ficha de Materiales en
-      `entidades.md`).
-    - `lista_precios.unidad` es una **lista fija** de seis valores (`m`,
-      `und`, `pzs`, `cja`, `kg`, `lt`), declarada en
-      `modules/lista-precios/constantes.ts` y validada por Zod. La columna
-      sigue siendo `text`, no un `pgEnum` — ver la decisión 13.
-    La inconsistencia es visible para el usuario: el mismo concepto se
-    escribe a mano en una pantalla y se elige de un desplegable en la otra.
-    **Lo que hay que preguntar antes de unificar** es si son de verdad el
-    mismo concepto: la unidad en la que se INVENTARÍA un material (una caja
-    de 100 tornillos) no tiene por qué ser aquella en la que un proveedor lo
-    COTIZA (por millar, por kilo). Si son el mismo, la lista se sube a
-    `core/` y Materiales pasa a Select; si no lo son, la duplicación es
-    correcta y hay que dejar de verla como deuda.
-    **Migrar Materiales no es gratis:** sus filas actuales tienen texto libre
-    que habría que mapear a la lista antes de imponerla, y hoy los valores
-    cargados no salen de ella.
+    `lista_precios.unidad`?** — **RESUELTO (2026-09-22), a favor de texto
+    libre en las dos.** No se resolvió confirmando que son o no el mismo
+    concepto (la pregunta de fondo de este punto sigue sin respuesta del
+    cliente) — se resolvió por el lado contrario: en vez de subir Materiales
+    al nivel de restricción de Lista de precios, se bajó Lista de precios al
+    nivel de Materiales. `lista_precios.unidad` deja de restringirse con
+    `z.enum(UNIDADES)` y pasa a ser texto libre con sugerencia, igual que
+    `materiales.unidad` ya era. La columna en Postgres nunca tuvo
+    restricción en ninguna de las dos tablas — se verificó contra la base
+    real de Neon (sin CHECK, sin ENUM) — así que este cambio fue enteramente
+    de la capa de aplicación (Zod, interfaz), sin migración.
+    La lista de valores conocidos (`UNIDADES`, ver decisión 13) se movió a
+    `core/unidades.ts`, compartida entre los dos catálogos vía
+    `core/components/campo-lista-sugerida.tsx`, y pasa a ser SUGERENCIA, no
+    restricción: el usuario puede escribir "rollo" aunque no esté en la
+    lista. Detalle completo en `entidades.md`, ficha de Lista de precios,
+    "`unidad` es texto libre en las dos tablas".
+    Lo que sigue sin decidir, y ahora importa menos: si la unidad en la que
+    se INVENTARÍA un material es o no la misma en la que un proveedor la
+    COTIZA. Con las dos columnas como texto libre y la misma lista de
+    sugerencias, esa distinción ya no bloquea nada — el día que se quiera
+    endurecer con un `pgEnum` (decisión 13) sí habrá que resolverla antes,
+    porque un enum sí asume que es un catálogo cerrado y único.
 
-13. **¿Los seis valores de `lista_precios.unidad` son exhaustivos, o solo los
-    que aparecieron primero?** Sin confirmar. La lista —`m`, `und`, `pzs`,
-    `cja`, `kg`, `lt`— llegó como parte del encargo del Bloque 13, sin decir
-    si es cerrada.
-    Faltan candidatos evidentes en un contexto de obra (`gal`, `rollo`,
-    `juego`, `m2`, `m3`, `hora`), lo que hace sospechar que son ejemplos y no
-    un catálogo cerrado — pero suponerlo sería inventar, así que la lista
-    quedó exactamente como se pidió.
-    **Qué se hizo mientras tanto, y por qué importa:** la columna es `text` y
-    **no** un `pgEnum`, a diferencia de `ot_estado` y `moneda`. Así, añadir o
-    quitar un valor es editar un array en
-    `modules/lista-precios/constantes.ts` — sin migración. Si la lista fuera
-    un enum, cada valor nuevo costaría una migración, que es un precio alto
-    para algo que se espera que cambie.
-    **Cuando el cliente la confirme**, el sitio correcto SÍ es un `pgEnum`
-    construido desde ese mismo array, igual que `ot_estado`: ahí la
-    restricción pasa a estar también en la base, no solo en el Zod.
+13. **¿Los siete valores de `UNIDADES` son exhaustivos, o solo los que
+    aparecieron primero?** Sigue sin confirmar — esto NO se resolvió el
+    2026-09-22, solo se le bajó la urgencia (ver decisión 12): mientras
+    `unidad` sea texto libre con sugerencia, un valor faltante en la lista
+    no bloquea a nadie, solo no aparece como sugerencia. La lista creció de
+    seis a siete valores en este mismo cambio (`m`, `und`, `pzs`, `cja`,
+    `kg`, `lt`, `gal` — se añadió `gal`), lo que confirma la sospecha ya
+    escrita aquí: son ejemplos que se han ido ampliando, no un catálogo
+    cerrado. Siguen faltando candidatos evidentes en un contexto de obra
+    (`rollo`, `juego`, `m2`, `m3`, `hora`) — no se añadieron por la misma
+    razón que ya valía: suponerlos sería inventar.
+    **Qué se mantiene igual:** la columna sigue siendo `text` en las dos
+    tablas, **no** un `pgEnum`, a diferencia de `ot_estado` y `moneda`. Así,
+    añadir un valor a la lista de sugerencias es editar el array en
+    `core/unidades.ts` (antes en `modules/lista-precios/constantes.ts`, solo
+    para Lista de precios) — sin migración.
+    **Cuando el cliente confirme una lista cerrada**, el sitio correcto SÍ
+    sigue siendo un `pgEnum` construido desde `UNIDADES`, igual que
+    `ot_estado` — con la salvedad, nueva desde la decisión 12, de que
+    aplicaría a las dos tablas a la vez, no solo a Lista de precios.
 
 14. **Crear un material desde el propio modal de la oferta, cuando no aparece
     en la búsqueda.** MEJORA DELIBERADAMENTE DIFERIDA — se registra para que

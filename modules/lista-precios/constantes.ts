@@ -10,31 +10,13 @@
 
 export const RUTA_LISTADO = "/lista-precios";
 
-/**
- * Las unidades de medida que admite una fila de la lista de precios.
- *
- * ES UNA LISTA FIJA, pero DELIBERADAMENTE NO ES UN `pgEnum`. La columna
- * `lista_precios.unidad` es `text` y la restricción vive solo aquí y en el Zod
- * del módulo. El motivo: a diferencia de `ESTADOS_OT`, esta lista es un
- * borrador sin confirmar con el cliente —no se sabe si los seis valores son
- * exhaustivos o solo los que aparecieron primero (ver "Lista de precios" en
- * docs/spec/preguntas-abiertas.md)— y añadir o quitar un valor de un `pgEnum`
- * exige una migración. Con `text` + esta constante, corregir la lista mientras
- * se confirma es editar este array.
- *
- * El día que el cliente la confirme, el sitio correcto SÍ es un `pgEnum`
- * construido desde este mismo array, igual que hace `ot_estado` — y entonces
- * este archivo sigue siendo la fuente de verdad única, no aparece una segunda
- * lista en db/schema/.
- *
- * Ojo con Materiales: `materiales.unidad` es texto libre sin lista cerrada, así
- * que hoy los dos catálogos tratan "unidad" de forma distinta. Esa
- * inconsistencia está registrada como pregunta abierta a propósito; no la
- * resuelvas unificándolas por tu cuenta.
- */
-export const UNIDADES = ["m", "und", "pzs", "cja", "kg", "lt"] as const;
-
-export type Unidad = (typeof UNIDADES)[number];
+// `UNIDADES` TAMPOCO está aquí ya: vive en `core/unidades.ts`. Estaba en este
+// archivo mientras la usaba un solo módulo; la comparten Materiales y Lista de
+// precios (y la usará Servicios), así que subió a `core/` por la misma regla que
+// trajo allí a `MONEDAS`. Y con el movimiento cambió de significado: dejó de ser
+// la restricción de la columna para ser la lista de sugerencias de
+// `core/components/campo-lista-sugerida.tsx`. El porqué completo está en
+// core/unidades.ts.
 
 /**
  * Los formatos que admite cada campo numérico, como patrones sueltos.
