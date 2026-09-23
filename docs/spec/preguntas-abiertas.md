@@ -263,21 +263,34 @@ nada detrás de ninguno: ni tabla, ni schema, ni regla de negocio. Se
 registraron aquí porque los cinco nombres entraban al vocabulario del sistema
 sin estar en `entidades.md`.
 
-**Actualización (Bloque 12, Parte 1, 2026-09-21): Materiales ya tiene tabla
-real** (`db/schema/materiales.ts`) y ficha propia en `entidades.md`; su
-pantalla ya no es un placeholder. Los otros CUATRO siguen como estaban. Las
-dudas de abajo que son suyas (la 3, 4, 5 y 6) siguen abiertas tal cual; las
-que eran de Materiales se cerraron o se concretaron en la 8.
+**Actualización (2026-09-23): cuatro de los cinco ya están construidos.**
+Materiales (Bloque 12), Lista de precios (Bloque 13), Servicios (Bloque 14) y
+Tarifario de personal (Bloque 15) tienen tabla real y ficha propia en
+`entidades.md`, y ninguna de sus pantallas es ya un placeholder. **EPPs es el
+único que sigue exactamente como se escribió esto**: sin tabla, sin schema y
+sin regla de negocio (decisión 6). Las dudas de abajo se han ido cerrando por
+bloques — lo que queda abierto lo dice cada punto.
 
-1. **Cuatro de los cinco siguen sin modelo definido** (Lista de precios,
-   Servicios, Tarifario de personal, EPPs). No se sabe si la lista de precios
-   es una tabla o varias versionadas, ni cómo se relaciona el tarifario con
-   `personal`. Antes de construir cualquiera de los cuatro hay que
-   documentarlo en `entidades.md`; mientras tanto su pantalla es un
+1. ~~**Cuatro de los cinco siguen sin modelo definido**~~ **SOLO QUEDA EPPs
+   (2026-09-23).** Los otros cuatro ya tienen tabla real y ficha en
+   `entidades.md`: Materiales (Bloque 12), Lista de precios (Bloque 13),
+   Servicios (Bloque 14) y Tarifario de personal (Bloque 15). Ninguna de sus
+   pantallas es ya un placeholder. La regla que este punto fijaba **sigue
+   valiendo para EPPs y para lo que venga**: antes de construirlo hay que
+   documentar el modelo en `entidades.md`; mientras tanto su pantalla es un
    placeholder y no decide nada.
-   **Materiales ya no está en este grupo**: su modelo se decidió en el Bloque
-   12 y está documentado. Lo que sigue abierto de él no es el modelo sino la
-   obligatoriedad de sus campos (decisión 8) y qué significa `fecha`.
+   Lo que este punto daba por indefinido y ya se resolvió: si la lista de
+   precios era una tabla o varias versionadas (es una, ver decisiones 3 y 4).
+   **¿Cómo se relaciona el tarifario con `personal`? — DESCARTADO (2026-09-23):
+   no se relaciona.** El cliente confirmó explícitamente que no debe existir
+   ninguna relación entre Personal y el nuevo Tarifario de personal. No
+   quedó pendiente por descuido: fue una decisión directa del cliente. Ver
+   la nota en `entidades.md`, sección Personal (campo `cargo`) y la ficha
+   "Tarifario de personal (catálogo maestro)".
+   Lo que sigue abierto de los ya construidos NO es su modelo: en Materiales
+   es la obligatoriedad de sus campos (decisión 8) y qué significa `fecha`; en
+   Servicios, si necesita baja lógica (decisión 16); en el Tarifario, si los
+   cargos merecen catálogo propio (decisión 19).
 2. **Según AGENTS.md los catálogos maestros van en `core/`**, no en
    `modules/`. Las cinco pantallas viven en `app/(protegido)/` y todavía no
    tienen módulo, así que la decisión sigue abierta y no se ha prejuzgado.
@@ -614,3 +627,63 @@ que eran de Materiales se cerraron o se concretaron en la 8.
     poder FILTRAR el catálogo por categoría. Hoy no se puede (la Parte 1 no
     tiene filtros) y nadie lo ha pedido, pero es la razón más probable por la
     que la lista tendría que cerrarse de verdad.
+
+19. **La sugerencia de cargo del Tarifario crece con el uso: NO hay lista
+    cerrada de cargos válidos.** (Bloque 15, Parte 1, 2026-09-23.) **Esto es
+    una decisión ya tomada, no una pregunta** — se registra aquí porque el
+    comportamiento se parece lo bastante a una carencia como para que alguien
+    lo "arregle" sin saber que es deliberado.
+    `tarifario_personal.cargo` es texto libre. El campo del modal usa
+    `CampoConSugerencias` (`core/components/`) contra `buscarCargos`
+    (`modules/tarifario-personal/queries.ts`), que es un `SELECT DISTINCT`
+    sobre esa misma columna: **las sugerencias son los cargos ya escritos en
+    otras tarifas, y nada más**. Consecuencias que hay que asumir con los ojos
+    abiertos:
+    - Con el tarifario vacío no se sugiere nada, y **tiene que ser así**: la
+      primera tarifa del sistema se escribe a pelo. Un selector estricto
+      dejaría esa primera fila sin poder guardarse.
+    - Un cargo mal escrito se convierte en sugerencia para el siguiente. Lo que
+      esto evita es la disgregación por tecleo ("Operario" y "operario"
+      conviviendo como dos cargos), no los errores de escritura.
+    - La consulta **no filtra por `activo`**: el cargo de una tarifa inactivada
+      sigue siendo un cargo real que se usó, y esconderlo provocaría justo el
+      tecleo divergente que esto evita. Mismo criterio, y por la misma razón,
+      que `buscarProveedores` en Lista de precios.
+    Es el mismo planteamiento que `proveedor` allí, y por el mismo motivo: **no
+    existe tabla de cargos**, así que el "catálogo" es lo que uno mismo ha ido
+    escribiendo.
+    **Lo que sí valdría la pena preguntar algún día**, y por eso queda anotado:
+    si el negocio quiere un **catálogo de cargos de verdad**, separado del
+    tarifario — una tabla propia con sus cargos válidos, contra la que tanto
+    este campo como cualquier otro pudieran validarse. Hoy nadie lo ha pedido y
+    nada lo necesita. Si llegara, el cambio no es pequeño: `cargo` pasaría de
+    `text` a FK, el componente pasaría de `CampoConSugerencias` a
+    `BuscadorSeleccion` (que exige que el valor exista) y habría que decidir
+    qué pasa con los cargos ya escritos que no casen con ninguna fila.
+    **Ojo con una tentación concreta:** ese catálogo de cargos NO es
+    `personal.cargo` ni se alimenta de él. La relación entre Personal y el
+    Tarifario está descartada explícitamente por el cliente (decisión 1 de esta
+    misma sección); si alguna vez se crea un catálogo de cargos, es una tercera
+    tabla y hay que volver a preguntar quién lo consume.
+
+20. **Los cuatro valores de `PERIODOS_TARIFARIO` (hora, día, mes, año): ¿son
+    exhaustivos?** (Bloque 15, Parte 1, 2026-09-23.) Sin confirmar, y con **la
+    urgencia baja por la misma razón que la decisión 13** tiene sobre
+    `UNIDADES`: el campo es texto libre con sugerencias, así que un periodo que
+    falte no bloquea a nadie — se escribe y se guarda igual, solo no aparece
+    como sugerencia.
+    Candidatos evidentes que NO se añadieron por no suponerlos: `turno`,
+    `jornada`, `semana`, `quincena`, `servicio` (para una tarifa a precio
+    cerrado). No se inventan; se añaden cuando alguien los use de verdad.
+    **La lista vive en `core/periodos.ts`, SEPARADA de `UNIDADES`
+    (`core/unidades.ts`), y eso no se fusiona.** Es el punto que más fácil se
+    rompe por descuido: los dos campos se llaman "Unidad" en pantalla, los dos
+    usan `CampoListaSugerida` y las dos columnas se llaman `unidad`. Pero una
+    mide cantidad física (m, und, kg) y la otra mide tiempo. Añadir "día" a
+    `UNIDADES` o "kg" a `PERIODOS_TARIFARIO` no haría una lista más completa:
+    rompería el vocabulario de las dos pantallas a la vez. La cabecera de
+    `core/periodos.ts` tiene la tabla comparativa.
+    **Cuando el cliente confirme una lista cerrada**, el sitio correcto es un
+    `z.enum` en `modules/tarifario-personal/schema.ts` y —si se confirma del
+    todo— un `pgEnum` construido DESDE ese array, nunca un segundo array
+    literal. Y aplicaría solo a esta tabla, no a las tres de `UNIDADES`.

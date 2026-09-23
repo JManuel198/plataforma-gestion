@@ -189,7 +189,7 @@ esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
 entonces conviven a propósito.
 
 **Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **tres
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **cuatro
 ámbitos en uso**, y que cada uno entrara sin tocar ni la tabla ni la
 migración es la prueba de que la generalización era la correcta:
 
@@ -198,13 +198,17 @@ migración es la prueba de que la generalización era la correcta:
 | `"materiales"` | `MAT.0000001` — prefijo `MAT`, 7 dígitos | `materiales.codigo_interno` (Bloque 12, Parte 3) |
 | `"lista_precios"` | `OFFT.0000001` — prefijo `OFFT`, 7 dígitos | `lista_precios.codigo_oferta` (Bloque 13, Parte 1) |
 | `"servicios"` | `SRV.0000001` — prefijo `SRV.`, 7 dígitos | `servicios.codigo` (Bloque 14, Parte 1) |
+| `"tarifario_personal"` | `PRS.0001` — prefijo `PRS.`, **4 dígitos** (no 7) | `tarifario_personal.codigo` (Bloque 15, Parte 1) |
 
-Los tres son globales y sin año. Cada módulo declara sus propias constantes
-(prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
-`modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts` y
-`modules/servicios/constantes.ts`. Añadir un ámbito nuevo **no exige
-migración**: es una fila más, creada por el propio upsert la primera vez que
-se reserva.
+Los cuatro son globales y sin año. Cada módulo declara sus propias
+constantes (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
+`modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts`,
+`modules/servicios/constantes.ts` y `modules/tarifario-personal/constantes.ts`.
+Añadir un ámbito nuevo **no exige migración**: es una fila más, creada por
+el propio upsert la primera vez que se reserva. El número de dígitos es una
+constante por ámbito, no un valor fijo de la tabla: `tarifario_personal` es
+el primero en usar 4 en vez de 7, y no hay nada en `correlativo` que lo
+impida.
 
 ---
 
@@ -249,16 +253,16 @@ concreto: si `orden_trabajo.responsable` (hoy texto libre) llega a
 convertirse algún día en FK a esta tabla, un DELETE real dejaría referencias
 rotas.
 
-**`cargo` dejará de ser texto libre — forma ya decidida, construcción
-pendiente.** Pasará a ser un campo de **búsqueda con autocompletado** contra
-`tarifario_personal` (ver el borrador más abajo), no un `<select>`
-tradicional: la lista de cargos crecerá y un desplegable plano se vuelve
-inmanejable. Lo que está decidido es esa forma de interacción; lo que NO está
-decidido es el modelo (si `cargo` pasa a ser FK a `tarifario_personal` o sigue
-siendo texto validado contra él). **La construcción de esta conexión queda
-para después de que `tarifario_personal` esté aprobado por el cliente** — hasta
-entonces `cargo` sigue siendo `text` libre, con las consecuencias ya anotadas
-en `preguntas-abiertas.md` (supuesto 3 de Personal).
+**DESCARTADO (2026-09-23): no habrá conexión entre `cargo` y
+`tarifario_personal`.** Esta sección describía un plan —`cargo` pasando a ser
+un campo de búsqueda con autocompletado contra `tarifario_personal`, con el
+modelo exacto (FK o texto validado) todavía por decidir— que quedó sin
+construir a la espera de que `tarifario_personal` se aprobara con el cliente.
+Al aprobarse, el cliente confirmó explícitamente que Personal y el nuevo
+Tarifario de personal **no** deben tener ninguna relación entre sí. No fue un
+olvido ni quedó pendiente: fue una decisión directa del cliente. `cargo` se
+queda como `text` libre, sin catálogo ni autocompletado, con las
+consecuencias ya anotadas en `preguntas-abiertas.md` (supuesto 3 de Personal).
 
 **Índices.** `personal_activo_idx` sobre `activo`, mismo criterio que
 `orden_trabajo_estado_idx`: el listado filtra por `activo` en la consulta por
@@ -725,18 +729,119 @@ no hay caso real hoy que justifique uno.
 **Consume:** `correlativo` (clave `"servicios"`). **Consumida por:**
 `modules/servicios/` (en desarrollo).
 
-## BORRADOR — tarifario_personal
+## Tarifario de personal (catálogo maestro)
 
-Es el catálogo contra el que se autocompletará el `cargo` de Personal (ver esa
-sección más arriba).
+Cuarto catálogo maestro de los cinco que declara el menú (Bloque 11) en tener
+tabla real, después de Materiales, Lista de precios y Servicios. Definida en
+`db/schema/tarifario-personal.ts`, tabla `tarifario_personal`. Construida en
+el Bloque 15, Parte 1 (2026-09-23), consumida por
+`modules/tarifario-personal/` (en desarrollo en paralelo, fuera del alcance
+de este documento).
 
-| Campo | Notas |
-|---|---|
-| cargo | |
-| nivel | **opcional** |
-| costo por día | entero, en **céntimos** (regla 2) |
-| moneda | |
-| activo | baja lógica, nunca borrado (regla 9) |
+**SIN NINGUNA RELACIÓN CON `personal` — descartada explícitamente por el
+cliente el 2026-09-23, no un olvido.** El borrador que esta sección
+reemplaza describía un plan distinto: `cargo` de Personal pasando a ser un
+campo con autocompletado contra este tarifario. El cliente confirmó que las
+dos tablas deben quedar independientes. `cargo` es texto libre en las dos
+tablas — `personal.cargo` y `tarifario_personal.cargo` — sin FK en ninguna
+dirección y sin obligación de coincidir entre sí. Ver la nota en la sección
+Personal (arriba) y la decisión 1 de "Catálogos maestros" en
+`preguntas-abiertas.md`.
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `PRS.0001`, **4 dígitos** (no 7 como `MAT.`/`OFFT.`/`SRV.`), correlativo global sin segmento de año |
+| `cargo` | `text` | no | manual — texto libre, sin catálogo ni relación con `personal.cargo` |
+| `unidad` | `text` | no | manual — **periodo de tiempo** (hora, día, mes, año), no una unidad física (ver abajo) |
+| `costo` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal |
+| `moneda` | `moneda` (enum, compartido con `orden_trabajo`, `lista_precios` y `servicios`) | no | manual |
+| `activo` | `boolean` | sí (`DEFAULT true`) | automático/manual — baja lógica |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**`codigo` usa el correlativo genérico, ámbito `"tarifario_personal"` —
+cuarta clave de esa tabla, y la ÚNICA con 4 dígitos.** Formato `PRS.0001`
+(prefijo `PRS.` + 4 dígitos), reservado atómicamente con la misma técnica que
+`materiales.codigo_interno`, `lista_precios.codigo_oferta` y
+`servicios.codigo`, desde la tabla `correlativo` (ver su ficha más arriba).
+Global, sin segmento de año, igual que las otras tres — la diferencia es
+solo el número de dígitos. `NOT NULL` porque lo pone siempre el backend;
+`UNIQUE` (constraint `tarifario_personal_codigo_unique` en Postgres) como red
+de seguridad del contador, mismo papel que `orden_trabajo.codigo_ot`. La
+tabla de ámbitos de "Correlativo genérico" (arriba) debe incluir esta cuarta
+fila.
+
+**Límite asumido de los 4 dígitos, no un bug.** Con `padStart(4, "0")` el
+orden alfabético de `codigo` coincide con el orden numérico solo hasta
+`PRS.9999`; a partir de `PRS.10000` un listado que ordene por `codigo`
+(texto) daría saltos frente al orden numérico real — el mismo fenómeno que
+ya se documentó para los correlativos de 7 dígitos, solo que aquí el techo
+se alcanza mil veces antes. Se acepta a propósito: un tarifario de cargos no
+se espera que llegue a diez mil filas.
+
+**`unidad` es un PERIODO DE TIEMPO, no una unidad física — no confundir con
+`core/unidades.ts`.** A diferencia de `materiales.unidad`,
+`lista_precios.unidad` y `servicios.unidad` (que son `m`, `und`, `kg`...),
+aquí `unidad` dice con qué periodicidad se cobra el `costo`: hora, día, mes o
+año. Lista fija nueva, `PERIODOS_TARIFARIO`, en `core/periodos.ts` — no
+reutiliza `UNIDADES`. `text` sin CHECK ni ENUM en la base, mismo criterio que
+el resto de catálogos: la restricción (si la hay) vive del lado de la
+aplicación, en `modules/tarifario-personal/`.
+
+**El borrador decía "costo por día"; la tabla lo generaliza en DOS
+columnas.** En vez de fijar la periodicidad en el nombre del campo, `costo` +
+`unidad` permiten que una tarifa sea por hora, día, mes o año según lo que
+diga `unidad` en esa fila. Por eso `costo` a secas no significa nada sin su
+`unidad` — igual que tampoco significa nada sin su `moneda`. `bigint` con
+`mode: "number"`, céntimos, nunca `float` (regla invariable 2), mismo patrón
+que `servicios.precio` y `orden_trabajo.precio`. El límite de negocio
+(equivalente a `PRECIO_MAXIMO_CENTIMOS`) se valida en
+`modules/tarifario-personal/schema.ts`, no en la columna.
+
+**El campo `nivel` del borrador NO se construyó — no es un olvido.** El
+encargo del cliente para esta tabla no lo incluye entre las columnas. Si se
+confirma que hace falta más adelante, es una columna nueva y una migración
+aparte, no algo que ya esté aquí sin usar.
+
+**`activo` entró en la primera migración aunque la acción de inactivar
+llegara en la Parte 2** (misma fecha) — mismo criterio explícito que
+`lista_precios.activo` ("para no requerir una segunda migración solo por
+esto"), y al revés que `servicios`, que no tiene esta columna todavía (ahí
+sigue siendo pregunta abierta). Baja lógica, nunca borrado — regla invariable
+9.
+
+**Desde la Parte 2 la columna ya se escribe**, con `cambiarActivoTarifa`
+(`modules/tarifario-personal/actions.ts`): una Server Action propia y mínima
+que solo toca esta columna, invocada desde el icono de inactivar del listado
+con un `alert-dialog` de confirmación delante. Reactivar no se confirma —no
+destruye ni esconde nada—. El listado filtra por esta columna alternando entre
+dos vistas excluyentes (`eq(activo, inactivos ? false : true)`), y el filtro
+«Ver solo inactivos» es lo que permite volver a verlas y reactivarlas: sin él,
+inactivar sería irreversible de cara al usuario aunque no lo sea en la base.
+Mismo mecanismo, y mismas palabras, que en Materiales y Lista de precios.
+
+**Obligatoriedad, mismo criterio que los otros tres catálogos.** `cargo`,
+`unidad`, `costo` y `moneda` quedan nullable en la columna: el Zod de
+`modules/tarifario-personal/schema.ts` puede ser más estricto que la tabla,
+nunca al revés. Solo `codigo`, `activo` y las columnas de auditoría son
+`NOT NULL`.
+
+**Índice.** `tarifario_personal_activo_idx` sobre `activo`, mismo criterio
+que `materiales_activo_idx` y `lista_precios_activo_idx`: el listado filtra
+por `activo` en la consulta por defecto desde la Parte 1, y desde la Parte 2
+también en la vista contraria.
+
+**Buscador (Parte 2).** El listado busca sobre `codigo`, `cargo` y `unidad`
+—las TRES columnas de texto, ninguna fuera—, con `ILIKE` resuelto en la
+consulta. A diferencia de Materiales y Lista de precios, que excluyen su
+`unidad` por ser un puñado de valores repetidos, aquí sí entra: la tabla solo
+tiene tres columnas de texto, y `unidad` discrimina de verdad por ser un
+periodo de tiempo («¿qué cargos tengo tarifados por mes?»). `costo` y `moneda`
+quedan fuera, mismo criterio que en el resto de catálogos.
+
+**Consume:** `correlativo` (clave `"tarifario_personal"`). **Consumida
+por:** `modules/tarifario-personal/` (en desarrollo). **Sin relación con
+`personal`** (ver arriba).
 
 ## EPPs
 

@@ -484,9 +484,11 @@ tercera vez que ese patrón iba a copiarse en este repositorio — ver
 ### El tercero: `CampoListaSugerida` (lista fija, en memoria)
 
 `core/components/campo-lista-sugerida.tsx`. Es el caso de `unidad` en
-Materiales y en Lista de precios: un input de texto que al enfocarse o al
-hacer clic despliega una lista fija (`UNIDADES`, en `core/unidades.ts`) y la
-filtra en vivo mientras se teclea.
+Materiales, Lista de precios y Servicios: un input de texto que al enfocarse o
+al hacer clic despliega una lista fija (`UNIDADES`, en `core/unidades.ts`) y la
+filtra en vivo mientras se teclea. **También es el caso de `unidad` en el
+Tarifario de personal, pero con OTRA lista** — ver el aviso al final de este
+apartado.
 
 **NO lo fusiones con `CampoConSugerencias` por parecido superficial** — es la
 confusión que este apartado existe para evitar. En pantalla son casi lo
@@ -535,6 +537,35 @@ Detalles suyos que parecen de más y no lo son:
 - **La lista no valida nada.** Si algún día hay que cerrar el conjunto, el
   sitio es el Zod del módulo y un `CHECK` en la columna — una comprobación
   que solo viva en el cliente no es una comprobación (regla 1 de AGENTS.md).
+
+**OJO: hay DOS campos "Unidad" en el proyecto y NO son la misma lista**
+(Bloque 15, 2026-09-23). Es la confusión más fácil de cometer aquí, porque
+todo lo visible coincide: el mismo componente, la misma etiqueta "Unidad", la
+misma columna `unidad` y el mismo trato de texto libre.
+
+| | Materiales, Lista de precios, Servicios | Tarifario de personal |
+|---|---|---|
+| Constante | `UNIDADES` | `PERIODOS_TARIFARIO` |
+| Archivo | `core/unidades.ts` | `core/periodos.ts` |
+| Qué mide | cantidad física | tiempo |
+| Valores | m, und, pzs, cja, kg, lt, gal | hora, día, mes, año |
+| Qué responde | "¿en qué se mide esta cosa?" | "¿por cuánto tiempo es este costo?" |
+
+Viven en archivos separados justamente para que el `import` sea lo que las
+distinga. **Nunca añadas un periodo a `UNIDADES` ni una unidad física a
+`PERIODOS_TARIFARIO`**: no harías una lista más completa, romperías el
+vocabulario de las dos pantallas a la vez. Si un catálogo nuevo necesita una
+tercera lista, es un archivo más en `core/`, no un valor colado en una de
+estas dos.
+
+**El Tarifario es además el primer módulo que monta los DOS componentes de
+sugerencias juntos**, uno al lado del otro en el mismo modal:
+`CampoConSugerencias` para `cargo` (sale de un `SELECT DISTINCT` sobre la
+propia tabla — no hay catálogo de cargos, igual que no hay tabla de
+proveedores) y `CampoListaSugerida` para `unidad`. Se parecen en pantalla y no
+son intercambiables: la regla de arriba —**la fuente de los datos decide el
+componente, no su aspecto**— es exactamente lo que separa a esos dos campos.
+Ver `modules/tarifario-personal/components/campos-tarifa.tsx`.
 
 **`unidad` es texto libre en los dos catálogos, y es una decisión, no un
 descuido** (2026-09-22). Antes Lista de precios la restringía con
@@ -586,6 +617,18 @@ buscador de tabla, filtro «Ver solo inactivas», inactivar con `alert-dialog`
 y fila clicable. Sirve de segundo ejemplo de que el patrón se importa sin
 retocarlo — lo único propio suyo es qué columnas busca y que el texto del
 diálogo habla de "la lista de precios vigente" en vez de "el catálogo".
+
+**Tarifario de personal es el tercero que lo hereda entero** (Bloque 15, Parte
+2, 2026-09-23): buscador de tabla, filtro «Ver solo inactivos» con esa etiqueta
+exacta, inactivar con `alert-dialog` y fila clicable. Confirma que el patrón se
+importa sin retocarlo — lo propio suyo es qué columnas busca (`codigo`, `cargo`
+y `unidad`, las tres de texto) y que el diálogo habla de "el tarifario" en vez
+de "el catálogo". Tiene además un detalle que no se ve en los otros y conviene
+conocer antes de copiarlo: **el buscador de la tabla filtra por `activo` y el
+buscador del modal NO**, deliberadamente — el cargo de una tarifa inactivada
+sigue siendo un cargo real que se usó, así que esconderlo de las sugerencias
+provocaría el tecleo divergente que esas sugerencias vienen a evitar. Mismo
+criterio que `buscarProveedores` en Lista de precios.
 
 **OJO: dos de las reglas de abajo —"dos iconos por fila" y "el botón de
 inactivar obliga a tener el filtro Ver solo inactivos"— presuponen que el

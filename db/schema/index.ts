@@ -7,3 +7,4 @@ export * from "./material-caracteristicas";
 export * from "./correlativo";
 export * from "./lista-precios";
 export * from "./servicios";
+export * from "./tarifario-personal";
