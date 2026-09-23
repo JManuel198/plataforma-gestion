@@ -20,9 +20,11 @@ pérdida de datos real. Todo lo que describía esta sección ahora vive en
 **Orden de Trabajo**, abajo. `modules/servicios/` y las rutas
 `app/(protegido)/servicios/**` también se retiraron por completo.
 Ojo al leer esto hoy: la ruta `/servicios` volvió a existir en el Bloque 11
-(2026-09-21), pero para el **catálogo maestro de servicios**, que no es esta
-entidad. Es una pantalla "próximamente" sin modelo definido — ver
-"Catálogos maestros" en `preguntas-abiertas.md`.
+(2026-09-21), y `modules/servicios/` en el Bloque 14 (2026-09-23), pero para
+el **catálogo maestro de servicios**, que no es esta entidad. Ese catálogo
+tiene hoy tabla propia (`servicios`) y pantalla con crear, ver, editar,
+buscador y filtro de categoría — ver **Servicios (catálogo maestro)** más
+abajo.
 
 ---
 

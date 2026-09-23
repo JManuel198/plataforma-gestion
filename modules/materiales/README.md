@@ -2,7 +2,9 @@
 
 Primer catálogo maestro construido de los cinco que declara el menú
 (Materiales, Lista de precios, Servicios, Tarifario de personal, EPPs).
-Los otros cuatro siguen siendo pantallas "próximamente".
+Los otros cuatro ya están construidos también, cada uno en su propio
+módulo: `modules/lista-precios/`, `modules/servicios/`,
+`modules/tarifario-personal/` y `modules/epps/`.
 
 **La mayoría de sus campos sigue sin confirmar con el cliente** — ver
 `docs/spec/entidades.md` y la sección "Catálogos maestros" de
