@@ -189,7 +189,7 @@ esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
 entonces conviven a propósito.
 
 **Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **cuatro
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **cinco
 ámbitos en uso**, y que cada uno entrara sin tocar ni la tabla ni la
 migración es la prueba de que la generalización era la correcta:
 
@@ -199,16 +199,18 @@ migración es la prueba de que la generalización era la correcta:
 | `"lista_precios"` | `OFFT.0000001` — prefijo `OFFT`, 7 dígitos | `lista_precios.codigo_oferta` (Bloque 13, Parte 1) |
 | `"servicios"` | `SRV.0000001` — prefijo `SRV.`, 7 dígitos | `servicios.codigo` (Bloque 14, Parte 1) |
 | `"tarifario_personal"` | `PRS.0001` — prefijo `PRS.`, **4 dígitos** (no 7) | `tarifario_personal.codigo` (Bloque 15, Parte 1) |
+| `"epps"` | `EPP.000001` — prefijo `EPP.`, **6 dígitos** (ni 7 ni 4) | `epps.codigo` (Bloque 16, Parte 1) |
 
-Los cuatro son globales y sin año. Cada módulo declara sus propias
+Los cinco son globales y sin año. Cada módulo declara sus propias
 constantes (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
 `modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts`,
-`modules/servicios/constantes.ts` y `modules/tarifario-personal/constantes.ts`.
-Añadir un ámbito nuevo **no exige migración**: es una fila más, creada por
-el propio upsert la primera vez que se reserva. El número de dígitos es una
-constante por ámbito, no un valor fijo de la tabla: `tarifario_personal` es
-el primero en usar 4 en vez de 7, y no hay nada en `correlativo` que lo
-impida.
+`modules/servicios/constantes.ts`, `modules/tarifario-personal/constantes.ts`
+y `modules/epps/constantes.ts`. Añadir un ámbito nuevo **no exige
+migración**: es una fila más, creada por el propio upsert la primera vez que
+se reserva. El número de dígitos es una constante por ámbito, no un valor
+fijo de la tabla: `tarifario_personal` fue el primero en usar 4 en vez de 7,
+`epps` usa 6, y no hay nada en `correlativo` que impida un cuarto ancho
+distinto si hiciera falta.
 
 ---
 
@@ -621,19 +623,24 @@ para listar rápido las características de un material dado.
 
 # BORRADOR — Catálogos maestros (no confirmado con el cliente)
 
-**Todo lo que sigue es un borrador temporal**, dicho así explícitamente por el
-desarrollador: son los campos tal como se han esbozado hasta el Bloque 11
-(2026-09-21), **no una especificación cerrada ni confirmada con el cliente**.
-De los cinco catálogos maestros del menú, **Materiales y Lista de precios ya
-tienen tabla real** (ver las entidades correspondientes más arriba); los
-otros tres —Servicios, Tarifario de personal y EPPs— siguen sin tabla en
-`db/schema/`, y sus rutas (`/servicios`, `/tarifario-personal`, `/epps`)
-muestran una pantalla "próximamente".
+**Todo lo que sigue describía, hasta el Bloque 11 (2026-09-21), un borrador
+temporal sin tabla real.** Con el Bloque 16, Parte 1 (2026-09-23), los
+**cinco** catálogos maestros del menú —Materiales, Lista de precios,
+Servicios, Tarifario de personal y EPPs— **ya tienen tabla real** en
+`db/schema/` (Materiales y Lista de precios más arriba, fuera de esta
+sección; Servicios, Tarifario de personal y EPPs abajo, como fichas
+completas dentro de ella); ninguna ruta del menú muestra ya una pantalla
+"próximamente" por falta de esquema. Varios campos y reglas de negocio de
+estos catálogos siguen sin confirmar con el cliente, y esas dudas concretas
+siguen abiertas en `preguntas-abiertas.md` (sección "Catálogos maestros") —
+lo que cambió aquí es que dejaron de ser un borrador sin tabla para ser
+columnas reales con tipo y obligatoriedad decididos, exactamente el mismo
+tránsito que ya documentaba la ficha de Materiales más arriba.
 
 A diferencia del resto de este documento, que refleja lo que existe de verdad
-en `db/schema/`, esta sección va por delante del código. **No generes
-migraciones a partir de esto sin confirmarlo antes.** Las dudas abiertas de
-cada catálogo están en `preguntas-abiertas.md`, sección "Catálogos maestros".
+en `db/schema/`, lo que quede de borrador en las fichas de abajo (si algo
+todavía difiere de la tabla real) va por delante del código. **No generes
+migraciones a partir de un borrador sin confirmarlo antes.**
 
 Los tipos concretos (`text`, `bigint`, enum…) se deciden al construir cada
 tabla; aquí solo está la lista de campos. Dos reglas del proyecto ya aplican
@@ -843,7 +850,107 @@ quedan fuera, mismo criterio que en el resto de catálogos.
 por:** `modules/tarifario-personal/` (en desarrollo). **Sin relación con
 `personal`** (ver arriba).
 
-## EPPs
+## EPPs (catálogo maestro)
 
-Sin campos definidos todavía. Registrado en `preguntas-abiertas.md`; no se
-esboza aquí para no inventar un modelo que nadie ha propuesto.
+Quinto y último catálogo maestro de los cinco que declara el menú (Bloque
+11) en tener tabla real, después de Materiales, Lista de precios, Servicios
+y Tarifario de personal. Definida en `db/schema/epps.ts`, tabla `epps`.
+Construida en el Bloque 16, Parte 1 (2026-09-23), consumida por
+`modules/epps/` (en desarrollo en paralelo, fuera del alcance de este
+documento).
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `EPP.000001`, **6 dígitos** (ni 7 como `MAT.`/`OFFT.`/`SRV.` ni 4 como `PRS.`), correlativo global sin segmento de año |
+| `descripcion` | `text` | no | manual |
+| `unidad` | `text` | no | manual — unidad de medida **física**, texto libre con sugerencias (ver abajo) |
+| `precio` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal; **directo, no derivado** |
+| `moneda` | `moneda` (enum, compartido con `orden_trabajo`, `lista_precios`, `servicios` y `tarifario_personal`) | no | manual |
+| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+
+**`codigo` usa el correlativo genérico, ámbito `"epps"` — quinta y última
+clave de esa tabla, y la única con 6 dígitos.** Formato `EPP.000001`
+(prefijo `EPP.` + 6 dígitos), reservado atómicamente con la misma técnica
+que los otros cuatro catálogos, desde la tabla `correlativo` (ver su ficha
+más arriba). Global, sin segmento de año, igual que los demás — la
+diferencia es solo el número de dígitos: ni 7 (`MAT.`/`OFFT.`/`SRV.`) ni 4
+(`PRS.`). `NOT NULL` porque lo pone siempre el backend; `UNIQUE`
+(`epps_codigo_unique` en Postgres) como red de seguridad del contador,
+mismo papel que `orden_trabajo.codigo_ot`. La tabla de ámbitos de
+"Correlativo genérico" (arriba) ya incluye esta quinta fila. El formateo y
+las constantes (prefijo, dígitos, inicial, clave) viven en
+`modules/epps/constantes.ts`, no en el esquema.
+
+**Límite asumido de los 6 dígitos, no un bug** — mismo fenómeno ya
+documentado para los otros anchos: con `padStart(6, "0")` el orden
+alfabético de `codigo` coincide con el orden numérico solo hasta
+`EPP.999999`; a partir de `EPP.1000000` un listado que ordene por `codigo`
+(texto) daría saltos frente al orden numérico real. Se acepta a propósito:
+un catálogo de EPPs no se espera que llegue a un millón de filas.
+
+**`unidad` es la unidad de medida FÍSICA, la misma lista que Materiales,
+Lista de precios y Servicios — NO la confundir con el periodo de tiempo de
+`tarifario_personal.unidad`.** Texto libre con sugerencias de
+`core/unidades.ts` (m, und, pzs, cja, kg, lt, gal), sin CHECK ni `pgEnum` en
+la base. Las cuatro tablas comparten nombre de columna y la misma lista de
+sugerencias; solo `tarifario_personal.unidad` rompe el patrón (hora/día/
+mes/año, `core/periodos.ts`) — es la confusión fácil al copiar el esquema
+del catálogo de al lado, y por eso queda anotada aquí explícitamente igual
+que en el comentario de `db/schema/epps.ts`.
+
+**`precio` es un campo directo, no derivado — mismo criterio que
+`servicios.precio` y `tarifario_personal.costo`, al contrario que
+`lista_precios.precio`** (que se calcula de `precio_lista × (1 − descuento
+/ 100)`, ver esa ficha arriba). Esta tabla no tiene `precio_lista` ni
+`descuento`: no hay nada de lo que derivar un precio, así que `precio` es
+simplemente el importe capturado. `bigint` con `mode: "number"` en Drizzle,
+céntimos, nunca `float` (regla invariable 2). El límite de negocio
+(equivalente a `PRECIO_MAXIMO_CENTIMOS`) se valida en
+`modules/epps/schema.ts`, no en la columna.
+
+**SIN columna `activo` — encargo explícito, no pregunta abierta.** Es el
+segundo catálogo sin esta columna después de `servicios`, pero por un
+motivo distinto que conviene no confundir: en Servicios la ausencia sigue
+siendo pregunta abierta (inactivar/reactivar no está confirmado con el
+cliente, decisión pendiente en `preguntas-abiertas.md`); aquí el encargo
+dijo directamente que no aplica a este catálogo. El resultado en la tabla
+es el mismo —ninguna de las dos tiene la columna, ninguna cumple hoy la
+regla invariable 9 por ausencia de mecanismo—, pero mientras Servicios
+podría ganarla el día que se confirme la respuesta, EPPs no la lleva porque
+ya se decidió que no corresponde. Si eso cambiara más adelante, el camino
+es una migración nueva con `activo boolean DEFAULT true NOT NULL`, mismo
+patrón que el resto de tablas.
+
+**Obligatoriedad, mismo criterio que los otros cuatro catálogos.**
+`descripcion`, `unidad`, `precio` y `moneda` quedan nullable en la columna:
+el Zod de `modules/epps/schema.ts` puede ser más estricto que la tabla,
+nunca al revés. Solo `codigo` y las columnas de auditoría son `NOT NULL`.
+
+**Sin índices.** No hay columna `activo` que filtrar en el listado por
+defecto ni ninguna FK que sostenga un JOIN. El buscador de la Parte 2 (ver
+abajo) hace `ILIKE '%…%'` sobre tres columnas de texto, que es un barrido
+secuencial: un índice B-tree normal no lo acelera —solo serviría uno de
+trigramas (`pg_trgm`), que exige una extensión— y a la escala de un catálogo
+de EPPs no hace falta. Mismo criterio que el resto de los catálogos, ninguno
+de los cuales indexa su buscador.
+
+**Buscador (Parte 2, misma fecha).** El listado busca sobre `codigo`,
+`descripcion` y `unidad` —las TRES columnas de texto, ninguna fuera—, con
+`ILIKE` resuelto en la consulta y el texto escapado por `patronParcial`
+(`core/busqueda.ts`). Misma decisión que en Servicios y Tarifario, y por el
+mismo motivo: con solo tres columnas de texto, excluir una dejaría el
+buscador cubriendo dos tercios del vocabulario. `precio` y `moneda` quedan
+fuera, igual que en el resto de catálogos. **Es el único filtro del
+listado**: sin «Ver solo inactivos» (no hay columna `activo`) y sin filtro de
+lista cerrada (no hay ninguna columna de ese tipo), lo que lo convierte en el
+listado más simple del proyecto.
+
+**Consume:** `correlativo` (clave `"epps"`). **Consumida por:**
+`modules/epps/`.
+
+Con esta tabla, los cinco catálogos maestros del menú del Bloque 11
+—Materiales, Lista de precios, Servicios, Tarifario de personal y EPPs—
+tienen ya tabla real en `db/schema/`. Ninguno queda pendiente de esquema;
+lo que sigue pendiente en cada uno son las preguntas de negocio concretas
+ya registradas en `preguntas-abiertas.md`, no la existencia de la tabla.

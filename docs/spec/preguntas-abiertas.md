@@ -263,22 +263,24 @@ nada detrás de ninguno: ni tabla, ni schema, ni regla de negocio. Se
 registraron aquí porque los cinco nombres entraban al vocabulario del sistema
 sin estar en `entidades.md`.
 
-**Actualización (2026-09-23): cuatro de los cinco ya están construidos.**
-Materiales (Bloque 12), Lista de precios (Bloque 13), Servicios (Bloque 14) y
-Tarifario de personal (Bloque 15) tienen tabla real y ficha propia en
-`entidades.md`, y ninguna de sus pantallas es ya un placeholder. **EPPs es el
-único que sigue exactamente como se escribió esto**: sin tabla, sin schema y
-sin regla de negocio (decisión 6). Las dudas de abajo se han ido cerrando por
-bloques — lo que queda abierto lo dice cada punto.
+**Actualización (2026-09-23): los CINCO ya están construidos.** Materiales
+(Bloque 12), Lista de precios (Bloque 13), Servicios (Bloque 14), Tarifario de
+personal (Bloque 15) y EPPs (Bloque 16) tienen tabla real y ficha propia en
+`entidades.md`, y **ninguna de las cinco pantallas es ya un placeholder** —
+`components/pantalla-proximamente.tsx` ya no se usa en ninguna de estas rutas.
+Con EPPs cae el último punto que quedaba sin modelo (decisión 6, cerrada). Las
+dudas de abajo se han ido cerrando por bloques — lo que queda abierto lo dice
+cada punto.
 
-1. ~~**Cuatro de los cinco siguen sin modelo definido**~~ **SOLO QUEDA EPPs
-   (2026-09-23).** Los otros cuatro ya tienen tabla real y ficha en
-   `entidades.md`: Materiales (Bloque 12), Lista de precios (Bloque 13),
-   Servicios (Bloque 14) y Tarifario de personal (Bloque 15). Ninguna de sus
-   pantallas es ya un placeholder. La regla que este punto fijaba **sigue
-   valiendo para EPPs y para lo que venga**: antes de construirlo hay que
-   documentar el modelo en `entidades.md`; mientras tanto su pantalla es un
-   placeholder y no decide nada.
+1. ~~**Cuatro de los cinco siguen sin modelo definido**~~ ~~**SOLO QUEDA
+   EPPs**~~ **NINGUNO: los cinco están construidos (2026-09-23).** Todos
+   tienen tabla real y ficha en `entidades.md`: Materiales (Bloque 12), Lista
+   de precios (Bloque 13), Servicios (Bloque 14), Tarifario de personal
+   (Bloque 15) y EPPs (Bloque 16). Ninguna de sus pantallas es ya un
+   placeholder. La regla que este punto fijaba **sigue valiendo para lo que
+   venga**: antes de construir un catálogo hay que documentar el modelo en
+   `entidades.md`; mientras tanto su pantalla es un placeholder y no decide
+   nada.
    Lo que este punto daba por indefinido y ya se resolvió: si la lista de
    precios era una tabla o varias versionadas (es una, ver decisiones 3 y 4).
    **¿Cómo se relaciona el tarifario con `personal`? — DESCARTADO (2026-09-23):
@@ -333,10 +335,22 @@ bloques — lo que queda abierto lo dice cada punto.
    presupuestar (dónde se guarda —Vercel Blob, S3, otro—, límites de
    tamaño, permisos de acceso, qué pasa al borrar la fila). Preguntar esto
    antes de construir el catálogo de Servicios, no después.
-6. **Campos del catálogo de EPPs: no definidos todavía.** Es el único de
-   los cinco del que no hay ni borrador. Por eso no aparece en
-   `entidades.md`: no se esboza un modelo que nadie ha propuesto. La
-   pantalla existe en el menú y dice "próximamente".
+6. ~~**Campos del catálogo de EPPs: no definidos todavía.**~~ **RESUELTO
+   (Bloque 16, Parte 1, 2026-09-23).** Era el único de los cinco del que no
+   había ni borrador, y por eso este punto decía que no se esbozara un modelo
+   que nadie había propuesto. El cliente lo propuso: `codigo` (autogenerado,
+   `EPP.000001`, seis dígitos), `descripcion`, `unidad`, `precio` y `moneda`.
+   La tabla existe en `db/schema/epps.ts` y su ficha completa está en
+   `entidades.md`; la pantalla `/epps` ya no dice "próximamente".
+   **Dos cosas quedaron decididas y conviene no releerlas como omisiones:**
+   `unidad` es la lista FÍSICA de `core/unidades.ts` (m, und, pzs…), no la de
+   periodos del Tarifario — las dos columnas se llaman igual y son `text`, así
+   que nada en el tipo avisa de la confusión; y **no hay columna `activo`
+   porque el encargo dice que la baja lógica no aplica a este catálogo**, que
+   NO es el caso de Servicios (decisión 16), donde la columna falta por estar
+   sin confirmar. Mismo resultado en la tabla, motivo distinto: si alguna vez
+   se pide dar de baja un EPP, eso es una decisión nueva del cliente, no el
+   desbloqueo de una pregunta que quedara abierta aquí.
 7. **La ruta `/servicios` se reutiliza para un concepto distinto del que
    tenía.** `entidades.md` documenta que al fusionar Servicio en OT
    (2026-09-19) se retiraron `modules/servicios/` y las rutas

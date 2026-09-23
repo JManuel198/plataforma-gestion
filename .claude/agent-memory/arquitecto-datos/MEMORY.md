@@ -12,3 +12,4 @@
 - [unidad texto libre unificado](unidad_texto_libre_unificado.md) — (2026-09-22) sin CHECK/ENUM en Neon, restricción vivía solo en Zod; sin migración; UNIDADES→core/unidades.ts (+"gal")
 - [Tabla servicios](servicios_tabla.md) — (2026-09-23) precio directo NO derivado (a diferencia de lista_precios); categoria text no enum; sin activo (pregunta abierta); tercer ámbito "servicios" del correlativo genérico (SRV.); migración 0013 aplicada a Neon
 - [Tabla tarifario_personal](tarifario_personal_tabla.md) — (2026-09-23) cuarto catálogo; correlativo PRS. de 4 dígitos (no 7); unidad=periodo de tiempo no física; activo sí; sin FK a personal (descartado por cliente); migración 0014 aplicada
+- [Tabla epps](epps_tabla.md) — (2026-09-23) quinto y último catálogo; correlativo EPP. de 6 dígitos; unidad física (no periodo, ojo con tarifario); sin activo por encargo explícito (no pregunta abierta, a diferencia de servicios); migración 0015 aplicada

@@ -83,4 +83,25 @@ futuros que toquen dinero o Server Actions:
     lógica propia donde el síntoma de una divergencia sería visible al tocar
     el filtro. Útil como criterio para no exigir de más en una futura auditoría.
 
+- **EPPs (Bloque 16, Parte 1, auditado 2026-09-23 — sin hallazgos).** Quinto y
+  último catálogo maestro del menú (cierra Materiales, Lista de precios,
+  Servicios, Tarifario de personal, EPPs). Copiado explícitamente del patrón
+  de Servicios (catálogo sin columna `activo`) y sin desviaciones: `codigo`
+  fuera del FormData y del Zod tanto en crear como en editar, `esUniqueViolado`
+  con el nombre real del constraint (`epps_codigo_unique`, verificado contra
+  el `CREATE TABLE` de la migración generada), fila clicable con el modal
+  entero dentro de `SinPropagacion`, `PATRON_PRECIO` (12 enteros + 2
+  decimales) cuadrando exactamente con `PRECIO_MAXIMO_CENTIMOS`
+  (99_999_999_999_999 = 14 nueves), sin imports cruzados entre módulos. La
+  única variación real frente a los hermanos es el ancho del correlativo (6
+  dígitos, ni 7 ni 4) y que `unidad` es la lista física de `core/unidades.ts`
+  y no la de periodos de `core/periodos.ts` del Tarifario — ambas diferencias
+  están documentadas en tres sitios a la vez (comentario de schema/columna,
+  README del módulo, SKILL.md) sin contradecirse entre sí.
+  Con este bloque los cinco catálogos maestros del menú tienen ya tabla real;
+  útil como referencia de que el patrón de "catálogo sin `activo`" (Servicios
+  primero, EPPs segundo) es ahora el segundo caso, no una excepción de una
+  sola vez — al auditar un sexto catálogo futuro sin `activo`, comparar contra
+  estos dos en vez de tratarlo como algo nuevo.
+
 Ver también [[proyecto-verificacion-tecnica]].

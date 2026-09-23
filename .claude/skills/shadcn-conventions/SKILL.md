@@ -280,14 +280,18 @@ comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
 Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
 lo usan varios módulos y ninguno puede importar de otro.
 
-Aplicado ya en los cuatro listados que existen, y en este orden por dificultad:
+Aplicado ya en los siete listados que existen, y en este orden por dificultad
+(los dos últimos son los fáciles: un solo control en la fila):
 
 | Listado | Fila | Vista | Modal | Lo interactivo de la fila |
 | --- | --- | --- | --- | --- |
 | Materiales | `fila-material.tsx` | `vista-material.tsx` | `dialogo-material.tsx` | lápiz + equis (+ su `alert-dialog`) |
 | Lista de precios | `fila-lista-precio.tsx` | `vista-lista-precio.tsx` | `dialogo-lista-precio.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesPrecio` |
+| Tarifario de personal | `fila-tarifa.tsx` | `vista-tarifa.tsx` | `dialogo-tarifa.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesTarifa` |
 | Personal | `fila-persona.tsx` | `vista-persona.tsx` | `dialogo-persona.tsx` | "Editar" + `BotonBaja` (+ su `alert-dialog`) |
 | Órdenes de Trabajo | `fila-orden-trabajo.tsx` | `vista-orden-trabajo.tsx` | `dialogo-orden-trabajo.tsx` | **`SelectorEstadoFila`** (+ su desplegable y su `alert-dialog`) + lápiz |
+| Servicios | `fila-servicio.tsx` | `vista-servicio.tsx` | `dialogo-servicio.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
+| EPPs | `fila-epp.tsx` | `vista-epp.tsx` | `dialogo-epp.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
 
 La máquina de estados se importa, nunca se copia.
 
@@ -634,6 +638,28 @@ sigue siendo un cargo real que se usó, así que esconderlo de las sugerencias
 provocaría el tecleo divergente que esas sugerencias vienen a evitar. Mismo
 criterio que `buscarProveedores` en Lista de precios.
 
+**EPPs cierra los cinco** (Bloque 16, Parte 1, 2026-09-23): con él ninguna de
+las cinco rutas del menú es ya un placeholder. Hereda la fila clicable y el modal
+de tres modos, y **se parece a Servicios en la forma pero no en el motivo** — lo
+propio suyo es que su correlativo usa **6 dígitos** (`EPP.000001`; los otros usan
+7 o 4, y la tabla `correlativo` no impone ninguno) y que **su `unidad` es la
+lista física de `core/unidades.ts`, no la de periodos de `core/periodos.ts`** que
+usa el Tarifario en su campo del mismo nombre. Las dos columnas se llaman
+`unidad` y las dos son `text`: nada en el tipo avisa de la confusión, así que al
+copiar del catálogo de al lado hay que mirar de cuál se copia.
+
+Su **Parte 2** (misma fecha) añadió el buscador sobre `codigo`, `descripcion` y
+`unidad`, y deja el ejemplo más limpio de la regla del hook: **EPPs es el
+séptimo listado que usa `useFiltrosListado` y el primero que nace con él ya en
+`core/`**, así que no tiene —ni debe tener— un `components/use-filtros.ts`
+propio. Lo del módulo es `FiltrosEpps` y `urlListado` en su `filtros.ts`, que es
+lo que el hook recibe como segundo argumento. Es además **el listado más simple
+del proyecto: un solo filtro**, sin «Ver solo inactivos» (no hay columna
+`activo`) y sin filtro de lista cerrada (no hay columna de ese tipo). Aun con un
+único filtro conserva su `urlListado` en vez de escribir la URL a mano en el
+buscador — ahorrarlo hoy obligaría a reescribir el control el día que entre un
+segundo filtro, que es justo lo que `urlListado` evita en los otros seis.
+
 **OJO: dos de las reglas de abajo —"dos iconos por fila" y "el botón de
 inactivar obliga a tener el filtro Ver solo inactivos"— presuponen que el
 catálogo tiene columna `activo`, y no todos la tienen.** Cuando se escribieron,
@@ -643,12 +669,17 @@ confirmado para ese catálogo y la columna no se creó, así que su fila lleva *
 solo icono** (el lápiz, inline en `fila-servicio.tsx`, sin `acciones-*.tsx`
 propio porque un archivo para un botón es ceremonia) y **no tiene filtro de
 inactivos** — no porque falte, sino porque no hay nada que filtrar. Lo mismo vale
-para su `vista-*.tsx`, que no pinta el dato "Situación". Si construyes un
-catálogo nuevo copiando de Servicios, no busques lo que no está; si lo copias de
-Materiales o de Lista de precios y tu catálogo **sí** tiene `activo`, las dos
-reglas aplican enteras. El porqué de que Servicios no la tenga está en la
-decisión 16 de "Catálogos maestros" en `docs/spec/preguntas-abiertas.md`, junto
-con lo que habría que añadir el día que se confirme.
+para su `vista-*.tsx`, que no pinta el dato "Situación". **EPPs (Bloque 16) es el
+segundo sin `activo`** y se comporta igual —un solo icono, sin filtro, sin
+"Situación"—, pero por un motivo distinto que conviene no fundir con el
+anterior: en Servicios la columna falta porque inactivar está **sin confirmar**
+con el cliente (decisión 16, podría llegar); en EPPs el encargo dice que la baja
+lógica **no aplica**. Mismo resultado en pantalla, decisión distinta detrás. Si
+construyes un catálogo nuevo copiando de cualquiera de los dos, no busques lo que
+no está; si lo copias de Materiales, Lista de precios o Tarifario y tu catálogo
+**sí** tiene `activo`, las dos reglas aplican enteras. El porqué de cada caso
+está en las decisiones 6 (EPPs) y 16 (Servicios) de "Catálogos maestros" en
+`docs/spec/preguntas-abiertas.md`.
 
 - **Dos iconos de acción por fila, no tres** —con `activo`; sin él, solo el
   lápiz (ver el aviso de arriba). Lápiz (`PencilIcon`) para editar y equis
