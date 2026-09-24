@@ -20,14 +20,25 @@ futuros que toquen dinero o Server Actions:
   `montoSchema`. Si aparece un módulo nuevo con montos (cotizaciones,
   proyectos), comparar contra este patrón en vez de aceptar
   `Number(x) * 100`.
-- **Server Actions con sesión re-verificada dentro de la función**: en
-  `modules/ordenes-trabajo/actions.ts` hay un `exigirSesion()` que se llama al
-  inicio de cada action, con el comentario explícito de que una Server
-  Action se puede invocar por POST directo sin pasar por el layout. Este es
-  el patrón esperado en todo módulo nuevo — si una action nueva confía solo
-  en que el layout protegió la ruta, es un hallazgo CRÍTICO real (no
-  hipotético: layout.tsx en este proyecto protege el render de página, no
-  las actions).
+- **Server Actions con sesión re-verificada dentro de la función**: la
+  implementación vive ahora en `core/sesion.ts` (`exigirSesion()`, sin
+  `"use server"` en el archivo, así que no se expone como Server Action
+  invocable). Hasta el 2026-09-24 había siete copias byte-idénticas, una por
+  módulo (`ordenes-trabajo`, `personal`, `materiales`, `lista-precios`,
+  `servicios`, `tarifario-personal`, `epps`); se consolidaron ese día tras
+  comprobar que las siete coincidían exactamente con la de `core/`, en la
+  misma línea que `patronParcial`/`esUniqueViolado`/`useFiltrosListado`
+  (deuda técnica de AGENTS.md: a la tercera copia se sube a core/). Cada
+  módulo llama `await exigirSesion()` como primera línea de cada action,
+  siempre FUERA del `try` (o delegado a un ayudante —`guardarOtNueva`/
+  `guardarOtExistente` en OT— que también lo llama fuera de su propio
+  `try`), porque `redirect()` lanza un `NEXT_REDIRECT` que un `try`
+  envolvente se tragaría. Este es el patrón esperado en todo módulo nuevo —
+  si una action nueva confía solo en que el layout protegió la ruta, es un
+  hallazgo CRÍTICO real (no hipotético: layout.tsx en este proyecto protege
+  el render de página, no las actions). Verificar contra el repo real si
+  aparece una octava copia local antes de asumir que ya todo importa de
+  `core/`.
 
 - **Cambio de estado desde el listado sin control de transición**: en
   `actualizarEstadoOrdenTrabajo` (`modules/ordenes-trabajo/actions.ts`,

@@ -16,10 +16,9 @@ import { auth } from "@/lib/auth";
  * VIVE EN core/ DESDE 2026-09-24. Hasta entonces había siete copias idénticas
  * (mismo texto byte a byte) en los actions.ts de ordenes-trabajo, personal,
  * materiales, lista-precios, servicios, tarifario-personal y epps. El módulo
- * de ajustes de usuario, que habría sido la octava, es el primero en usar
- * esta. Las siete siguen en su sitio hasta que se decida migrarlas: el
- * contenido es el mismo, así que no hay divergencia que arreglar, solo copias
- * que retirar.
+ * de ajustes de usuario, que habría sido la octava, fue el primero en usar
+ * esta. Las siete se retiraron después, el mismo día, tras comprobar que
+ * seguían idénticas a esta: hoy todos los módulos la importan de aquí.
  */
 export async function exigirSesion() {
   const sesion = await auth.api.getSession({ headers: await headers() });
