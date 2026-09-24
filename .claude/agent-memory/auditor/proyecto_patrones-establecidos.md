@@ -36,7 +36,7 @@ futuros que toquen dinero o Server Actions:
   guardarraíl del lado del cliente (AlertDialog de confirmación en
   `selector-estado-fila.tsx` para `Facturado`/`Cancelada`) es explícitamente
   solo UX — el propio comentario del componente dice que la Server Action no
-  restringe nada, y así es: cualquier transición entre los 6 estados se
+  restringe nada, y así es: cualquier transición entre los estados se
   acepta, con o sin diálogo, en línea con el supuesto 11 (aún abierto) de
   `docs/spec/preguntas-abiertas.md`. Referencia útil si un módulo futuro
   pone un `AlertDialog`/`confirm()` de cliente delante de una acción

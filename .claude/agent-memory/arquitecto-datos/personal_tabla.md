@@ -6,10 +6,13 @@ metadata:
 ---
 
 Tabla `personal` creada 2026-09-20 en `db/schema/personal.ts`, migración
-`db/migrations/0008_crea_tabla_personal.sql` (generada, NO aplicada al
-cerrar la conversación — pendiente de confirmación del usuario). Primer
-módulo de negocio (`modules/personal/`, en desarrollo en paralelo por el
-usuario) con tabla propia fuera de `orden_trabajo`.
+`db/migrations/0008_crea_tabla_personal.sql`. Se generó sin aplicar
+(2026-09-20, por instrucción explícita del usuario); esta nota decía "NO
+aplicada" como si fuera permanente, y ya no lo es. Primer módulo de negocio
+(`modules/personal/`, hoy terminado) con tabla propia fuera de
+`orden_trabajo`.
+
+**Confirmado el 2026-09-24:** `0008_crea_tabla_personal` está aplicada en Neon. Se comparó `drizzle.__drizzle_migrations` fila por fila con `db/migrations/meta/_journal.json`: las 16 entradas del journal tienen su fila, sin filas de más ni de menos, en el mismo orden, y en cada una coinciden `created_at` con el `when` del journal y `hash` con el SHA-256 del `.sql` (así que el archivo no se editó después de aplicarse). Esta en concreto es la fila `id` 9 (`created_at` `1789927015357`). La tabla `personal`, además, se probó en la base antes del 2026-09-21 (el UNIQUE de `personal.dni`, según la deuda técnica de `AGENTS.md`).
 
 Decisiones de modelado, todas especificadas explícitamente por el usuario
 (no asumidas por mí, por eso no generaron entrada nueva en
@@ -48,4 +51,5 @@ Decisiones de modelado, todas especificadas explícitamente por el usuario
   `docs/spec/entidades.md` para que no se asuma que ya están vinculadas.
 
 Ver también [[precio_bigint]] y [[feedback_generar_no_aplicar]] (aquí
-también se generó sin aplicar, por instrucción explícita del usuario).
+también se generó sin aplicar en su momento, por instrucción explícita del
+usuario).

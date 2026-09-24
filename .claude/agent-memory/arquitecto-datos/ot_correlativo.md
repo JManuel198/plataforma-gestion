@@ -29,9 +29,14 @@ a mano — hay que poner `updated_at = now()` en el `SET`.
 **Supuestos abiertos registrados** (`docs/spec/preguntas-abiertas.md`,
 supuestos 5 a 9): inicio en `0001` y no `0000` (cambiar no requiere
 migración, solo el `VALUES ($anio, 1)`); `responsable` y `codigo_oc`
-nullables; uno-a-muchos Servicio→OT sin `UNIQUE` en `servicio_id`; sin
-borrado — `Cancelada` hace de `activo=false`, por eso `orden_trabajo` es la
-excepción consciente a la regla de columna `activo`.
+nullables; sin borrado — `Cancelada` hace de `activo=false`, por eso
+`orden_trabajo` es la excepción consciente a la regla de columna `activo`.
+(El supuesto de uno-a-muchos Servicio→OT sin `UNIQUE` en `servicio_id` ya no
+aplica: `servicio_id` y la tabla `servicio` se eliminaron en las migraciones
+0004 y 0005 con la fusión Servicio + OT, ver [[fusion-servicio-ot]].)
 
-Ver también [[precio-bigint]] y [[feedback-generar-no-aplicar]] (la
-migración `0003_lively_leo.sql` quedó generada y **no aplicada**).
+**Migración:** `0003_lively_leo.sql`. Se generó sin aplicar
+([[feedback-generar-no-aplicar]]); esta nota decía "no aplicada" como si
+fuera permanente.
+
+**Confirmado el 2026-09-24:** `0003_lively_leo` está aplicada en Neon. Se comparó `drizzle.__drizzle_migrations` fila por fila con `db/migrations/meta/_journal.json`: las 16 entradas del journal tienen su fila, sin filas de más ni de menos, en el mismo orden, y en cada una coinciden `created_at` con el `when` del journal y `hash` con el SHA-256 del `.sql` (así que el archivo no se editó después de aplicarse). Esta en concreto es la fila `id` 4 (`created_at` `1789784810215`). Que la tabla `ot_correlativo` tiene datos reales de OT lo dice [[correlativo_generico]] (2026-09-22); eso no se volvió a comprobar en esta verificación.

@@ -12,9 +12,11 @@ así que **la única que existe es `db/migrations/0009_cooing_blackheart.sql`** 
 si ves citado otro nombre en algún sitio, está obsoleto. En su momento se
 generó sin aplicar, mismo patrón que [[feedback_generar_no_aplicar]]; hoy ya
 está aplicada (ver el cierre de este archivo). Primer
-catálogo maestro de los cinco del Bloque 11 con tabla real; los otros cuatro
-(Lista de precios, Servicios, Tarifario de personal, EPPs) siguen en borrador
-puro en `docs/spec/entidades.md`.
+catálogo maestro de los cinco del Bloque 11 con tabla real. Cuando se
+escribió esto, los otros cuatro seguían en borrador en
+`docs/spec/entidades.md`; hoy (verificado el 2026-09-24) los cinco tienen
+tabla y módulo — ver [[lista_precios_tabla]], [[servicios_tabla]],
+[[tarifario_personal_tabla]] y [[epps_tabla]].
 
 Decisiones de modelado:
 
@@ -102,6 +104,14 @@ de arriba, `modules/materiales/schema.ts` todavía decía `fecha` y
 el mismo bloque, así que **todo el módulo está sincronizado con el esquema**:
 Zod, queries, tabla, input y etiqueta visible usan `fecha_activacion`, y
 `actions.ts` traduce el choque de `codigo_interno` duplicado.
+
+**Lo que pasó después con `fecha_activacion` (añadido el 2026-09-24):** la
+columna se eliminó en el Bloque 12, Parte 3 (migración
+`0010_open_newton_destine.sql`) y la fecha que muestra la interfaz es
+`created_at` — ver [[correlativo_generico]]. En la misma parte,
+`codigo_interno` pasó a generarse solo (`MAT.0000001`). Lo que este archivo
+cuenta de `fecha_activacion` y del código interno escrito a mano es
+historia, no el estado actual.
 
 Ojo con esa traducción, que es lo más valioso que salió de aquí: comprobar
 `error.code === "23505"` NO funciona — drizzle-orm envuelve el error de `pg` y
