@@ -250,7 +250,7 @@ servidor.** La referencia a copiar es
 - **Filtros por fecha**: los dos extremos son inclusivos para el usuario. Se
   traducen a `>=` contra `inicioDelDia(desde)` y `<` contra
   `inicioDelDiaSiguiente(hasta)` (`lib/fecha.ts`), nunca comparando contra el
-  texto `YYYY-MM-DD` pelado: las columnas son `timestamp` en UTC y el corte
+  texto `YYYY-MM-DD` pelado: las columnas son `timestamptz` y el corte
   tiene que hacerse en la zona del negocio.
 - **Crear o editar sin salir del listado (el modal de OT)**: el formulario
   vive en un `Dialog` sobre la tabla (`dialogo-orden-trabajo.tsx`) y las
@@ -278,11 +278,35 @@ servidor.** La referencia a copiar es
   con un toast y llama a `router.refresh()` para traer la fila real sin
   recargar la pantalla. Si el valor elegido exige confirmación, nada de eso
   arranca hasta que el usuario acepte el `alert-dialog` (ver más abajo).
-- Lista vacía: un mensaje simple en un recuadro punteado, como el de
-  `tabla-ordenes-trabajo.tsx` ("No hay órdenes de trabajo que mostrar."), sin
-  skeletons ni
-  spinners elaborados — es una herramienta interna de un solo usuario, no
-  necesita ese nivel de pulido todavía.
+- **Lista vacía**: `EstadoVacio` (`core/components/estado-vacio.tsx`), con un
+  mensaje distinto según el motivo —búsqueda sin resultados, filtros sin
+  resultados, vista de inactivos vacía, todo dado de baja o catálogo vacío— y
+  la acción que corresponde (limpiar filtros o crear el primero). Sin
+  skeletons ni spinners elaborados.
+- **Anatomía de un listado** (desde la implementación de los mockups,
+  2026-09-24; guía visual en `docs/diseno/`). Todo sale de `core/`, importado,
+  nunca copiado; la referencia completa es `app/(protegido)/lista-precios/page.tsx`:
+  - `CabeceraListado`: título, descripción opcional y el botón de alta.
+  - Barra de filtros: `BuscadorListado` (envuelto por un `buscador-*.tsx` del
+    módulo que solo pasa `urlListado` y el placeholder), el filtro propio del
+    módulo, y `LimpiarFiltros` con el número que devuelve `contarFiltros` de
+    `modules/<entidad>/filtros.ts`. A la derecha, `ContadorRegistros`: con
+    `activo`, «N activos» o «N inactivos» según la vista; sin `activo` (EPPs,
+    Servicios, OT), el total registrado.
+  - Tabla dentro de `MarcoTabla` (`core/components/tabla-listado.tsx`), con
+    `CLASE_FILA`/`CLASE_CABECERA`, códigos con `CLASE_CODIGO` y montos con
+    `CLASE_CIFRA`. Columnas fijas con `CELDA_FIJA_INICIO` (código) y
+    `CELDA_FIJA_FIN` / `CELDA_FIJA_ANTES_DEL_FIN` (acciones y situación o
+    estado) solo cuando la tabla es ancha; Personal, estrecha, no las usa. Una
+    celda fija necesita fondo propio, que ya ponen esas clases.
+  - **Paginación en el servidor**: `?pagina=` validado con `paginaSchema`,
+    `calcularPaginacion(total, pagina)` de `core/paginacion.ts` (ajusta una
+    página fuera de rango a la última) y `PaginacionListado` como pie del
+    marco. En `queries.ts`, `condicionesListado(filtros)` se comparte entre
+    `contarResultados` y el listado —si divergen, el pie miente—, y el
+    `orderBy` lleva un desempate único para que ninguna fila salte de página.
+    Cambiar cualquier filtro vuelve a la página 1: lo hace
+    `useFiltrosListado`, no cada control.
 
 ## Fila clicable → vista → editar
 
@@ -706,10 +730,11 @@ está en las decisiones 6 (EPPs) y 16 (Servicios) de "Catálogos maestros" en
   no), así que un tercer icono sería un botón de más para lo que ya hace la
   fila entera. El lápiz se queda como atajo directo a edición.
 - El componente es `components/acciones-material.tsx`. Los dos botones son
-  `Button variant="ghost" size="icon-sm"`, cada uno con su nombre en un
-  `<span class="sr-only">` (lo que lee un lector de pantalla) **y** un `title`
-  (el tooltip nativo al pasar el ratón). Un icono suelto sin las dos cosas es
-  inaccesible. Iconos y no texto —al revés que Personal, que usa palabras—
+  `BotonAccionFila` (`core/components/boton-accion-fila.tsx`): un `Button`
+  `ghost` `icon-sm` con su nombre en un `sr-only` (lo que lee un lector de
+  pantalla) **y** en un `Tooltip` de shadcn —ya no el `title` nativo—. La
+  equis se llama "Dar de baja" y lleva `destructiva`. Un icono suelto sin las
+  dos cosas es inaccesible. Iconos y no texto —al revés que Personal, que usa palabras—
   porque estas tablas tienen muchas columnas y dos etiquetas por fila empujan
   el contenido.
 - **Inactivar se confirma con `alert-dialog`; reactivar no.** Inactivar saca la
@@ -722,7 +747,8 @@ está en las decisiones 6 (EPPs) y 16 (Servicios) de "Catálogos maestros" en
   guardar el formulario entero. El texto del diálogo habla de "dejar de
   aparecer en el catálogo", no de columnas.
 - **El botón de inactivar obliga a tener el filtro "Ver solo inactivos"**
-  (`components/filtro-inactivos.tsx`). La obligación es del BOTÓN, no del
+  (`components/filtro-inactivos.tsx`, que solo envuelve a
+  `FiltroSoloInactivos` de `core/components/` con la `urlListado` del módulo). La obligación es del BOTÓN, no del
   catálogo: sin columna `activo` no hay botón, y entonces tampoco hay filtro que
   echar en falta (caso de Servicios — ver el aviso al principio de esta
   sección). Sin él la fila desaparece sin vuelta
