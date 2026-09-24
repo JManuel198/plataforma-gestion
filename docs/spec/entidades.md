@@ -356,7 +356,7 @@ en la base no lo sea.
 `activo` en la consulta por defecto.
 
 **Tabla hija: `material_caracteristicas`** (ficha propia más abajo, justo
-después de "Correlativo genérico"). Guarda la lista de características
+después de "Lista de precios"). Guarda la lista de características
 técnicas de cada material, una fila por línea. A diferencia del resto de
 tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
 DELETE real — es una excepción deliberada, razonada en su propia ficha.
