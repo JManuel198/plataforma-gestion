@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -8,26 +9,22 @@ import {
 import { formatearFecha } from "@/lib/fecha";
 import type { FilaServicio } from "../queries";
 import { FilaDeServicio } from "./fila-servicio";
+import {
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CABECERA,
+  CLASE_FILA_CABECERA,
+  MarcoTabla,
+} from "@/core/components/tabla-listado";
 
 export function TablaServicios({
   servicios,
-  filtrado = false,
+  pie,
 }: {
   servicios: FilaServicio[];
-  /** Si hay filtros puestos (búsqueda o categoría) — cambia el mensaje de
-   * lista vacía. Llega en la Parte 2, junto con el buscador y el filtro. */
-  filtrado?: boolean;
+  /** Lo que va debajo de la tabla, dentro del marco: la paginación. */
+  pie?: ReactNode;
 }) {
-  if (servicios.length === 0) {
-    return (
-      <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {filtrado
-          ? "Ningún servicio coincide con los filtros."
-          : "No hay servicios registrados todavía."}
-      </p>
-    );
-  }
-
   // El listado no cabe holgado en móvil. El scroll va en este contenedor y no
   // en la página, para que la barra quede pegada a la tabla (misma regla que
   // aplica el resto del proyecto: el body nunca desborda en horizontal).
@@ -36,18 +33,30 @@ export function TablaServicios({
   // el estado de su modal (vista/edición). Esta tabla se queda en el servidor y
   // solo arma la cabecera y el marco.
   return (
-    <div className="overflow-x-auto">
+    <MarcoTabla pie={pie}>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Código</TableHead>
-            <TableHead>Servicio</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Unidad</TableHead>
-            <TableHead>Precio</TableHead>
-            <TableHead>Moneda</TableHead>
-            <TableHead>Fecha de creación</TableHead>
-            <TableHead className="sr-only">Acciones</TableHead>
+          <TableRow className={CLASE_FILA_CABECERA}>
+            <TableHead
+              className={`${CELDA_FIJA_INICIO} ${CLASE_CABECERA} px-3`}
+            >
+              Código
+            </TableHead>
+            <TableHead className={CLASE_CABECERA}>Servicio</TableHead>
+            <TableHead className={CLASE_CABECERA}>Categoría</TableHead>
+            <TableHead className={CLASE_CABECERA}>Unidad</TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Precio
+            </TableHead>
+            <TableHead className={CLASE_CABECERA}>Moneda</TableHead>
+            <TableHead className={`${CLASE_CABECERA} w-24 whitespace-normal`}>
+              Fecha de creación
+            </TableHead>
+            <TableHead
+              className={`${CELDA_FIJA_FIN} ${CLASE_CABECERA} text-right`}
+            >
+              Acciones
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,6 +75,6 @@ export function TablaServicios({
           ))}
         </TableBody>
       </Table>
-    </div>
+    </MarcoTabla>
   );
 }

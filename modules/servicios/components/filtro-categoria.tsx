@@ -60,8 +60,12 @@ export function FiltroCategoria({ filtros }: { filtros: FiltrosServicios }) {
   }
 
   return (
+    // La etiqueta es solo para lectores de pantalla, igual que la del
+    // buscador: la opción «Todas las categorías» ya dice qué filtra.
     <div className="flex items-center gap-2">
-      <Label htmlFor="filtro-categoria">Categoría</Label>
+      <Label htmlFor="filtro-categoria" className="sr-only">
+        Categoría
+      </Label>
       <Select
         value={filtros.categoria ?? TODAS}
         onValueChange={filtrarPor}
