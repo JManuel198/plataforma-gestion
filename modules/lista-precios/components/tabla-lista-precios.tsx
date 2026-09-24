@@ -5,6 +5,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CABECERA,
+  CLASE_FILA_CABECERA,
+  MarcoTabla,
+} from "@/core/components/tabla-listado";
 import { formatearFecha } from "@/lib/fecha";
 import type { FilaPrecio } from "../queries";
 import type { MaterialElegible } from "../tipos";
@@ -31,24 +39,50 @@ export function TablaListaPrecios({
   precios: FilaPrecio[];
   buscarMaterialAction: (texto: string) => Promise<MaterialElegible[]>;
 }) {
-  // Diez columnas de texto no caben holgadas en móvil. El scroll va en este
-  // contenedor y no en la página, para que la barra quede pegada a la tabla.
+  // Once columnas no caben holgadas ni en escritorio: la tabla se desplaza en
+  // horizontal dentro de su marco, con el código fijo a la izquierda y la
+  // situación y las acciones fijas a la derecha (ver core/components/
+  // tabla-listado.tsx).
   return (
-    <div className="overflow-x-auto">
+    <MarcoTabla>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Código de oferta</TableHead>
-            <TableHead>Material</TableHead>
-            <TableHead>Proveedor</TableHead>
-            <TableHead>Unidad</TableHead>
-            <TableHead className="text-right">Cantidad</TableHead>
-            <TableHead className="text-right">Precio de lista</TableHead>
-            <TableHead className="text-right">Descuento</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead>Fecha de actualización</TableHead>
-            <TableHead>Situación</TableHead>
-            <TableHead className="sr-only">Acciones</TableHead>
+          <TableRow className={CLASE_FILA_CABECERA}>
+            <TableHead
+              className={`${CELDA_FIJA_INICIO} ${CLASE_CABECERA} px-3`}
+            >
+              Código de oferta
+            </TableHead>
+            <TableHead className={CLASE_CABECERA}>Material</TableHead>
+            <TableHead className={CLASE_CABECERA}>Proveedor</TableHead>
+            <TableHead className={CLASE_CABECERA}>Unidad</TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Cantidad
+            </TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Precio de lista
+            </TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Descuento
+            </TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Precio
+            </TableHead>
+            {/* En dos líneas, como en el mockup: es la cabecera más larga y
+                su contenido (una fecha) es corto. */}
+            <TableHead className={`${CLASE_CABECERA} w-24 whitespace-normal`}>
+              Fecha de actualización
+            </TableHead>
+            <TableHead
+              className={`${CELDA_FIJA_ANTES_DEL_FIN} ${CLASE_CABECERA} px-3`}
+            >
+              Situación
+            </TableHead>
+            <TableHead
+              className={`${CELDA_FIJA_FIN} ${CLASE_CABECERA} text-right`}
+            >
+              Acciones
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -62,6 +96,6 @@ export function TablaListaPrecios({
           ))}
         </TableBody>
       </Table>
-    </div>
+    </MarcoTabla>
   );
 }

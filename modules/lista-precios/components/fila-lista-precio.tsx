@@ -1,6 +1,15 @@
 "use client";
 
 import { BadgeSituacion } from "@/core/components/badge-situacion";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CIFRA,
+  CLASE_CODIGO,
+  CLASE_FILA,
+  ReferenciaConCodigo,
+} from "@/core/components/tabla-listado";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatearMonto } from "@/core/dinero";
 import {
@@ -51,22 +60,24 @@ export function FilaDePrecio({
   const { moneda } = precio;
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium whitespace-nowrap">
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className={`${CELDA_FIJA_INICIO} ${CLASE_CODIGO} px-3`}>
         {precio.codigo_oferta}
       </TableCell>
-      <TableCell
-        className="max-w-64 truncate"
-        title={precio.material_descripcion ?? undefined}
-      >
-        {oVacio(precio.material_descripcion)}
+      <TableCell>
+        <ReferenciaConCodigo
+          codigo={precio.material_codigo_interno}
+          descripcion={precio.material_descripcion}
+        />
       </TableCell>
       <TableCell>{oVacio(precio.proveedor)}</TableCell>
       <TableCell>{oVacio(precio.unidad)}</TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell className={CLASE_CIFRA}>
         {formatearNumerico(precio.cantidad)}
       </TableCell>
-      <TableCell className="text-right whitespace-nowrap tabular-nums">
+      <TableCell className={CLASE_CIFRA}>
         {precio.precio_lista !== null && moneda !== null
           ? formatearMonto(precio.precio_lista, moneda)
           : "—"}
@@ -76,7 +87,7 @@ export function FilaDePrecio({
       </TableCell>
       {/* `precio` NO sale de una columna: lo calculó el servidor en queries.ts
           a partir de `precio_lista` y `descuento`. Ver ../precio.ts. */}
-      <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">
+      <TableCell className={`${CLASE_CIFRA} font-semibold`}>
         {precio.precio !== null && moneda !== null
           ? formatearMonto(precio.precio, moneda)
           : "—"}
@@ -86,10 +97,10 @@ export function FilaDePrecio({
       <TableCell className="whitespace-nowrap tabular-nums">
         {fechaActualizacion}
       </TableCell>
-      <TableCell>
+      <TableCell className={`${CELDA_FIJA_ANTES_DEL_FIN} px-3`}>
         <BadgeSituacion activo={precio.activo} />
       </TableCell>
-      <TableCell className="text-right whitespace-nowrap">
+      <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           <AccionesPrecio precio={precio} control={control} />
           <DialogoListaPrecio

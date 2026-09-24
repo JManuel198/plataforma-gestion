@@ -9,11 +9,7 @@ import { urlListado, type FiltrosListaPrecios } from "../filtros";
  * `core/components/filtro-solo-inactivos.tsx`; aquí solo se le pasa la
  * `urlListado` del módulo.
  */
-export function FiltroInactivos({
-  filtros,
-}: {
-  filtros: FiltrosListaPrecios;
-}) {
+export function FiltroInactivos({ filtros }: { filtros: FiltrosListaPrecios }) {
   return (
     <FiltroSoloInactivos
       filtros={filtros}

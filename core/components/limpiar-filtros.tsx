@@ -29,7 +29,10 @@ export function LimpiarFiltros({
     <Link
       href={href}
       scroll={false}
-      className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-1.5")}
+      className={cn(
+        buttonVariants({ variant: "ghost", size: "sm" }),
+        "gap-1.5",
+      )}
     >
       <XIcon aria-hidden />
       Limpiar filtros

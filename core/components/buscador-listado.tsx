@@ -69,10 +69,9 @@ export function BuscadorListado<F extends { busqueda?: string }>({
     cancelarPendiente();
     // Una búsqueda vacía no es buscar por cadena vacía: es no filtrar, así que
     // el parámetro desaparece de la URL.
-    navegar(
-      { busqueda: valor.trim() || undefined } as Partial<F>,
-      { reemplazar: true },
-    );
+    navegar({ busqueda: valor.trim() || undefined } as Partial<F>, {
+      reemplazar: true,
+    });
   }
 
   return (

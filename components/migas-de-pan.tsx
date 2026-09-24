@@ -49,9 +49,7 @@ export function MigasDePan() {
             <>
               {/* En móvil se omite el grupo: la cabecera es angosta y lo que
                   orienta es el nombre de la pantalla. */}
-              <li className="hidden truncate sm:block">
-                {seccion.encabezado}
-              </li>
+              <li className="hidden truncate sm:block">{seccion.encabezado}</li>
               <li aria-hidden className="hidden sm:block">
                 <ChevronRightIcon className="size-3.5" />
               </li>
