@@ -216,6 +216,69 @@ distinto si hiciera falta.
 
 ---
 
+## Usuario (cuenta de acceso — `user` de Better Auth)
+
+Definida en `db/schema/auth.ts`, tabla `user`. Es quién puede iniciar sesión,
+no a quién se asigna trabajo (eso es `personal`, más abajo). Las columnas base
+las impone Better Auth; las propias del proyecto van declaradas **dos veces, a
+propósito**: en el esquema de Drizzle y en `user.additionalFields` de
+`lib/auth.ts`. Si falta la segunda, Better Auth no las lee ni las devuelve en
+la sesión; si falta la primera, no existen en la base. Toda columna nueva de
+`user` va en los dos sitios.
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK) | sí | automático (Better Auth) |
+| `name` | `text` | sí | copia de `nombre_completo` — ver abajo |
+| `email` | `text` (**UNIQUE**) | sí | manual |
+| `email_verified` | `boolean`, default `false` | sí | Better Auth |
+| `image` | `text` | no | sin uso |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
+| `role` | `text`, default `'admin'` | no | automático — `input: false`, nunca desde la petición |
+| `nombre_completo` | `text` | sí | manual — fuente de verdad del nombre |
+| `activo` | `boolean`, default `true` | no | automático — `input: false` |
+| `dni` | `text` (**UNIQUE**, nullable) | no | manual, desde el perfil — `input: false`, `returned: false` |
+| `telefono` | `text` (nullable) | no | manual, desde el perfil — `input: false` |
+
+**`dni` y `telefono` (agregados 2026-09-24).** Nullable porque las cuentas que
+ya existían no los tienen cargados. `dni` lleva UNIQUE con el mismo criterio
+que `personal.dni` —la base es la garantía, no el formulario— y en
+PostgreSQL varios `NULL` no chocan entre sí, así que no estorba a quien no lo
+haya cargado. **Una cadena vacía no es `NULL`**: la acción que escriba el
+perfil tiene que guardar `null` cuando el campo llega en blanco, o el segundo
+usuario sin DNI chocará con el primero. `telefono` no es único (dos cuentas
+pueden compartir, p. ej., la central de la oficina).
+
+**`name` y `nombre_completo` guardan el mismo valor (decidido 2026-09-24).**
+Son dos columnas para un solo dato, y eso es a propósito: `name` la exige
+Better Auth, `nombre_completo` es la del proyecto. La fuente de verdad es
+`nombre_completo` —es la que lee la plataforma, p. ej. la barra lateral—, y
+`name` se mantiene sincronizada para que Better Auth y cualquier integración
+futura que lea su campo estándar no se queden con un valor viejo. Regla
+práctica: **toda escritura del nombre escribe las dos columnas en el mismo
+UPDATE** (hoy, solo la Server Action de perfil). Ninguna de las dos se
+escribe sola. No es una duda abierta.
+
+**`input: false` en los dos.** No por el mismo motivo que `role`: aquí el
+riesgo no es escalar privilegios sino saltarse la validación. Se editan por
+una Server Action propia del módulo de ajustes de usuario; con `input: true`,
+`/api/auth/update-user` los aceptaría sin pasar por ella. Better Auth aplica
+`input: false` tanto al crear como al actualizar (`parseInputData` en
+`better-auth/dist/db/schema.mjs`).
+
+**`dni` lleva además `returned: false`** (decidido 2026-09-24, cierra la
+pregunta 21 de `preguntas-abiertas.md`): no viaja en `/api/auth/get-session`
+ni en `useSession()`. La pantalla de perfil lo lee con Drizzle en el
+servidor. `telefono` sí se devuelve.
+
+Sin relación con `personal.dni`: que una persona tenga el mismo DNI en las
+dos tablas no las vincula de ninguna forma.
+
+**Consume:** nada. **Consumida por:** Better Auth (sesión) y el módulo de
+ajustes de usuario (perfil, en construcción — ver AGENTS.md).
+
+---
+
 ## Personal
 
 Primera tabla del nuevo módulo Personal (`modules/personal/`, en desarrollo

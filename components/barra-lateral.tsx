@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { BotonCerrarSesion } from "@/components/boton-cerrar-sesion";
+import { AvatarIniciales } from "@/core/components/avatar-iniciales";
 import {
   Collapsible,
   CollapsibleContent,
@@ -124,6 +125,9 @@ export const MENU: readonly Seccion[] = [
   },
 ];
 
+/** La pantalla de ajustes del usuario en sesión (modules/ajustes-usuario/). */
+const RUTA_AJUSTES = "/ajustes";
+
 /**
  * Si `pathname` cae dentro de la ruta de un enlace del menú.
  *
@@ -139,25 +143,6 @@ export const MENU: readonly Seccion[] = [
  */
 export function esEnlaceActivo(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-/**
- * Las iniciales que hacen de avatar en el pie de la barra: la primera letra de
- * las dos primeras palabras del nombre ("Ana Ramírez" → "AR").
- *
- * Las dos PRIMERAS y no la primera y la última: con nombres peruanos del tipo
- * "Juan Pérez García", la última palabra es el apellido materno, y lo habitual
- * es identificarse por nombre y apellido paterno. Con un nombre compuesto
- * ("Ana María Ramírez") da "AM", que es un compromiso aceptable para algo que
- * solo decora: el nombre completo está escrito al lado.
- */
-function iniciales(nombre: string): string {
-  return nombre
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((palabra) => palabra.charAt(0).toUpperCase())
-    .join("");
 }
 
 /**
@@ -340,24 +325,27 @@ export function BarraLateral({
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              {/* No es un botón: hoy no hay perfil ni menú de cuenta al que
-                  llevar, así que es solo información. En modo icono queda
-                  únicamente el cuadro de iniciales, centrado en la franja
-                  (`px-0` + `justify-center`); nombre y correo se ocultan en vez
-                  de truncarse. Las iniciales van con `aria-hidden` porque el
-                  nombre completo ya se lee al lado, y en modo icono lo dice
-                  el `title`. */}
-              <div
-                className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                title={nombreUsuario}
+              {/* El bloque del usuario es el acceso a sus ajustes: un enlace
+                  a /ajustes, no un menú desplegable — hoy hay un solo destino
+                  (el perfil) y un menú de una opción sería un clic de más.
+                  Si el módulo crece (cambio de contraseña), sigue siendo la
+                  misma página, así que este enlace no cambia.
+
+                  `render={<Link/>}` es correcto por lo mismo que en los
+                  enlaces del menú (ver `SeccionBarra`): `SidebarMenuButton` no
+                  pasa por `useButton`, así que sale un `<a>` limpio. Con
+                  `size="lg"` cabe el avatar de 2rem y, en modo icono, la
+                  propia barra lo reduce a la franja y pone el nombre en el
+                  tooltip. `/ajustes` no está en `MENU`: no es un módulo del
+                  negocio sino la cuenta de quien usa la plataforma. */}
+              <SidebarMenuButton
+                size="lg"
+                isActive={esEnlaceActivo(pathname, RUTA_AJUSTES)}
+                tooltip={`${nombreUsuario} · Ajustes de usuario`}
+                render={<Link href={RUTA_AJUSTES} />}
               >
-                <span
-                  aria-hidden
-                  className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted text-xs font-semibold"
-                >
-                  {iniciales(nombreUsuario)}
-                </span>
-                <div className="grid min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
+                <AvatarIniciales nombre={nombreUsuario} />
+                <div className="grid min-w-0 leading-tight">
                   <span className="truncate text-sm font-medium">
                     {nombreUsuario}
                   </span>
@@ -365,7 +353,7 @@ export function BarraLateral({
                     {correoUsuario}
                   </span>
                 </div>
-              </div>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <BotonCerrarSesion />
