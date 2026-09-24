@@ -361,6 +361,18 @@ técnicas de cada material, una fila por línea. A diferencia del resto de
 tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
 DELETE real — es una excepción deliberada, razonada en su propia ficha.
 
+**Como máximo 3 características técnicas por material — CONFIRMADO.**
+Decisión directa de Manuel en la conversación de diseño de esta función; no
+es una pregunta abierta ni hay que volver a plantearla. Se aplica en dos
+sitios: la interfaz deja de ofrecer líneas nuevas al llegar a 3
+(`MAXIMO` en `modules/materiales/components/caracteristicas-material.tsx`) y
+el servidor lo valida de nuevo con `.max(3)` en `caracteristicasSchema`
+(`modules/materiales/schema.ts`), porque una Server Action puede recibir un
+POST directo. La base no lo impone: `material_caracteristicas` no tiene
+ningún `CHECK` que cuente filas por material. Lo confirmado es el tope de 3;
+el largo de cada línea (200 caracteres en el mismo esquema) es un tope de
+cordura, no una decisión del cliente.
+
 **Consume:** nada. **Consumida por:** `modules/materiales/` y,
 desde el Bloque 13, Parte 1 (2026-09-22), `lista_precios.material_id` — ver la
 entidad "Lista de precios" más abajo. La relación que aquí se dejaba como

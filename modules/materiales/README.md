@@ -12,18 +12,25 @@ módulo: `modules/lista-precios/`, `modules/servicios/`,
 inventadas: ni catálogo cerrado de unidades ni obligatoriedad en la base.
 Solo "requerido" en el formulario donde el propio campo lo hace evidente.
 
-Una cosa SÍ está confirmada y ya aplicada (decisión 11 de
-"Catálogos maestros" en `preguntas-abiertas.md`):
+Dos cosas SÍ están confirmadas y ya aplicadas:
 - **`codigo_interno` se genera solo.** Formato `MAT.0000001`, reservado con
   el correlativo de `core/correlativo.ts` (ver `codigo.ts`); el usuario no lo
   escribe y el formulario no lo envía. El `UNIQUE` de la tabla se queda como
   red de seguridad del generador: si salta, `actions.ts` lo traduce en un
   mensaje general del formulario (no debajo de un campo, que ya no existe),
-  porque significa que el contador y la tabla se descuadraron.
+  porque significa que el contador y la tabla se descuadraron. (Decisión 11
+  de "Catálogos maestros" en `preguntas-abiertas.md`.)
+- **Como máximo 3 características técnicas por material.** La interfaz no
+  ofrece una cuarta línea y `schema.ts` lo vuelve a validar en el servidor.
+  (Ficha de Materiales en `docs/spec/entidades.md`.)
 
 - `schema.ts` — validaciones Zod. Todo lo que llega del formulario pasa por
   aquí antes de tocar la base (regla 1 de AGENTS.md).
 - `tipos.ts` — el tipo que consume el formulario para precargarse.
+- `constantes.ts` — las constantes del código interno: prefijo `MAT`,
+  dígitos, correlativo inicial y clave del contador.
+- `codigo.ts` — arma el código visible (`formatearCodigoMaterial`: `1` →
+  `MAT.0000001`) a partir del número reservado.
 - `queries.ts` — lecturas (listado, detalle).
 - `actions.ts` — Server Actions de crear, editar, inactivar/reactivar
   (`cambiarActivoMaterial`) y el buscador de selección que usa Lista de
