@@ -1,6 +1,7 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
+import { CLASE_FILA } from "@/core/components/tabla-listado";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -57,16 +58,20 @@ export function FilaDePersona({
   const nombreCompleto = `${persona.nombre} ${persona.apellido}`;
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium">{persona.apellido}</TableCell>
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className="px-3 font-medium">{persona.apellido}</TableCell>
       <TableCell>{persona.nombre}</TableCell>
-      <TableCell className="tabular-nums">{persona.dni}</TableCell>
+      <TableCell className="font-mono text-xs tabular-nums">
+        {persona.dni}
+      </TableCell>
       <TableCell className="max-w-64 truncate" title={persona.cargo}>
         {persona.cargo}
       </TableCell>
       <TableCell className="text-right tabular-nums">{edad}</TableCell>
-      <TableCell>
-        {persona.activo ? null : <Badge variant="secondary">De baja</Badge>}
+      <TableCell className="px-3">
+        <BadgeSituacion activo={persona.activo} etiquetaInactivo="De baja" />
       </TableCell>
       <TableCell className="text-right whitespace-nowrap">
         <SinPropagacion className="flex items-center justify-end gap-1">

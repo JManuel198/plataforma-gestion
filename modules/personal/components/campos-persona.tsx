@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PersonaEditable } from "../tipos";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -10,16 +11,6 @@ type Props = {
   /** Persona existente: se está editando. */
   persona?: PersonaEditable;
 };
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
-  );
-}
 
 /**
  * Los campos de una persona, sin `<form>` ni botones alrededor.

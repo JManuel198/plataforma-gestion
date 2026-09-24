@@ -23,6 +23,12 @@ export type FiltrosPersonal = {
    * era un bug: al reactivar a alguien desde esa vista, seguía apareciendo.
    */
   inactivos?: boolean;
+  /**
+   * La página del listado (1-based). No es un filtro: no cuenta en «Limpiar
+   * filtros» y se pierde al cambiar cualquier filtro (lo quita
+   * `useFiltrosListado`). Ausente es la primera página.
+   */
+  pagina?: number;
 };
 
 export function urlListado(filtros: FiltrosPersonal = {}): string {
@@ -33,12 +39,21 @@ export function urlListado(filtros: FiltrosPersonal = {}): string {
   // parámetro, no un `inactivos=0` que luego haya que distinguir.
   if (filtros.inactivos) params.set("inactivos", "1");
 
+  // Mismo criterio: la primera página es la ausencia del parámetro.
+  if (filtros.pagina && filtros.pagina > 1) {
+    params.set("pagina", String(filtros.pagina));
+  }
+
   const cadena = params.toString();
 
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
 }
 
-/** Si hay al menos un filtro puesto — para el mensaje de lista vacía. */
-export function hayFiltros(filtros: FiltrosPersonal): boolean {
-  return Boolean(filtros.busqueda || filtros.inactivos);
+/**
+ * Cuántos filtros hay puestos: el número de «Limpiar filtros», y el que decide
+ * qué estado vacío se enseña (catálogo vacío o búsqueda sin resultados).
+ * `pagina` no cuenta: no es un filtro.
+ */
+export function contarFiltros(filtros: FiltrosPersonal): number {
+  return [filtros.busqueda, filtros.inactivos].filter(Boolean).length;
 }

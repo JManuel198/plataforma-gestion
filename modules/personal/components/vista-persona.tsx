@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { Dato, ListaDatos } from "@/core/vista-detalle";
 import type { PersonaEditable } from "../tipos";
 
@@ -47,15 +47,9 @@ export function VistaPersona({
         etiqueta="Edad"
         valor={edad === undefined ? null : `${edad} años`}
       />
-      {/* El "De baja" va en `secondary`, la misma variante con la que lo marca
-          la tabla: es el mismo dato y no debe verse de dos maneras. En la
-          tabla el activo no lleva chip —no hace falta marcar lo normal—, pero
-          aquí sí, porque una etiqueta "Situación" sin valor se leería como un
-          dato que falta. */}
+      {/* Mismo badge que la columna «Situación» de la tabla. */}
       <Dato etiqueta="Situación">
-        <Badge variant={persona.activo ? "outline" : "secondary"}>
-          {persona.activo ? "Activa" : "De baja"}
-        </Badge>
+        <BadgeSituacion activo={persona.activo} etiquetaInactivo="De baja" />
       </Dato>
     </ListaDatos>
   );
