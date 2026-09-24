@@ -1,4 +1,9 @@
+import { PlusIcon, SearchXIcon, TagsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CabeceraListado } from "@/core/components/cabecera-listado";
+import { ContadorRegistros } from "@/core/components/contador-registros";
+import { EstadoVacio } from "@/core/components/estado-vacio";
+import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
 import { buscarMaterialesParaSeleccionAction } from "@/modules/materiales/actions";
 import { crearPrecioEnModal } from "@/modules/lista-precios/actions";
 import { BuscadorListaPrecios } from "@/modules/lista-precios/components/buscador-lista-precios";
@@ -6,10 +11,11 @@ import { DialogoListaPrecio } from "@/modules/lista-precios/components/dialogo-l
 import { FiltroInactivos } from "@/modules/lista-precios/components/filtro-inactivos";
 import { TablaListaPrecios } from "@/modules/lista-precios/components/tabla-lista-precios";
 import {
-  hayFiltros,
+  contarFiltros,
+  urlListado,
   type FiltrosListaPrecios,
 } from "@/modules/lista-precios/filtros";
-import { listarPrecios } from "@/modules/lista-precios/queries";
+import { contarPrecios, listarPrecios } from "@/modules/lista-precios/queries";
 import {
   filtroBusquedaSchema,
   filtroInactivosSchema,
@@ -51,38 +57,109 @@ export default async function PaginaListaPrecios({
     inactivos: filtroInactivosSchema.parse(inactivos) === "1",
   };
 
-  const precios = await listarPrecios(filtros);
+  const [precios, totalVista] = await Promise.all([
+    listarPrecios(filtros),
+    contarPrecios(filtros.inactivos),
+  ]);
+  const filtrosPuestos = contarFiltros(filtros);
+
+  // Solo hace falta cuando la vista de activas sale vacía sin filtros: ahí hay
+  // que distinguir "el catálogo está vacío" de "todas están dadas de baja". En
+  // cualquier otro caso no se consulta.
+  const hayInactivas =
+    precios.length === 0 && filtrosPuestos === 0
+      ? (await contarPrecios(true)) > 0
+      : false;
+
+  // El mismo disparador sirve para la cabecera y para el estado vacío: son dos
+  // modales independientes (cada uno con su estado), no uno compartido.
+  const nuevaOferta = (
+    <DialogoListaPrecio
+      guardarAction={crearPrecioEnModal}
+      buscarMaterialAction={buscarMaterialesParaSeleccionAction}
+      disparador={
+        <Button>
+          <PlusIcon />
+          Nueva oferta
+        </Button>
+      }
+    />
+  );
+
+  const limpiar = (
+    <LimpiarFiltros href={urlListado()} cantidad={filtrosPuestos} />
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Lista de precios
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Ofertas de materiales por proveedor
-          </p>
-        </div>
-        <DialogoListaPrecio
-          guardarAction={crearPrecioEnModal}
-          buscarMaterialAction={buscarMaterialesParaSeleccionAction}
-          disparador={<Button>Nueva oferta</Button>}
-        />
-      </div>
+      <CabeceraListado titulo="Lista de precios" accion={nuevaOferta} />
 
       {/* Cada control recibe los filtros completos, no solo el suyo: así el
           que cambia conserva al otro en la URL en vez de pisarlo. */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <BuscadorListaPrecios filtros={filtros} />
-        <FiltroInactivos filtros={filtros} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <BuscadorListaPrecios filtros={filtros} />
+          <FiltroInactivos filtros={filtros} />
+          {limpiar}
+        </div>
+        <ContadorRegistros
+          texto={textoContador(totalVista, Boolean(filtros.inactivos))}
+          activos={!filtros.inactivos}
+        />
       </div>
 
-      <TablaListaPrecios
-        precios={precios}
-        buscarMaterialAction={buscarMaterialesParaSeleccionAction}
-        filtrado={hayFiltros(filtros)}
-      />
+      {precios.length > 0 ? (
+        <TablaListaPrecios
+          precios={precios}
+          buscarMaterialAction={buscarMaterialesParaSeleccionAction}
+        />
+      ) : filtros.busqueda ? (
+        <EstadoVacio
+          Icono={SearchXIcon}
+          titulo="Ninguna oferta coincide con la búsqueda"
+          descripcion="Prueba con otro código, material o proveedor, o quita los filtros."
+          accion={limpiar}
+        />
+      ) : filtros.inactivos ? (
+        <EstadoVacio
+          Icono={TagsIcon}
+          titulo="No hay ofertas inactivas"
+          descripcion="Las ofertas que des de baja aparecerán aquí, y desde aquí podrás reactivarlas."
+          accion={limpiar}
+        />
+      ) : hayInactivas ? (
+        <EstadoVacio
+          Icono={TagsIcon}
+          titulo="No hay ofertas activas"
+          descripcion="Todas las ofertas están dadas de baja. Puedes verlas y reactivarlas con «Ver solo inactivos»."
+          accion={nuevaOferta}
+        />
+      ) : (
+        <EstadoVacio
+          Icono={TagsIcon}
+          titulo="Aún no hay ofertas registradas"
+          descripcion="Cuando registres la primera oferta de precio de un proveedor, aparecerá aquí."
+          accion={nuevaOferta}
+        />
+      )}
     </div>
   );
+}
+
+/**
+ * «86 ofertas activas», «1 oferta inactiva». Vive aquí y no en el contador de
+ * core/ porque el sustantivo y su género son de este catálogo.
+ */
+function textoContador(total: number, inactivas: boolean): string {
+  const uno = total === 1;
+  const sustantivo = uno ? "oferta" : "ofertas";
+  const situacion = inactivas
+    ? uno
+      ? "inactiva"
+      : "inactivas"
+    : uno
+      ? "activa"
+      : "activas";
+
+  return `${total} ${sustantivo} ${situacion}`;
 }

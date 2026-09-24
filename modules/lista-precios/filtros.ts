@@ -58,7 +58,11 @@ export function urlListado(filtros: FiltrosListaPrecios = {}): string {
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
 }
 
-/** Si hay al menos un filtro puesto — para el mensaje de lista vacía. */
-export function hayFiltros(filtros: FiltrosListaPrecios): boolean {
-  return Boolean(filtros.busqueda || filtros.inactivos);
+/**
+ * Cuántos filtros hay puestos: el número de «Limpiar filtros», y el que decide
+ * qué estado vacío se enseña (catálogo vacío o búsqueda sin resultados).
+ * «Ver solo inactivos» cuenta como filtro: «Limpiar filtros» también lo apaga.
+ */
+export function contarFiltros(filtros: FiltrosListaPrecios): number {
+  return [filtros.busqueda, filtros.inactivos].filter(Boolean).length;
 }

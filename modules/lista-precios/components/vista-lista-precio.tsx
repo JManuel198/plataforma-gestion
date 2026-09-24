@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { formatearMonto } from "@/core/dinero";
 import { Dato, ListaDatos } from "@/core/vista-detalle";
 import { formatearNumerico } from "../numeros";
@@ -63,13 +63,10 @@ export function VistaListaPrecio({
       />
       <Dato etiqueta="Moneda" valor={moneda} />
       <Dato etiqueta="Fecha de actualización" valor={fechaActualizacion} />
-      {/* Mismo criterio que `VistaMaterial`: el chip de activo sí se pinta
-          aquí aunque la tabla no lo marque, porque una etiqueta "Situación"
-          sin valor se leería como un dato que falta. */}
+      {/* Mismo badge que la columna «Situación» de la tabla, que desde el
+          rediseño lo pinta también para las activas. */}
       <Dato etiqueta="Situación">
-        <Badge variant={precio.activo ? "outline" : "secondary"}>
-          {precio.activo ? "En la lista" : "Inactiva"}
-        </Badge>
+        <BadgeSituacion activo={precio.activo} />
       </Dato>
     </ListaDatos>
   );

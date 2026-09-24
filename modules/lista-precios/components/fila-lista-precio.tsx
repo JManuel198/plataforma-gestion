@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatearMonto } from "@/core/dinero";
 import {
@@ -87,7 +87,7 @@ export function FilaDePrecio({
         {fechaActualizacion}
       </TableCell>
       <TableCell>
-        {precio.activo ? null : <Badge variant="secondary">Inactiva</Badge>}
+        <BadgeSituacion activo={precio.activo} />
       </TableCell>
       <TableCell className="text-right whitespace-nowrap">
         <SinPropagacion className="flex items-center justify-end gap-1">

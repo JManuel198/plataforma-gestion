@@ -96,9 +96,12 @@ de la tabla en `docs/spec/entidades.md`.
   proveedores. Todas verifican sesión. El alta reserva el correlativo y hace
   el INSERT **en la misma transacción**, para que un fallo no deje huecos en
   la numeración.
-- `components/` — campos, modal (tres modos), vista de detalle, fila, tabla,
-  acciones de fila (lápiz + inactivar), buscador de tabla, filtro de
-  inactivas y el hook de navegación de los filtros.
+- `components/` — campos, modal (tres modos), vista de detalle, fila, tabla y
+  acciones de fila (lápiz + inactivar). El buscador de tabla y el interruptor
+  «Ver solo inactivos» son envoltorios finos de los comunes de
+  `core/components/` (`BuscadorListado`, `FiltroSoloInactivos`), que reciben
+  la `urlListado` de este módulo. La cabecera, «Limpiar filtros», el contador,
+  el badge de situación y el estado vacío también salen de ahí.
 
 Tabla en `db/schema/lista-precios.ts`. Pantalla en
 `app/(protegido)/lista-precios/page.tsx` — ruta plana a propósito: el

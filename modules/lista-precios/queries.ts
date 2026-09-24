@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, isNotNull, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNotNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { listaPrecios } from "@/db/schema/lista-precios";
 import { materiales } from "@/db/schema/materiales";
@@ -40,6 +40,23 @@ const columnasListado = {
   // lo hiciera.
   updatedAt: listaPrecios.updatedAt,
 } as const;
+
+/**
+ * Cuántas ofertas hay en la vista de activas o en la de inactivas, sin mirar la
+ * búsqueda: es el contador de la barra de filtros («86 ofertas activas»), que
+ * responde "¿cuántas hay?", no "¿cuántas encontré?".
+ *
+ * Mismo criterio de alternancia que `listarPrecios`: una vista u otra, nunca
+ * las dos sumadas.
+ */
+export async function contarPrecios(inactivos = false): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(listaPrecios)
+    .where(eq(listaPrecios.activo, inactivos ? false : true));
+
+  return fila?.total ?? 0;
+}
 
 /**
  * Lista las ofertas del catálogo aplicando los filtros que vengan.
