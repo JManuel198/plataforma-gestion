@@ -701,3 +701,20 @@ cada punto.
     `z.enum` en `modules/tarifario-personal/schema.ts` y —si se confirma del
     todo— un `pgEnum` construido DESDE ese array, nunca un segundo array
     literal. Y aplicaría solo a esta tabla, no a las tres de `UNIDADES`.
+
+## Ajustes de usuario (módulo nuevo, 2026-09-24)
+
+21. **¿`user.dni` y `user.telefono` deben viajar en la sesión de Better Auth?**
+    — **Resuelto (2026-09-24): `dni` lleva `returned: false`; `telefono` se
+    sigue devolviendo.** Ver entidades.md, sección Usuario. Contexto original: Hoy salen con `returned` en su default (`true`), así que los
+    dos van en la respuesta de `/api/auth/get-session` y en `useSession()` del
+    cliente, igual que ya pasa con `role` y `activo`. El riesgo actual es bajo:
+    es el propio dato del usuario devuelto a su propia sesión, sin fuga entre
+    cuentas, y `app/(protegido)/layout.tsx` no se lo pasa a ningún componente
+    cliente. Pero el DNI es un dato de identidad, más sensible que `role`, y
+    la opción por defecto no se eligió a propósito: salió del default.
+    La alternativa es `returned: false` en `lib/auth.ts` y leer los dos campos
+    con una consulta de Drizzle solo en la pantalla de perfil. Hay que
+    decidirlo **antes** de que la Server Action de perfil lea la sesión para
+    rellenar el formulario, porque ese es el momento en que el default deja
+    de ser inofensivo. (Anotado a raíz de la auditoría del cambio.)

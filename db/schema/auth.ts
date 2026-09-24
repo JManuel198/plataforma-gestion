@@ -17,6 +17,17 @@ export const user = pgTable("user", {
   role: text("role").default("admin"),
   nombre_completo: text("nombre_completo").notNull(),
   activo: boolean("activo").default(true),
+  // Datos de perfil del módulo de ajustes de usuario. Nullable porque las
+  // cuentas existentes no los tienen cargados. El UNIQUE de `dni` sigue el
+  // mismo criterio que `personal.dni` (la base es la garantía real, no el
+  // formulario); en PostgreSQL varios NULL no chocan entre sí, así que no
+  // estorba a los usuarios sin DNI. Ojo: una cadena vacía NO es NULL — quien
+  // escriba este campo tiene que convertir "" en null, o el segundo usuario
+  // que deje el DNI en blanco chocará con el primero.
+  // Declarados también en `user.additionalFields` de lib/auth.ts: sin eso
+  // Better Auth no los lee ni los devuelve en la sesión.
+  dni: text("dni").unique(),
+  telefono: text("telefono"),
 });
 
 export const session = pgTable(
