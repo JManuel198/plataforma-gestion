@@ -54,9 +54,10 @@ export function FilaDeEpp({
   epp: FilaEpp;
   /**
    * `created_at` ya formateada en el servidor con `formatearFecha`. Viene de
-   * fuera porque es un `timestamp` sin zona guardado en UTC, así que leerlo en
-   * el navegador usaría el reloj del equipo y además desajustaría la
-   * hidratación. Mismo criterio que en el resto de catálogos.
+   * fuera porque hay que mostrarla con la zona del negocio, no con la de quien
+   * mira la pantalla: leerla en el navegador usaría el reloj del equipo y
+   * además desajustaría la hidratación. Mismo criterio que en el resto de
+   * catálogos.
    */
   fechaCreacion: string;
 }) {

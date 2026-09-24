@@ -126,8 +126,10 @@ export const listaPrecios = pgTable(
     // Parte 2 de este bloque, pero la columna entra ya para no requerir una
     // segunda migración solo por esto.
     activo: boolean("activo").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),

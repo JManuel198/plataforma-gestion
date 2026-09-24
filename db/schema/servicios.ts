@@ -71,8 +71,10 @@ export const servicios = pgTable("servicios", {
   // compartido `moneda` que `orden_trabajo.moneda` y `lista_precios.moneda`,
   // definido en `./moneda.ts` — ninguna tabla es su dueña.
   moneda: monedaEnum("moneda"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),

@@ -60,7 +60,9 @@ export const materialCaracteristicas = pgTable(
     // reabrir el modal aparezcan en el mismo orden. El usuario no ve ni
     // edita este número directamente.
     orden: integer("orden").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("material_caracteristicas_material_id_idx").on(table.material_id),

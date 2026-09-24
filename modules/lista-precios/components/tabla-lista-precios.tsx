@@ -15,9 +15,8 @@ import { FilaDePrecio } from "./fila-lista-precio";
  *
  * Es SERVIDOR: aquí no hay estado. Lo único que hace de más es formatear
  * `updated_at` con la zona del negocio antes de pasarla a cada fila — igual
- * que `TablaMateriales` con `created_at`, y por el mismo motivo: es un
- * `timestamp` sin zona guardado en UTC, así que formatearlo en el navegador
- * usaría el reloj del equipo y desajustaría la hidratación.
+ * que `TablaMateriales` con `created_at`, y por el mismo motivo: formatearlo
+ * en el navegador usaría el reloj del equipo y desajustaría la hidratación.
  *
  * FILTRADO Y BÚSQUEDA VIVEN EN LA CONSULTA, no aquí: esta tabla recibe las
  * filas que ya casan y las pinta. Lo único que sabe de los filtros es si había

@@ -27,14 +27,13 @@ export const personal = pgTable(
     // identificador, no una cantidad — no se suma, puede llevar ceros a la
     // izquierda, y su longitud es fija.
     dni: text("dni").notNull().unique(),
-    // `date`, no `timestamp`, y con mode "string": una fecha de nacimiento
-    // no tiene hora. Con `timestamp` quedaría atrapada en el lío de zonas
-    // horarias que documenta AGENTS.md (el type parser y
-    // `parseInputDatesAsUTC` de db/index.ts existen porque las columnas
-    // `timestamp` sin zona se corren de día si el proceso no corre en UTC).
-    // Una columna `date` con mode "string" entra y sale como `YYYY-MM-DD`
-    // literal, sin pasar por ninguna conversión — exactamente lo que produce
-    // y consume un `<input type="date">`, sin conversión de por medio.
+    // `date`, no `timestamp`, y con mode "string": una fecha de nacimiento no
+    // tiene hora, y una columna con hora (aunque sea `timestamptz`) obliga a
+    // decidir a qué hora del día corresponde esa fecha en la zona de
+    // visualización, decisión que no tiene ninguna respuesta correcta para un
+    // dato que nunca tuvo hora. Una columna `date` con mode "string" entra y
+    // sale como `YYYY-MM-DD` literal, sin pasar por ninguna conversión —
+    // exactamente lo que produce y consume un `<input type="date">`.
     fecha_nacimiento: date("fecha_nacimiento", { mode: "string" }).notNull(),
     // Baja lógica, mismo criterio que `Cancelada` en orden_trabajo: dar de
     // baja a alguien pone esto en false, nunca se borra la fila. A
@@ -44,8 +43,10 @@ export const personal = pgTable(
     // libre) llega a convertirse en FK a esta tabla, un DELETE real dejaría
     // referencias rotas.
     activo: boolean("activo").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),

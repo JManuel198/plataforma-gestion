@@ -50,11 +50,9 @@ export async function listarOrdenesTrabajo(filtros: FiltrosOt = {}) {
           ilike(ordenTrabajo.servicio, patron),
         )
       : undefined,
-    // `fecha_creacion` es `timestamp` sin zona guardado en UTC (ver
-    // db/index.ts), así que los límites se calculan con la zona del negocio en
-    // lib/fecha.ts en vez de comparar contra el texto "2026-09-19" pelado, que
-    // cortaría por las 00:00 UTC — cinco horas antes de que empiece el día en
-    // Lima.
+    // Los límites se calculan con la zona del negocio en lib/fecha.ts en vez
+    // de comparar contra el texto "2026-09-19" pelado, que cortaría por las
+    // 00:00 UTC — cinco horas antes de que empiece el día en Lima.
     desde ? gte(ordenTrabajo.fecha_creacion, inicioDelDia(desde)) : undefined,
     // `<` contra el inicio del día siguiente, no `<=` contra el inicio de
     // `hasta`: "hasta el 19" incluye todo el 19, no solo su medianoche.

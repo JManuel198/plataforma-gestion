@@ -56,8 +56,10 @@ export const materiales = pgTable(
     // `personal.activo`: no hay un enum de estado propio que ya cumpla ese
     // papel, así que la bandera es la forma correcta, no la excepción.
     activo: boolean("activo").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),

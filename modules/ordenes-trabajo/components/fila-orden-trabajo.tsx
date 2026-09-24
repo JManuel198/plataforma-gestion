@@ -58,7 +58,7 @@ import { SelectorEstadoFila } from "./selector-estado-fila";
  *
  * EL PRECIO Y LA FECHA LLEGAN FORMATEADOS desde la tabla, que es un Server
  * Component. Es la misma razón por la que la edad de Personal se calcula allí:
- * `formatearFecha` lee un `timestamp` sin zona con la zona del negocio y
+ * `formatearFecha` muestra el timestamp con la zona del negocio y
  * `formatearMonto` pasa por `Intl.NumberFormat` — los dos darían un resultado
  * distinto en el navegador y desajustarían la hidratación, además de arrastrar
  * dayjs con sus plugins de zona al bundle del cliente.

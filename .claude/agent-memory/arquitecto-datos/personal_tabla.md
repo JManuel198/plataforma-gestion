@@ -25,12 +25,15 @@ Decisiones de modelado, todas especificadas explícitamente por el usuario
   izquierda, no se suma). El UNIQUE es la garantía real, el Zod del módulo
   es solo UX.
 - `fecha_nacimiento` es `date` con `mode: "string"` en Drizzle, NO
-  `timestamp`. Motivo: evita por completo el problema de zonas horarias
-  documentado en AGENTS.md (el type parser UTC + `parseInputDatesAsUTC` de
-  `db/index.ts`, que existen para las columnas `timestamp` sin zona). `date`
-  con mode string entra/sale como `YYYY-MM-DD` literal, calza con
-  `<input type="date">` sin ninguna conversión. **Precedente a reutilizar**
-  para cualquier fecha futura sin componente de hora (ej. si aparece
+  `timestamp`. Motivo: una fecha sin hora no debe llevar una columna que la
+  tenga, ni siquiera `timestamptz` (RESUELTO 2026-09-24: todas las columnas
+  `timestamp` del esquema pasaron a `withTimezone: true`, así que el viejo
+  problema de zonas horarias de `db/index.ts` ya no existe, pero eso no
+  cambia esto — seguiría obligando a decidir a qué hora del día corresponde
+  un dato que nunca tuvo hora). `date` con mode string entra/sale como
+  `YYYY-MM-DD` literal, calza con `<input type="date">` sin ninguna
+  conversión. **Precedente a reutilizar** para cualquier fecha futura sin
+  componente de hora (ej. si aparece
   `fecha_ingreso` de personal) — usar `date`/mode string, no `timestamp`.
 - `activo` boolean default true, SÍ es la forma correcta aquí (a diferencia
   de `orden_trabajo`, que deliberadamente NO tiene `activo` porque su enum

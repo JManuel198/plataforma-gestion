@@ -53,8 +53,10 @@ export const epps = pgTable("epps", {
   // `servicios.moneda` y `tarifario_personal.moneda`, definido en
   // `./moneda.ts` — ninguna tabla es su dueña.
   moneda: monedaEnum("moneda"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),

@@ -31,8 +31,9 @@ export type MaterialElegible = {
  *
  * Mismo criterio que `MaterialEditable` en Materiales: es la fila del listado
  * sin lo que ya llega formateado por separado. Fuera queda `updatedAt`, que el
- * servidor entrega como texto (`fechaActualizacion`) porque es un `timestamp`
- * sin zona y formatearlo en el navegador usaría el reloj del equipo.
+ * servidor entrega como texto (`fechaActualizacion`) porque hay que mostrarlo
+ * con la zona del negocio, y formatearlo en el navegador usaría el reloj del
+ * equipo.
  *
  * SÍ incluye `precio` y `activo` aunque el formulario no los edite, porque la
  * VISTA los enseña. Que estén aquí no los convierte en campos: `precio` no

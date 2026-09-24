@@ -59,10 +59,10 @@ export function TablaOrdenesTrabajo({
           // El precio y la fecha se formatean AQUÍ, en el servidor, y viajan
           // como texto a la fila (que es un Client Component). Los dos
           // dependen de algo que el navegador resolvería distinto: la zona
-          // horaria del negocio (`formatearFecha`, lib/fecha.ts — la columna
-          // es un `timestamp` sin zona guardado en UTC) y `Intl.NumberFormat`,
-          // cuya salida no coincide carácter a carácter entre Node y el
-          // navegador. Mismo criterio que la edad en `TablaPersonal`.
+          // horaria del negocio (`formatearFecha`, lib/fecha.ts) y
+          // `Intl.NumberFormat`, cuya salida no coincide carácter a carácter
+          // entre Node y el navegador. Mismo criterio que la edad en
+          // `TablaPersonal`.
           <FilaDeOrdenTrabajo
             key={fila.id}
             orden={fila}

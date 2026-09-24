@@ -75,7 +75,9 @@ export const ordenTrabajo = pgTable(
     // se desincronizaría.
     estado: otEstadoEnum("estado").notNull().default("Pendiente"),
     // Automática: nunca se pide al usuario, se pone sola al crear.
-    fecha_creacion: timestamp("fecha_creacion").defaultNow().notNull(),
+    fecha_creacion: timestamp("fecha_creacion", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     // Texto libre: no existe tabla de Personal todavía (diferido, sección 5
     // del alcance). Nullable porque el técnico a cargo puede asignarse
     // después de abrir la OT — el documento no dice si es obligatorio
@@ -85,8 +87,10 @@ export const ordenTrabajo = pgTable(
     responsable: text("responsable"),
     // Ex `servicio.comentarios`. Texto libre, nullable, mismo patrón.
     comentarios: text("comentarios"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
@@ -138,8 +142,10 @@ export const otCorrelativo = pgTable("ot_correlativo", {
   // siguiente a entregar: `RETURNING ultimo` devuelve directamente el valor
   // que se formatea con padStart(4, "0").
   ultimo: integer("ultimo").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),

@@ -14,10 +14,10 @@ import type { OrdenTrabajoEditable } from "../tipos";
  * EL PRECIO Y LA FECHA LLEGAN YA FORMATEADOS, no se formatean aquí. Los dos
  * dependen de algo que solo el servidor sabe bien:
  *
- * - `fecha_creacion` es un `timestamp` sin zona guardado en UTC, así que hay
- *   que leerlo con la zona del negocio (`formatearFecha`, lib/fecha.ts). En el
- *   navegador saldría con el reloj del usuario, y además el HTML del servidor
- *   y el del cliente no coincidirían al hidratar.
+ * - `fecha_creacion` hay que mostrarla con la zona del negocio
+ *   (`formatearFecha`, lib/fecha.ts), no con la del reloj de quien mira la
+ *   pantalla. En el navegador saldría con el reloj del usuario, y además el
+ *   HTML del servidor y el del cliente no coincidirían al hidratar.
  * - `precio` pasa por `Intl.NumberFormat`, cuya salida no es idéntica carácter
  *   a carácter entre Node y el navegador (el separador antes del símbolo, sin
  *   ir más lejos), que es otro desajuste de hidratación esperando a ocurrir.

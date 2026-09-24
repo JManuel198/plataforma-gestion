@@ -41,7 +41,7 @@ export function FilaDePrecio({
   precio: FilaPrecio;
   /**
    * `updated_at` ya formateada en el servidor con `formatearFecha`. Viene de
-   * fuera porque es un `timestamp` sin zona guardado en UTC: leerlo en el
+   * fuera porque hay que mostrarla con la zona del negocio: leerla en el
    * navegador usaría el reloj del equipo y además desajustaría la hidratación.
    */
   fechaActualizacion: string;

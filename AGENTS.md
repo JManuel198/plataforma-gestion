@@ -89,10 +89,11 @@ trabaje en este código.
    propio `estado` llega a `Cancelada` y cumple ese papel, así que no lleva
    una segunda bandera (ver entidades.md).
 10. Un campo que representa solo fecha, sin hora, se guarda como `date`,
-    nunca `timestamp` — evita el problema de zona horaria que sí afecta a
-    las columnas de fecha de Órdenes de Trabajo (ver la deuda técnica
-    sobre db/index.ts más abajo). Aplicado ya en `fecha_nacimiento` de
-    Personal.
+    nunca `timestamp` — una fecha sin hora no debe llevar una columna que
+    la tenga, aunque esa columna use zona horaria (`timestamptz`): sigue
+    obligando a decidir a qué hora del día corresponde, decisión que no
+    tiene respuesta correcta para un dato que nunca tuvo hora. Aplicado ya
+    en `fecha_nacimiento` de Personal.
 
 ## Convenciones
 - Archivos: kebab-case. Componentes de React: PascalCase.
@@ -342,15 +343,41 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   verificación previa que pueda quedar obsoleta antes del INSERT. El
   23505 sobre codigo_ot sigue traducido en actions.ts, que es el único
   que queda.
-- Las columnas de fecha (timestamp sin zona) dependen de dos ajustes de
-  node-postgres en db/index.ts: un type parser que lee el valor como UTC,
-  y parseInputDatesAsUTC, que hace que las fechas escritas por Node
-  (session.expires_at de Better Auth, los $onUpdate de updated_at) se
-  guarden también en UTC. Las dos van juntas: con solo una, un proceso
-  fuera de UTC guarda hora local y la relee como UTC, y la fecha vuelve
-  corrida. En Vercel el proceso ya corre en UTC y no cambian nada. El
-  arreglo de fondo es migrar esas columnas a timestamptz — no se hizo en
-  este sprint porque exige una migración de datos, no solo de código.
+- RESUELTO (2026-09-24): las 32 columnas `timestamp` sin zona del esquema
+  —las 12 de Better Auth (`user`, `session`, `account`, `verification`,
+  incluidas `expires_at` y las dos `*TokenExpiresAt`), las de
+  `orden_trabajo`/`ot_correlativo`, y `created_at`/`updated_at` de
+  Personal, Materiales, Servicios, Lista de precios, Tarifario de
+  personal, EPPs, `material_caracteristicas` y `correlativo`— pasaron a
+  `timestamp({ withTimezone: true })`. Con eso, los dos ajustes de
+  node-postgres en db/index.ts (el type parser que leía el valor como
+  UTC, y `parseInputDatesAsUTC` para que Node escribiera también en UTC)
+  quedaron sin objeto y se eliminaron: node-postgres ya parsea
+  `timestamptz` bien por defecto, porque el texto que devuelve Postgres
+  trae el offset explícito.
+  **El riesgo real no estaba en el esquema, sino en el `ALTER COLUMN`**:
+  `drizzle-kit generate` produce el cambio de tipo sin `USING` (confirmado
+  leyendo su código fuente), así que Postgres hace un cast implícito que
+  interpreta los valores existentes con el `TimeZone` de la sesión que
+  ejecuta el `ALTER` — no necesariamente UTC. Como ninguna parte del
+  repositorio fijaba esa sesión (el supuesto "Neon corre en GMT" nunca se
+  verificaba en código), corregirlo a mano en el `.sql` generado habría
+  chocado con la regla de "nunca se editan migraciones a mano". La salida
+  fue forzar `options=-c timezone=UTC` en la cadena de conexión que usa
+  drizzle-kit (`drizzle.config.ts`), no en el archivo de migración: la
+  sesión queda garantizada en UTC sin tocar el SQL que generó Drizzle.
+  Verificado antes de aplicar (`SHOW timezone` contra la conexión con y
+  sin el `options` forzado) y después (comparando el valor crudo de varias
+  filas antes/después de la migración) que ningún dato se corrió.
+  **Lección para la próxima migración de tipo con semántica de zona
+  horaria**: verificar el `ALTER` generado con una lectura de texto crudo
+  (`columna::text`), nunca con el parser por defecto de una conexión
+  suelta de `pg` — su parser para `timestamp` sin zona interpreta el valor
+  con la zona horaria LOCAL del proceso que lee (no UTC), que es
+  exactamente el mismo problema que este cambio resolvió para la app. Caer
+  en esa trampa en el propio script de verificación (como pasó aquí, antes
+  de corregirlo) parece confirmar una corrupción de datos que en realidad
+  no existió.
 - RESUELTO (2026-09-19): las dos cadenas de .env.local usan ahora
   sslmode=verify-full explícito, no sslmode=require. Antes dependían de
   que pg v8 tratara 'require' como alias de 'verify-full'; en

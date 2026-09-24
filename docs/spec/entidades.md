@@ -48,10 +48,10 @@ campos absorbidos de Servicio, Fase 2.
 | `precio` | `bigint` (`mode: "number"` en Drizzle) | sí | manual — ex `servicio.precio`, **céntimos**, nunca decimal |
 | `moneda` | `moneda` (enum) | sí | manual — ex `servicio.moneda`, `PEN` o `USD`, una sola por registro |
 | `estado` | `ot_estado` (enum) | sí | manual — 7 valores, por defecto `Pendiente` |
-| `fecha_creacion` | `timestamp` | sí | **automática** (`DEFAULT now()`) — nunca se pide al usuario |
+| `fecha_creacion` | `timestamp with time zone` | sí | **automática** (`DEFAULT now()`) — nunca se pide al usuario |
 | `responsable` | `text` | **no** | manual — nombre del técnico, texto libre (no hay tabla de Personal) |
 | `comentarios` | `text` | **no** | manual — ex `servicio.comentarios` |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **Estados** (enum `ot_estado`): `Pendiente` · `Aceptada` · `En ejecución` ·
 `Pausada` · `Finalizada` · `Facturado` · `Cancelada`. Lista propuesta al
@@ -115,7 +115,7 @@ negocio: es el contador que hace que el `NNNN` de `OT.CCM.AAAA.NNNN` sea
 |---|---|---|---|
 | `anio` | `integer` (PK) | sí | automático — una fila por año |
 | `ultimo` | `integer` | sí | automático — último número entregado ese año |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **Por qué no basta con `MAX(...) + 1`.** Dos OT creadas casi a la vez leerían
 el mismo máximo y producirían el mismo código. La reserva del número se hace
@@ -160,7 +160,7 @@ reemplazo (ver más abajo).
 |---|---|---|---|
 | `clave` | `text` (PK) | sí | automático — el ÁMBITO del contador, ej. `"materiales"` |
 | `ultimo` | `integer` | sí | automático — último número entregado en ese ámbito |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **Mismo mecanismo de reserva atómica que `ot_correlativo`:**
 
@@ -234,20 +234,32 @@ ambas.
 | `dni` | `text` (**UNIQUE**) | sí | manual — identificador, no numérico: no se suma, puede llevar ceros a la izquierda y tiene longitud fija |
 | `fecha_nacimiento` | `date` (mode `"string"` en Drizzle) | sí | manual — `YYYY-MM-DD` literal, sin hora |
 | `activo` | `boolean`, default `true` | sí | automático al crear; manual al dar de baja |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **No existe columna `edad`.** Se calcula al mostrarla, a partir de
 `fecha_nacimiento` — una columna `edad` quedaría desactualizada sola con el
 paso del tiempo. Si una pantalla necesita ordenar o filtrar por edad, el
 cálculo va en el backend a partir de `fecha_nacimiento`, nunca se persiste.
 
-**`fecha_nacimiento` es `date`, no `timestamp`.** Una fecha de nacimiento no
-tiene hora, y `timestamp` la habría metido en el problema de zonas horarias
-que ya documenta AGENTS.md (el type parser y `parseInputDatesAsUTC` de
-`db/index.ts`, que existen porque las columnas `timestamp` sin zona se corren
-de día si el proceso no corre en UTC). Con `date` y `mode: "string"` el valor
-entra y sale como `YYYY-MM-DD` literal — lo mismo que produce y consume un
-`<input type="date">` — sin pasar por ninguna conversión.
+**`fecha_nacimiento` es `date`, no `timestamp with time zone`.** Una fecha de
+nacimiento no tiene hora, y meterla en una columna con hora obligaría a
+decidir a qué hora del día corresponde y a repetir esa conversión en cada
+lectura y escritura — justo lo que `date` evita de raíz al no tener hora que
+convertir. Con `date` y `mode: "string"` el valor entra y sale como
+`YYYY-MM-DD` literal — lo mismo que produce y consume un `<input
+type="date">` — sin pasar por ninguna conversión.
+
+**RESUELTO (2026-09-24), nota histórica:** hasta este cambio el motivo se
+explicaba distinto, porque el problema era otro: las columnas `timestamp`
+del esquema no llevaban zona horaria, así que dependían de un type parser
+custom y de `parseInputDatesAsUTC` en `db/index.ts` para no correrse de día
+según la zona del proceso (ver AGENTS.md). Ese mecanismo ya no existe —todas
+las columnas de fecha/hora del esquema pasaron a `timestamp with time zone`
+nativo y node-postgres las parsea correctamente sin ningún ajuste en
+`db/index.ts`—, así que ese riesgo concreto desapareció incluso para las
+columnas con hora. La razón para que `fecha_nacimiento` siga siendo `date`
+en vez de `timestamptz` no cambió: sigue sin tener hora, y una columna con
+hora se la pondría igual aunque ya no arrastre el problema de zona horaria.
 
 **`activo` es baja lógica, no borrado.** Mismo criterio que `Cancelada` en
 `orden_trabajo`, pero aquí sí es la bandera `activo` (no un enum de estado)
@@ -310,7 +322,7 @@ detalles de las dos cosas están en los párrafos siguientes.
 | `codigo_fabrica` | `text` | **no** | manual — el del fabricante, distinto del interno |
 | `unidad` | `text` | **no** | manual — unidad de medida, texto libre con sugerencias de una lista fija (`core/unidades.ts`), sin restricción en la base ni en el Zod — ver la ficha de Lista de precios más abajo, "`unidad` es texto libre en las dos tablas" |
 | `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar desde el listado (Bloque 12, Parte 2) |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **Ningún campo de negocio es `NOT NULL`.** A diferencia de `personal` u
 `orden_trabajo`, aquí no hay una fuente (ni un Excel, ni una reunión) de la
@@ -407,7 +419,7 @@ libre) y **decisión 4** (`precio` se deriva, no es una columna independiente
 | `descuento` | `numeric(5,2)` (mode `"string"` en Drizzle), default `0` | sí | automático (`0`) si no se especifica; manual — porcentaje 0–100, con `CHECK` en la base |
 | `moneda` | `moneda` (enum, compartido con `orden_trabajo`) | no | manual |
 | `activo` | `boolean`, default `true` | sí | automático al crear; manual al inactivar o reactivar desde el listado (baja lógica, regla invariable 9) |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **No existe columna `precio`.** Es la decisión central de esta tabla. El
 precio que se muestra al usuario se calcula siempre al leer la fila:
@@ -581,7 +593,7 @@ Materiales.
 | `material_id` | `text` (FK → `materiales.id`, `ON DELETE CASCADE`) | sí | automático — el material al que pertenece |
 | `texto` | `text` | sí | manual |
 | `orden` | `integer` | sí | **automático** — posición de entrada, no un campo de negocio |
-| `created_at` | `timestamp` | sí | automático |
+| `created_at` | `timestamp with time zone` | sí | automático |
 
 **Sin `updated_at`.** A diferencia del resto de tablas del esquema, esta no
 lleva columna de actualización: una característica no se edita in place, se
@@ -689,7 +701,7 @@ vocabulario del cliente, no porque sean la misma cosa.
 | `unidad` | `text` | no | manual — texto libre con sugerencias, sin `pgEnum` ni CHECK (ver "Lista de precios" arriba) |
 | `precio` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal; **directo, no derivado** (ver abajo) |
 | `moneda` | `moneda` (enum, compartido con `orden_trabajo` y `lista_precios`) | no | manual |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **`codigo` usa el correlativo genérico, ámbito `"servicios"` — tercera clave
 de esa tabla.** Formato `SRV.0000001` (7 dígitos), reservado atómicamente con
@@ -777,7 +789,7 @@ Personal (arriba) y la decisión 1 de "Catálogos maestros" en
 | `costo` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal |
 | `moneda` | `moneda` (enum, compartido con `orden_trabajo`, `lista_precios` y `servicios`) | no | manual |
 | `activo` | `boolean` | sí (`DEFAULT true`) | automático/manual — baja lógica |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **`codigo` usa el correlativo genérico, ámbito `"tarifario_personal"` —
 cuarta clave de esa tabla, y la ÚNICA con 4 dígitos.** Formato `PRS.0001`
@@ -880,7 +892,7 @@ documento).
 | `unidad` | `text` | no | manual — unidad de medida **física**, texto libre con sugerencias (ver abajo) |
 | `precio` | `bigint` (`mode: "number"` en Drizzle) | no | manual — céntimos, nunca decimal; **directo, no derivado** |
 | `moneda` | `moneda` (enum, compartido con `orden_trabajo`, `lista_precios`, `servicios` y `tarifario_personal`) | no | manual |
-| `created_at` / `updated_at` | `timestamp` | sí | automáticos |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
 **`codigo` usa el correlativo genérico, ámbito `"epps"` — quinta y última
 clave de esa tabla, y la única con 6 dígitos.** Formato `EPP.000001`

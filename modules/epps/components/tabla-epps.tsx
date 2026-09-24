@@ -56,11 +56,11 @@ export function TablaEpps({
         <TableBody>
           {epps.map((fila) => (
             // `created_at` se formatea AQUÍ, en el servidor, y baja como texto a
-            // la fila (que es un Client Component). Es un `timestamp` sin zona
-            // guardado en UTC, así que hay que leerlo con la zona del negocio
-            // (`formatearFecha`, lib/fecha.ts); hacerlo en el navegador usaría
-            // el reloj del equipo y desajustaría la hidratación. Mismo criterio
-            // que en `TablaMateriales` y `TablaServicios`.
+            // la fila (que es un Client Component): hay que mostrarlo con la
+            // zona del negocio (`formatearFecha`, lib/fecha.ts), no con la de
+            // quien mira la pantalla. Hacerlo en el navegador usaría el reloj
+            // del equipo y desajustaría la hidratación. Mismo criterio que en
+            // `TablaMateriales` y `TablaServicios`.
             <FilaDeEpp
               key={fila.id}
               epp={fila}

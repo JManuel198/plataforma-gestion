@@ -42,11 +42,12 @@ export function FilaDeMaterial({
   material: FilaMaterial;
   /**
    * `created_at` ya formateada en el servidor con `formatearFecha`. Viene de
-   * fuera por lo mismo que la edad en Personal: es un `timestamp` sin zona
-   * guardado en UTC, así que leerlo en el navegador usaría el reloj del equipo
-   * y además desajustaría la hidratación. A diferencia de la difunta
-   * `fecha_activacion` —una columna `date` en modo string, un `YYYY-MM-DD`
-   * literal que sí se podía formatear aquí— esta no admite atajos.
+   * fuera por lo mismo que la edad en Personal: hay que mostrarla con la zona
+   * del negocio, no con la de quien mira la pantalla. Leerla en el navegador
+   * usaría el reloj del equipo y además desajustaría la hidratación. A
+   * diferencia de la difunta `fecha_activacion` —una columna `date` en modo
+   * string, un `YYYY-MM-DD` literal que sí se podía formatear aquí— esta no
+   * admite atajos.
    */
   fechaCreacion: string;
 }) {
