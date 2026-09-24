@@ -20,9 +20,11 @@ pérdida de datos real. Todo lo que describía esta sección ahora vive en
 **Orden de Trabajo**, abajo. `modules/servicios/` y las rutas
 `app/(protegido)/servicios/**` también se retiraron por completo.
 Ojo al leer esto hoy: la ruta `/servicios` volvió a existir en el Bloque 11
-(2026-09-21), pero para el **catálogo maestro de servicios**, que no es esta
-entidad. Es una pantalla "próximamente" sin modelo definido — ver
-"Catálogos maestros" en `preguntas-abiertas.md`.
+(2026-09-21), y `modules/servicios/` en el Bloque 14 (2026-09-23), pero para
+el **catálogo maestro de servicios**, que no es esta entidad. Ese catálogo
+tiene hoy tabla propia (`servicios`) y pantalla con crear, ver, editar,
+buscador y filtro de categoría — ver **Servicios (catálogo maestro)** más
+abajo.
 
 ---
 
@@ -270,7 +272,7 @@ consecuencias ya anotadas en `preguntas-abiertas.md` (supuesto 3 de Personal).
 `orden_trabajo_estado_idx`: el listado filtra por `activo` en la consulta por
 defecto.
 
-**Consume:** nada. **Consumida por:** `modules/personal/` (en desarrollo). Sin
+**Consume:** nada. **Consumida por:** `modules/personal/`. Sin
 relación todavía con `orden_trabajo.responsable`, que sigue siendo texto
 libre — ver deuda técnica en AGENTS.md sobre esa columna.
 
@@ -354,12 +356,24 @@ en la base no lo sea.
 `activo` en la consulta por defecto.
 
 **Tabla hija: `material_caracteristicas`** (ficha propia más abajo, justo
-después de "Correlativo genérico"). Guarda la lista de características
+después de "Lista de precios"). Guarda la lista de características
 técnicas de cada material, una fila por línea. A diferencia del resto de
 tablas de este esquema, esa tabla **no lleva columna `activo`** y permite
 DELETE real — es una excepción deliberada, razonada en su propia ficha.
 
-**Consume:** nada. **Consumida por:** `modules/materiales/` (en desarrollo) y,
+**Como máximo 3 características técnicas por material — CONFIRMADO.**
+Decisión directa de Manuel en la conversación de diseño de esta función; no
+es una pregunta abierta ni hay que volver a plantearla. Se aplica en dos
+sitios: la interfaz deja de ofrecer líneas nuevas al llegar a 3
+(`MAXIMO` en `modules/materiales/components/caracteristicas-material.tsx`) y
+el servidor lo valida de nuevo con `.max(3)` en `caracteristicasSchema`
+(`modules/materiales/schema.ts`), porque una Server Action puede recibir un
+POST directo. La base no lo impone: `material_caracteristicas` no tiene
+ningún `CHECK` que cuente filas por material. Lo confirmado es el tope de 3;
+el largo de cada línea (200 caracteres en el mismo esquema) es un tope de
+cordura, no una decisión del cliente.
+
+**Consume:** nada. **Consumida por:** `modules/materiales/` y,
 desde el Bloque 13, Parte 1 (2026-09-22), `lista_precios.material_id` — ver la
 entidad "Lista de precios" más abajo. La relación que aquí se dejaba como
 pendiente ("Catálogos maestros", decisión 3 de `preguntas-abiertas.md`) ya se
@@ -548,8 +562,7 @@ con Materiales.
 contra `materiales`).
 
 **Consume:** `materiales` (FK de `material_id`), `correlativo` (clave
-`"lista_precios"`). **Consumida por:** `modules/lista-precios/` (en
-desarrollo).
+`"lista_precios"`). **Consumida por:** `modules/lista-precios/`.
 
 ---
 
@@ -617,7 +630,7 @@ del material, no entidades con vida propia fuera de él.
 para listar rápido las características de un material dado.
 
 **Consume:** `materiales` (vía `material_id`). **Consumida por:**
-`modules/materiales/` (en desarrollo).
+`modules/materiales/`.
 
 ---
 
@@ -734,7 +747,7 @@ defecto ni ninguna FK que sostenga un JOIN — a diferencia de `lista_precios`,
 no hay caso real hoy que justifique uno.
 
 **Consume:** `correlativo` (clave `"servicios"`). **Consumida por:**
-`modules/servicios/` (en desarrollo).
+`modules/servicios/`.
 
 ## Tarifario de personal (catálogo maestro)
 
@@ -847,7 +860,7 @@ periodo de tiempo («¿qué cargos tengo tarifados por mes?»). `costo` y `moned
 quedan fuera, mismo criterio que en el resto de catálogos.
 
 **Consume:** `correlativo` (clave `"tarifario_personal"`). **Consumida
-por:** `modules/tarifario-personal/` (en desarrollo). **Sin relación con
+por:** `modules/tarifario-personal/`. **Sin relación con
 `personal`** (ver arriba).
 
 ## EPPs (catálogo maestro)

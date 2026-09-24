@@ -1,10 +1,10 @@
 # Plataforma de Gestión Integral
 
 Plataforma de gestión empresarial construida como base escalable y
-personalizable por cliente. Hoy cubre Órdenes de Trabajo y Personal; CRM,
-cotizaciones, proyectos, logística y asistencias son el alcance completo hacia
-el que escala — ver `docs/spec/` para el detalle de qué está construido y qué
-está diferido.
+personalizable por cliente. Hoy cubre Órdenes de Trabajo, Personal y los cinco
+catálogos maestros; cotizaciones, CRM, proyectos, logística y asistencias son
+el alcance hacia el que crece — ver `docs/spec/` para el detalle de qué está
+construido y qué está diferido.
 
 ## Stack
 
@@ -13,8 +13,8 @@ está diferido.
 - **Base de datos:** PostgreSQL (Neon)
 - **ORM:** Drizzle ORM
 - **Autenticación:** Better Auth
-- **Pruebas:** Playwright (`@playwright/test`), instalado con una prueba de
-  humo; la suite real sigue pendiente (ver deuda técnica en `AGENTS.md`)
+- **Pruebas:** Playwright (`@playwright/test`), con dos pruebas de humo; la
+  suite real sigue pendiente (ver deuda técnica en `AGENTS.md`)
 - **Generación de PDF:** planeado, no construido todavía. Sería Playwright,
   pero no con el paquete que ya está instalado: `@playwright/test` es el
   runner de pruebas. Para generar PDF en Vercel harían falta `playwright-core`
@@ -24,26 +24,49 @@ está diferido.
 
 ## Estructura del proyecto
 
-- `app/` — rutas y páginas (App Router)
-- `core/` — código transversal compartido entre módulos. Hoy contiene
-  `estado-formulario.ts` y `resultado-accion.ts`, los tipos que devuelven las
-  Server Actions; a futuro, roles, catálogos maestros, motor de precios, PDF y
-  auditoría
-- `modules/ordenes-trabajo/` — Órdenes de Trabajo (incluye lo que
-  originalmente iba a ser un módulo `servicios/` aparte, fusionado en este
-  tras el primer ensayo con el cliente)
-- `modules/personal/` — Personal
+- `app/` — rutas y páginas (App Router). Las pantallas privadas viven bajo
+  `app/(protegido)/`
+- `core/` — capa compartida entre módulos, que nunca se bifurca por cliente.
+  Agrupa el patrón de fila clicable → vista → editar de los listados, la
+  búsqueda por coincidencia parcial, el hook unificado de filtros de listado,
+  los correlativos atómicos para los códigos autogenerados, la traducción de
+  errores de PostgreSQL a mensajes para el usuario, los campos con sugerencias
+  y los tipos compartidos de dinero, monedas y resultados de Server Actions
+- `modules/` — un módulo de negocio por carpeta, cada uno con su `schema.ts`,
+  `actions.ts` y `components/`. Ninguno importa de otro: lo compartido sube a
+  `core/`. Los que existen hoy:
+  - `ordenes-trabajo/` — Órdenes de Trabajo
+  - `personal/` — Personal
+  - `materiales/`, `lista-precios/`, `servicios/`, `tarifario-personal/` y
+    `epps/` — los cinco catálogos maestros
+
+  `crm/`, `cotizaciones/`, `proyectos/`, `logistica/` y `asistencias/` también
+  están en `modules/`, pero solo con un README de marcador: son visión futura,
+  no código
 - `components/` — lo transversal a la interfaz: barra lateral de navegación,
   botón de cerrar sesión y `ui/` con los primitivos de shadcn. Lo específico
   de una entidad vive en `modules/<entidad>/components/`, nunca aquí
-- `config/clientes/` — configuración por cliente (branding, campos, flujos).
-  Vacío por ahora: hoy corre una sola instancia compartida, sin `.json`
-  de cliente todavía
+- `config/clientes/` — pensado para un `.json` por cliente (branding, campos,
+  flujos, módulos activos). La estructura existe en la arquitectura, pero sin
+  uso activo: no hay ningún `.json` de cliente ni plan de reventa confirmado,
+  y generalizar por cliente no es un objetivo en curso
 - `db/schema/` — esquemas de Drizzle
 - `db/migrations/` — migraciones generadas (no editar a mano)
-- `docs/spec/` — especificación de negocio, fuente de verdad antes que el código
-- `.claude/agents/` — subagentes de Claude Code (`auditor`, `arquitecto-datos`)
-- `.claude/skills/` — skills de Claude Code (`shadcn-conventions`)
+- `docs/spec/` — especificación de negocio, fuente de verdad antes que el
+  código; `preguntas-abiertas.md` recoge las decisiones todavía sin confirmar
+- `tests/` — pruebas end-to-end con Playwright (`npm test`)
+
+### Cómo se construye
+
+El proyecto se desarrolla con Claude Code, y parte de sus reglas viven en el
+propio repositorio:
+
+- `AGENTS.md` — reglas invariables, convenciones y deuda técnica conocida
+- `.claude/agents/` — subagentes: `auditor` (revisa el código contra las
+  reglas y la especificación, solo lectura) y `arquitecto-datos` (diseña el
+  esquema y genera las migraciones de Drizzle)
+- `.claude/skills/` — `shadcn-conventions`, las convenciones de interfaz y de
+  los patrones de listado
 
 ## Configuración local
 
@@ -96,53 +119,65 @@ de código que sigue este proyecto (y que sigue Claude Code al trabajar aquí).
 
 ## Estado del proyecto
 
-Dos módulos completos y en uso: Órdenes de Trabajo y Personal, con navegación
-por barra lateral y tema visual verde. Listo para la siguiente revisión con el
-cliente.
+Dos módulos de negocio y los cinco catálogos maestros construidos, con
+navegación por barra lateral y tema visual verde. Ninguna entrada del menú
+queda como "próximamente".
 
-El siguiente módulo planeado es Clientes/Empresas, con autocompletado de datos
-por RUC contra una API peruana — el proveedor está por elegir.
-
-## Alcance actual
-
-- Login, rutas protegidas en el servidor (`app/(protegido)/layout.tsx` verifica
-  la sesión contra la base) más un chequeo optimista en `proxy.ts` que solo
-  comprueba que la cookie exista, para no renderizar pantallas privadas de más
-- Navegación: barra lateral izquierda, colapsable a iconos, que en pantallas
-  angostas se convierte en un cajón y no ocupa ancho
-- Tema: verde corporativo aplicado con variables CSS en `app/globals.css`,
-  nunca con clases de color sueltas en los componentes
+- **Acceso:** login y rutas protegidas. `app/(protegido)/layout.tsx` verifica
+  la sesión contra la base; `proxy.ts` hace además un chequeo optimista de la
+  cookie para no renderizar pantallas privadas de más
+- **Navegación:** barra lateral colapsable a iconos (en pantallas angostas se
+  convierte en un cajón), con dos secciones desplegables: **SSOMA** (Personal)
+  y **Catálogos maestros**. Los encabezados son solo texto del menú: las rutas
+  son planas (`/personal`, `/materiales`, …)
+- **Listados:** todos siguen el mismo patrón: clic en la fila para ver el
+  registro y, desde ahí, editarlo en la misma ventana modal, sin salir de la
+  pantalla. Búsqueda y filtros se guardan en la URL y se combinan entre sí
 
 ### Órdenes de Trabajo
 
-Entidad única, fusión de lo que originalmente eran Servicio y OT por separado.
-Cada OT lleva código autogenerado con correlativo atómico
-(`OT.CCM.AAAA.NNNN`), cotización y revisión, servicio, orden de compra,
-cliente, precio (entero en céntimos) con su moneda, estado, fecha de creación,
-responsable y comentarios.
-
-Siete estados, en orden del ciclo: Pendiente → Aceptada → En ejecución →
-Pausada → Finalizada → Facturado → Cancelada.
-
-Crear y editar se hacen en una ventana modal sobre el listado, sin salir de la
-pantalla. El listado combina búsqueda de texto (código, cliente o servicio),
-filtro por estado y filtro por rango de fechas: los tres se acumulan en la URL
-en vez de pisarse. El estado también se cambia desde la propia fila, y pasar a
-Facturado o Cancelada pide confirmación.
+CRUD completo, con código autogenerado (`OT.CCM.AAAA.NNNN`). Siete estados en
+el ciclo Pendiente → Aceptada → En ejecución → Pausada → Finalizada →
+Facturado → Cancelada, que se cambian en línea desde la propia fila; pasar a
+Facturado o Cancelada pide confirmación. Búsqueda de texto más filtros por
+estado y por rango de fechas. Una OT no se borra: cumple ese papel el estado
+Cancelada.
 
 ### Personal
 
-CRUD con baja lógica: dar de baja pone la columna `activo` en false y la
-persona desaparece del listado, pero la fila nunca se borra. DNI único
-garantizado por la base, no solo por el formulario. La edad no se almacena —
-se calcula al mostrarla a partir de la fecha de nacimiento, porque guardada
-quedaría desactualizada sola. Búsqueda por nombre, apellido, DNI o cargo, y un
-interruptor para ver también a quien está de baja. Mismo patrón de modal que
-Órdenes de Trabajo.
+CRUD completo con baja lógica: dar de baja a alguien lo marca inactivo, nunca
+borra la fila, y el filtro «Ver solo dados de baja» permite verlo y
+reactivarlo. DNI único garantizado por la base. Búsqueda por nombre, apellido,
+DNI o cargo.
 
-Diferido a versiones futuras: Clientes/Empresas con pantalla propia (próximo),
-catálogo de servicios reutilizable, cotización formal con PDF, kanban de
-oportunidades, aprobaciones, logística y asistencias.
+### Catálogos maestros
 
-Ver `docs/spec/` para el alcance detallado por bloque y las preguntas de
-negocio todavía abiertas.
+Los cinco tienen tabla, CRUD, buscador y código autogenerado:
+
+| Catálogo | Código | Baja lógica |
+|---|---|---|
+| Materiales | `MAT.0000001` | Sí |
+| Lista de precios | `OFFT.0000001` | Sí |
+| Servicios | `SRV.0000001` | No — pendiente de confirmar |
+| Tarifario de personal | `PRS.0001` | Sí |
+| EPPs | `EPP.000001` | No — decidido que no aplica |
+
+Los dos catálogos sin baja lógica no están en la misma situación. En
+**Servicios** la ausencia es una pregunta abierta: todavía no se ha confirmado
+con el cliente si hace falta inactivar servicios, y la columna se añadirá si
+la respuesta es que sí. En **EPPs** ya se decidió que no corresponde. En
+ninguno de los dos hay acción de borrado. Materiales, Lista de precios y
+Tarifario de personal sí tienen baja lógica, con su filtro «Ver solo
+inactivos».
+
+### Lo que sigue
+
+El siguiente módulo planeado es **Cotización**, construido sobre estos
+catálogos. Todavía no está en desarrollo: `modules/cotizaciones/` solo
+contiene su README de marcador.
+
+Diferido a versiones futuras: generación de PDF, clientes/empresas con
+pantalla propia, CRM, proyectos, logística y asistencias.
+
+Ver `docs/spec/` para el alcance detallado y las preguntas de negocio todavía
+abiertas.
