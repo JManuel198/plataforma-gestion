@@ -40,6 +40,9 @@ const columnasListado = {
   // tendría que acordarse de escribir, y que se quedaría atrás en cuanto no
   // lo hiciera.
   updatedAt: listaPrecios.updatedAt,
+  // Solo la enseña la vista del modal («Fecha de creación»); la tabla no. Llega
+  // formateada al cliente igual que `updatedAt` (ver `PrecioEditable`).
+  createdAt: listaPrecios.createdAt,
 } as const;
 
 /**

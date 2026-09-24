@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleAlertIcon, LockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,12 +14,18 @@ import {
 import { BuscadorSeleccion } from "@/core/components/buscador-seleccion";
 import { CampoConSugerencias } from "@/core/components/campo-con-sugerencias";
 import { CampoListaSugerida } from "@/core/components/campo-lista-sugerida";
-import { aMontoDecimal, formatearMonto } from "@/core/dinero";
+import {
+  aCentimos,
+  aMontoDecimal,
+  formatearMonto,
+  simboloMoneda,
+} from "@/core/dinero";
 import { MONEDAS, type Moneda } from "@/core/monedas";
 import { UNIDADES } from "@/core/unidades";
 import { buscarProveedoresAction } from "../actions";
-import { calcularPrecioDesdeTexto } from "../precio";
+import { calcularPrecioDesdeTexto, formulaPrecio } from "../precio";
 import type { MaterialElegible, PrecioEditable } from "../tipos";
+import { PanelPrecio } from "./panel-precio";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -31,13 +38,23 @@ type Props = {
    * ../tipos.ts.
    */
   buscarMaterialAction: (texto: string) => Promise<MaterialElegible[]>;
+  /**
+   * Avisa cuando se elige o se quita el material. Lo usa el modal para cambiar
+   * la descripción de la cabecera según el paso del alta ("busca el
+   * material" / "completa los datos") y para habilitar «Registrar».
+   */
+  alCambiarMaterial?: (elegido: boolean) => void;
 };
 
 function MensajeError({ errores }: { errores?: string[] }) {
   if (!errores?.length) return null;
 
   return (
-    <p className="text-sm text-destructive" role="alert">
+    <p
+      className="flex items-center gap-1.5 text-sm text-destructive"
+      role="alert"
+    >
+      <CircleAlertIcon aria-hidden className="size-3.5 shrink-0" />
       {errores[0]}
     </p>
   );
@@ -87,6 +104,7 @@ export function CamposListaPrecio({
   precio,
   errores,
   buscarMaterialAction,
+  alCambiarMaterial,
 }: Props) {
   // Al editar, el material ya está elegido. La fila del listado no trae marca ni
   // modelo —la consulta no los selecciona, nadie los pinta en la tabla— así que
@@ -117,23 +135,40 @@ export function CamposListaPrecio({
     descuentoTexto,
   );
 
+  function elegirMaterial(elegido: MaterialElegible | null) {
+    setMaterial(elegido);
+    alCambiarMaterial?.(elegido !== null);
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="codigo_oferta">Código de oferta</Label>
-        {/* Deshabilitado y SIN `name`: lo genera el correlativo atómico del
-            servidor al guardar (ver ../codigo.ts). No hay número que enseñar
-            hasta entonces, y que viajara en el FormData permitiría fijarlo con
-            un POST directo saltándose el contador. Mismo patrón que el
-            `codigo_ot` en el formulario de Órdenes de Trabajo. */}
-        <Input
-          id="codigo_oferta"
-          value={precio?.codigo_oferta ?? ""}
-          placeholder="Se genera automáticamente al guardar"
-          disabled
-          readOnly
-        />
-      </div>
+      {/* Solo en el alta. Al editar, el código ya existe y va en la cabecera
+          del modal, como en el mockup: repetirlo aquí en un campo gris no
+          aporta nada. */}
+      {precio ? null : (
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="codigo_oferta">Código de oferta</Label>
+          {/* Deshabilitado y SIN `name`: lo genera el correlativo atómico del
+              servidor al guardar (ver ../codigo.ts). No hay número que enseñar
+              hasta entonces, y que viajara en el FormData permitiría fijarlo con
+              un POST directo saltándose el contador. Mismo patrón que el
+              `codigo_ot` en el formulario de Órdenes de Trabajo. */}
+          <div className="relative">
+            <LockIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="codigo_oferta"
+              value=""
+              placeholder="Se genera automáticamente al guardar"
+              className="pl-8 placeholder:italic"
+              disabled
+              readOnly
+            />
+          </div>
+        </div>
+      )}
 
       <div className="sm:col-span-2">
         <BuscadorSeleccion
@@ -150,10 +185,15 @@ export function CamposListaPrecio({
           }
           secundarioDe={contextoDe}
           seleccionado={material}
-          onSeleccionar={setMaterial}
+          onSeleccionar={elegirMaterial}
           invalido={Boolean(errores.material_id)}
         />
         <MensajeError errores={errores.material_id} />
+        {material ? null : (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Al elegir un material se mostrarán los demás campos de la oferta.
+          </p>
+        )}
       </div>
 
       {/* Todo lo demás depende de haber elegido un material. Se desmonta en vez
@@ -161,7 +201,7 @@ export function CamposListaPrecio({
           "está roto", mientras que uno corto se lee como "faltas tú". */}
       {material ? (
         <>
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-span-2">
             {/* SIGUE SIENDO TEXTO LIBRE, con sugerencias encima. No es un
                 `BuscadorSeleccion` como el material de arriba, y la diferencia
                 es de fondo: no hay tabla de proveedores, así que no existe un
@@ -184,7 +224,6 @@ export function CamposListaPrecio({
               buscarAction={buscarProveedoresAction}
               requerido
               invalido={Boolean(errores.proveedor)}
-              ayuda="Escribe el proveedor. Si ya lo usaste en otra oferta, aparecerá debajo."
             />
             <MensajeError errores={errores.proveedor} />
           </div>
@@ -232,88 +271,122 @@ export function CamposListaPrecio({
 
           <div className="space-y-2">
             <Label htmlFor="precio_lista">Precio de lista</Label>
-            <Input
-              id="precio_lista"
-              name="precio_lista"
-              // El usuario escribe un monto normal (150.50); el servidor lo
-              // convierte a céntimos antes de guardarlo (regla 2).
-              inputMode="decimal"
-              defaultValue={precioListaInicial}
-              placeholder="ej. 150.50"
-              required
-              aria-invalid={Boolean(errores.precio_lista)}
-              onChange={(evento) => setPrecioListaTexto(evento.target.value)}
-            />
-            <MensajeError errores={errores.precio_lista} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="descuento">Descuento (%)</Label>
-            {/* Arranca en "0", no vacío: la columna es NOT NULL y "sin
-                descuento" es exactamente 0. Un campo vacío obligaría a decidir
-                qué significa, que es la ambigüedad que se quitó del esquema. */}
-            <Input
-              id="descuento"
-              name="descuento"
-              inputMode="decimal"
-              defaultValue={descuentoInicial}
-              required
-              aria-invalid={Boolean(errores.descuento)}
-              onChange={(evento) => setDescuentoTexto(evento.target.value)}
-            />
-            <MensajeError errores={errores.descuento} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="moneda">Moneda</Label>
-            <Select
-              name="moneda"
-              defaultValue={monedaInicial}
-              items={MONEDAS.map((unaMoneda) => ({
-                label: unaMoneda,
-                value: unaMoneda,
-              }))}
-              // Solo para que la vista previa de abajo enseñe el símbolo
-              // correcto; lo que se envía lo sigue poniendo el input oculto del
-              // propio Select.
-              onValueChange={(valor) => setMoneda(valor as Moneda)}
-            >
-              <SelectTrigger
-                id="moneda"
-                className="w-full"
-                aria-invalid={Boolean(errores.moneda)}
+            {/* La moneda va pegada al importe y no en fila propia, como en el
+                mockup: se leen juntas ("S/ 186.00 · PEN"). El símbolo del
+                prefijo sigue a la moneda elegida. */}
+            <div className="flex gap-2">
+              <div className="relative min-w-0 flex-1">
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground"
+                >
+                  {simboloMoneda(moneda)}
+                </span>
+                <Input
+                  id="precio_lista"
+                  name="precio_lista"
+                  // El usuario escribe un monto normal (150.50); el servidor lo
+                  // convierte a céntimos antes de guardarlo (regla 2).
+                  inputMode="decimal"
+                  defaultValue={precioListaInicial}
+                  placeholder="150.50"
+                  required
+                  // El prefijo es más ancho con "USD" que con "S/".
+                  className={
+                    simboloMoneda(moneda).length > 2
+                      ? "pl-12 font-mono"
+                      : "pl-8 font-mono"
+                  }
+                  aria-invalid={Boolean(errores.precio_lista)}
+                  onChange={(evento) =>
+                    setPrecioListaTexto(evento.target.value)
+                  }
+                />
+              </div>
+              <Select
+                name="moneda"
+                defaultValue={monedaInicial}
+                items={MONEDAS.map((unaMoneda) => ({
+                  label: unaMoneda,
+                  value: unaMoneda,
+                }))}
+                // Para el prefijo y la vista previa; lo que se envía lo sigue
+                // poniendo el input oculto del propio Select.
+                onValueChange={(valor) => setMoneda(valor as Moneda)}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONEDAS.map((unaMoneda) => (
-                  <SelectItem key={unaMoneda} value={unaMoneda}>
-                    {unaMoneda}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  id="moneda"
+                  aria-label="Moneda"
+                  className="w-24"
+                  aria-invalid={Boolean(errores.moneda)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONEDAS.map((unaMoneda) => (
+                    <SelectItem key={unaMoneda} value={unaMoneda}>
+                      {unaMoneda}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <MensajeError errores={errores.precio_lista} />
             <MensajeError errores={errores.moneda} />
           </div>
 
-          {/* NO es un input: es el resultado de una cuenta. Ponerlo en un
-              `<input readOnly>` lo haría parecer editable-pero-bloqueado, que
-              es otra cosa. Sin `name`, así que no viaja en el FormData. */}
-          <div className="space-y-2 sm:col-span-2">
-            <p className="text-sm font-medium">Precio</p>
-            <div className="flex items-baseline justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
-              <output
-                htmlFor="precio_lista descuento moneda"
-                className="text-base font-semibold tabular-nums"
+          <div className="space-y-2">
+            <Label htmlFor="descuento">Descuento</Label>
+            {/* Arranca en "0", no vacío: la columna es NOT NULL y "sin
+                descuento" es exactamente 0. Un campo vacío obligaría a decidir
+                qué significa, que es la ambigüedad que se quitó del esquema. */}
+            <div className="relative">
+              <Input
+                id="descuento"
+                name="descuento"
+                inputMode="decimal"
+                defaultValue={descuentoInicial}
+                required
+                className="pr-7"
+                aria-invalid={Boolean(errores.descuento)}
+                onChange={(evento) => setDescuentoTexto(evento.target.value)}
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-sm text-muted-foreground"
               >
-                {precioCalculado === null
-                  ? "—"
-                  : formatearMonto(precioCalculado, moneda)}
-              </output>
-              <span className="text-xs text-muted-foreground">
-                Precio de lista menos el descuento. No se guarda: se calcula.
+                %
               </span>
             </div>
+            <MensajeError errores={errores.descuento} />
+          </div>
+
+          <div className="sm:col-span-2">
+            <PanelPrecio
+              etiqueta="Precio · vista previa"
+              importe={
+                precioCalculado === null
+                  ? null
+                  : formatearMonto(precioCalculado, moneda)
+              }
+              // Si hay precio calculado, los dos textos son válidos (es la
+              // condición de `calcularPrecioDesdeTexto`), así que `aCentimos`
+              // no puede recibir basura aquí.
+              formula={
+                precioCalculado === null
+                  ? null
+                  : formulaPrecio(
+                      aCentimos(precioListaTexto),
+                      descuentoTexto,
+                      moneda,
+                    )
+              }
+              nota={
+                precioCalculado === null
+                  ? "Completa el precio de lista y un descuento válido para ver el precio."
+                  : "El valor definitivo lo calcula el servidor al guardar."
+              }
+            />
           </div>
         </>
       ) : null}

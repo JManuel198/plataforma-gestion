@@ -1,5 +1,7 @@
-import { aCentimos } from "@/core/dinero";
+import { aCentimos, formatearMonto } from "@/core/dinero";
+import type { Moneda } from "@/core/monedas";
 import { PATRON_DESCUENTO, PATRON_PRECIO_LISTA } from "./constantes";
+import { formatearNumerico } from "./numeros";
 
 /**
  * El precio de una fila de la lista de precios: `precio_lista × (1 − descuento/100)`.
@@ -163,4 +165,21 @@ export function calcularPrecioDesdeTexto(
   if (Number(descuentoLimpio.replace(",", ".")) > 100) return null;
 
   return calcularPrecio(aCentimos(precioLimpio), descuentoLimpio);
+}
+
+/**
+ * La cuenta escrita, para que quien mira el precio vea de dónde sale:
+ * «S/ 186.00 × (1 − 12 %)». La usan la vista del modal (con los valores
+ * guardados) y la vista previa del formulario (con lo que se está tecleando),
+ * y por eso vive aquí: las dos tienen que escribirla igual.
+ *
+ * Solo TEXTO: no calcula nada. El importe sigue saliendo de `calcularPrecio`.
+ */
+export function formulaPrecio(
+  precioListaCentimos: number,
+  descuento: string,
+  moneda: Moneda,
+): string {
+  const porcentaje = formatearNumerico(descuento.trim().replace(",", "."));
+  return `${formatearMonto(precioListaCentimos, moneda)} × (1 − ${porcentaje} %)`;
 }

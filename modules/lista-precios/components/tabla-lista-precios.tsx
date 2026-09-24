@@ -95,6 +95,7 @@ export function TablaListaPrecios({
               key={fila.id}
               precio={fila}
               fechaActualizacion={formatearFecha(fila.updatedAt)}
+              fechaCreacion={formatearFecha(fila.createdAt)}
               buscarMaterialAction={buscarMaterialAction}
             />
           ))}

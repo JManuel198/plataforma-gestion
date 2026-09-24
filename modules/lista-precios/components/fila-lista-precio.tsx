@@ -45,6 +45,7 @@ import { DialogoListaPrecio } from "./dialogo-lista-precio";
 export function FilaDePrecio({
   precio,
   fechaActualizacion,
+  fechaCreacion,
   buscarMaterialAction,
 }: {
   precio: FilaPrecio;
@@ -54,6 +55,8 @@ export function FilaDePrecio({
    * navegador usaría el reloj del equipo y además desajustaría la hidratación.
    */
   fechaActualizacion: string;
+  /** `created_at` ya formateada, por lo mismo. Solo la usa la vista del modal. */
+  fechaCreacion: string;
   buscarMaterialAction: (texto: string) => Promise<MaterialElegible[]>;
 }) {
   const control = useControlDetalle();
@@ -109,6 +112,7 @@ export function FilaDePrecio({
             control={control}
             precio={precio}
             fechaActualizacion={fechaActualizacion}
+            fechaCreacion={fechaCreacion}
           />
         </SinPropagacion>
       </TableCell>

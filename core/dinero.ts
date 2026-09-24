@@ -41,6 +41,20 @@ export function aMontoDecimal(centimos: number): string {
   return `${signo}${Math.floor(absoluto / 100)}.${String(absoluto % 100).padStart(2, "0")}`;
 }
 
+/**
+ * Solo el símbolo de la moneda ("S/" para PEN), para el prefijo de un campo de
+ * importe. Sale del MISMO `Intl.NumberFormat` que `formatearMonto`, así que el
+ * prefijo del campo coincide siempre con el símbolo de los importes que se
+ * muestran — no se mantiene una tabla de símbolos aparte que pueda divergir.
+ */
+export function simboloMoneda(moneda: Moneda): string {
+  return (
+    new Intl.NumberFormat("es-PE", { style: "currency", currency: moneda })
+      .formatToParts(0)
+      .find((parte) => parte.type === "currency")?.value ?? moneda
+  );
+}
+
 /** Monto en céntimos a texto con símbolo de moneda, para mostrar en pantalla. */
 export function formatearMonto(centimos: number, moneda: Moneda): string {
   return new Intl.NumberFormat("es-PE", {
