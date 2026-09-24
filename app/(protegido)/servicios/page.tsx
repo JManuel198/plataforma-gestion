@@ -1,14 +1,25 @@
+import { PlusIcon, SearchXIcon, WrenchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CabeceraListado } from "@/core/components/cabecera-listado";
+import { ContadorRegistros } from "@/core/components/contador-registros";
+import { EstadoVacio } from "@/core/components/estado-vacio";
+import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
+import { PaginacionListado } from "@/core/components/paginacion-listado";
+import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
 import { crearServicioEnModal } from "@/modules/servicios/actions";
 import { BuscadorServicios } from "@/modules/servicios/components/buscador-servicios";
 import { DialogoServicio } from "@/modules/servicios/components/dialogo-servicio";
 import { FiltroCategoria } from "@/modules/servicios/components/filtro-categoria";
 import { TablaServicios } from "@/modules/servicios/components/tabla-servicios";
 import {
-  hayFiltros,
+  contarFiltros,
+  urlListado,
   type FiltrosServicios,
 } from "@/modules/servicios/filtros";
-import { listarServicios } from "@/modules/servicios/queries";
+import {
+  contarResultados,
+  listarServicios,
+} from "@/modules/servicios/queries";
 import {
   filtroBusquedaSchema,
   filtroCategoriaSchema,
@@ -44,38 +55,100 @@ export const metadata = { title: "Servicios" };
 export default async function PaginaServicios({
   searchParams,
 }: PageProps<"/servicios">) {
-  const { busqueda, categoria } = await searchParams;
+  const { busqueda, categoria, pagina } = await searchParams;
 
+  // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro
+  // inventado o repetido se ignora en vez de reventar la pantalla.
   const filtros: FiltrosServicios = {
     busqueda: filtroBusquedaSchema.parse(busqueda),
     categoria: filtroCategoriaSchema.parse(categoria),
+    pagina: paginaSchema.parse(pagina),
   };
 
-  const servicios = await listarServicios(filtros);
+  // El total va primero porque decide qué página se trae: una página que ya
+  // no existe se ajusta a la última real. Ver `calcularPaginacion`.
+  // Sin baja lógica no hay activos ni inactivos que contar: el contador de la
+  // barra enseña el catálogo entero (la misma consulta, sin filtros).
+  const [total, totalCatalogo] = await Promise.all([
+    contarResultados(filtros),
+    contarResultados({}),
+  ]);
+  const paginacion = calcularPaginacion(total, filtros.pagina);
+  const servicios = await listarServicios(filtros, paginacion);
+  const filtrosPuestos = contarFiltros(filtros);
+
+  // El mismo disparador para la cabecera y el estado vacío: dos modales
+  // independientes, no uno compartido.
+  const nuevoServicio = (
+    <DialogoServicio
+      guardarAction={crearServicioEnModal}
+      disparador={
+        <Button>
+          <PlusIcon />
+          Nuevo servicio
+        </Button>
+      }
+    />
+  );
+
+  const limpiar = (
+    <LimpiarFiltros href={urlListado()} cantidad={filtrosPuestos} />
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Servicios</h1>
-          <p className="text-sm text-muted-foreground">
-            Catálogo de servicios con su precio de tarifa
-          </p>
-        </div>
-        <DialogoServicio
-          guardarAction={crearServicioEnModal}
-          disparador={<Button>Nuevo servicio</Button>}
-        />
-      </div>
+      <CabeceraListado
+        titulo="Servicios"
+        descripcion="Catálogo de servicios con su precio de tarifa"
+        accion={nuevoServicio}
+      />
 
       {/* Cada control recibe los filtros completos, no solo el suyo: así el
           que cambia conserva al otro en la URL en vez de pisarlo. */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <BuscadorServicios filtros={filtros} />
-        <FiltroCategoria filtros={filtros} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <BuscadorServicios filtros={filtros} />
+          <FiltroCategoria filtros={filtros} />
+          {limpiar}
+        </div>
+        <ContadorRegistros
+          texto={`${totalCatalogo} ${totalCatalogo === 1 ? "servicio registrado" : "servicios registrados"}`}
+          activos
+        />
       </div>
 
-      <TablaServicios servicios={servicios} filtrado={hayFiltros(filtros)} />
+      {servicios.length > 0 ? (
+        <TablaServicios
+          servicios={servicios}
+          pie={
+            <PaginacionListado
+              paginacion={paginacion}
+              hrefPagina={(numero) => urlListado({ ...filtros, pagina: numero })}
+            />
+          }
+        />
+      ) : filtros.busqueda ? (
+        <EstadoVacio
+          Icono={SearchXIcon}
+          titulo="Ningún servicio coincide con la búsqueda"
+          descripcion="Prueba con otro código, servicio o unidad, o quita los filtros."
+          accion={limpiar}
+        />
+      ) : filtros.categoria ? (
+        <EstadoVacio
+          Icono={SearchXIcon}
+          titulo="No hay servicios en esta categoría"
+          descripcion="Elige otra categoría o quita los filtros para ver todo el catálogo."
+          accion={limpiar}
+        />
+      ) : (
+        <EstadoVacio
+          Icono={WrenchIcon}
+          titulo="Aún no hay servicios registrados"
+          descripcion="Cuando registres el primer servicio del catálogo, aparecerá aquí."
+          accion={nuevoServicio}
+        />
+      )}
     </div>
   );
 }

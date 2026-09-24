@@ -1,8 +1,9 @@
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { servicios } from "@/db/schema/servicios";
 import { patronParcial } from "@/core/busqueda";
 import type { FiltrosServicios } from "./filtros";
+import type { Paginacion } from "@/core/paginacion";
 
 /**
  * Las columnas que muestra el listado.
@@ -27,24 +28,16 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista el catálogo de servicios aplicando los filtros que vengan.
- *
- * Los dos filtros se combinan con AND entre sí — elegir una categoría no borra
- * el texto buscado, y viceversa. Mismo criterio que `listarOrdenesTrabajo`
- * combinando `estado`, `busqueda` y fechas.
- *
- * SIN FILTRO DE INACTIVOS, a diferencia de `listarMateriales` y
- * `listarPrecios`: esta tabla no tiene columna `activo`, así que no hay nada
- * que alternar y la consulta siempre devuelve todo lo que exista (dentro de
- * los filtros de texto/categoría que se pidan).
- *
- * Todo se resuelve aquí, nunca en el navegador.
+ * Las condiciones del listado, compartidas por `listarServicios` y
+ * `contarResultados`. Tienen que ser EXACTAMENTE las mismas en las dos: si el
+ * conteo filtrara distinto que la página, el pie diría «1–10 de 14» sobre un
+ * resultado de otro tamaño, y la última página podría salir vacía.
  */
-export async function listarServicios(filtros: FiltrosServicios = {}) {
+function condicionesListado(filtros: FiltrosServicios) {
   const { busqueda, categoria } = filtros;
   const patron = busqueda ? patronParcial(busqueda) : null;
 
-  const condiciones = [
+  return and(
     categoria ? eq(servicios.categoria, categoria) : undefined,
     // Las tres columnas del buscador. `codigo` y `servicio` son las mismas que
     // en cualquier catálogo; `unidad` SÍ entra aquí a diferencia de Materiales
@@ -62,20 +55,61 @@ export async function listarServicios(filtros: FiltrosServicios = {}) {
           ilike(servicios.unidad, patron),
         )
       : undefined,
-  ];
+  );
+}
+
+/**
+ * Cuántos servicios casan con los filtros, en todas las páginas: el «de N» del
+ * pie de la tabla. Mismo `FROM` y mismas condiciones que `listarServicios`.
+ */
+export async function contarResultados(filtros: FiltrosServicios): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(servicios)
+    // `and()` ignora los `undefined` y devuelve `undefined` si no queda
+    // ninguna condición — que es exactamente "sin WHERE".
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Lista el catálogo de servicios aplicando los filtros que vengan.
+ *
+ * Los dos filtros se combinan con AND entre sí — elegir una categoría no borra
+ * el texto buscado, y viceversa. Mismo criterio que `listarOrdenesTrabajo`
+ * combinando `estado`, `busqueda` y fechas.
+ *
+ * SIN FILTRO DE INACTIVOS, a diferencia de `listarMateriales` y
+ * `listarPrecios`: esta tabla no tiene columna `activo`, así que no hay nada
+ * que alternar y la consulta siempre devuelve todo lo que exista (dentro de
+ * los filtros de texto/categoría que se pidan).
+ *
+ * Todo se resuelve aquí, nunca en el navegador.
+ *
+ * Paginada con `LIMIT`/`OFFSET`: `pagina` sale de `calcularPaginacion`
+ * (core/), que necesita antes el total de `contarResultados`.
+ */
+export async function listarServicios(
+  filtros: FiltrosServicios,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
+
 
   return db
     .select(columnasListado)
     .from(servicios)
     // `and()` ignora los `undefined` y devuelve `undefined` si no queda
     // ninguna condición — que es exactamente "sin WHERE".
-    .where(and(...condiciones))
+    .where(condicionesListado(filtros))
     // Por código, que desde que se autogenera es además el orden de alta:
     // `SRV.0000001`, `SRV.0000002`… Con 7 dígitos fijos y ceros a la izquierda,
     // el orden alfabético y el numérico coinciden, así que ordenar el texto no
     // hace falsos saltos (que es justo lo que pasaría con un código de ancho
     // variable). Mismo razonamiento que en `listarMateriales`.
-    .orderBy(asc(servicios.codigo));
+    .orderBy(asc(servicios.codigo))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 }
 
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */

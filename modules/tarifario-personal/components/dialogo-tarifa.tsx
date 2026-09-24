@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposTarifa } from "./campos-tarifa";
 import { VistaTarifa } from "./vista-tarifa";
 import type { FilaTarifa } from "../queries";
+import { ChipCodigo } from "@/core/components/chip-codigo";
+import { formatearMonto } from "@/core/dinero";
 
 type Props = {
   /** Server Action que guarda. Devuelve el resultado, nunca redirige. */
@@ -167,18 +170,33 @@ export function DialogoTarifa({
           al cerrar y el contenedor es `flex-1`, con animación se veía el modal
           colapsar vacío mientras se desvanecía. El Dialog genérico conserva la
           suya. La animación de ENTRADA no se toca. */}
-      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* Cabecera según el modo, como en Lista de precios (mockup de
+            docs/diseno/): al ver, el código como etiqueta y el nombre como
+            título; al editar, el código y "Editar tarifa". */}
         <DialogHeader>
+          {tarifa?.codigo ? <ChipCodigo codigo={tarifa.codigo} /> : null}
           <DialogTitle>
             {tarifa
               ? editando
                 ? "Editar tarifa"
-                : "Detalle de la tarifa"
+                : nombre
               : "Nueva tarifa"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription
+            className={tarifa && editando ? "sr-only" : undefined}
+          >
             {tarifa
-              ? `${codigo} · ${nombre}`
+              ? editando
+                ? `${codigo} · ${nombre}`
+                : tarifa.costo !== null && tarifa.moneda !== null
+                  ? [
+                      formatearMonto(tarifa.costo, tarifa.moneda),
+                      tarifa.unidad ? `por ${tarifa.unidad}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  : "Sin costo"
               : "Costo por cargo y periodo, para el tarifario de personal."}
           </DialogDescription>
         </DialogHeader>
@@ -197,7 +215,18 @@ export function DialogoTarifa({
             quede al ras y el anillo de foco no se corte contra el recorte.
             `py-1` hace lo mismo arriba y abajo. */}
         {editando || !tarifa ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {tarifa ? (
               <input type="hidden" name="id" value={tarifa.id} />
             ) : null}
@@ -219,7 +248,7 @@ export function DialogoTarifa({
                 {enviando
                   ? "Guardando…"
                   : tarifa
-                    ? "Guardar cambios"
+                    ? "Guardar"
                     : "Registrar"}
               </Button>
             </DialogFooter>
@@ -242,6 +271,7 @@ export function DialogoTarifa({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

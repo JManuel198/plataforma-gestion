@@ -30,10 +30,10 @@ export type MaterialElegible = {
  * Una oferta tal como la reciben el modal y la vista de detalle.
  *
  * Mismo criterio que `MaterialEditable` en Materiales: es la fila del listado
- * sin lo que ya llega formateado por separado. Fuera queda `updatedAt`, que el
- * servidor entrega como texto (`fechaActualizacion`) porque hay que mostrarlo
- * con la zona del negocio, y formatearlo en el navegador usaría el reloj del
- * equipo.
+ * sin lo que ya llega formateado por separado. Fuera quedan `updatedAt` y
+ * `createdAt`, que el servidor entrega como texto (`fechaActualizacion`,
+ * `fechaCreacion`) porque hay que mostrarlos con la zona del negocio, y
+ * formatearlos en el navegador usaría el reloj del equipo.
  *
  * SÍ incluye `precio` y `activo` aunque el formulario no los edite, porque la
  * VISTA los enseña. Que estén aquí no los convierte en campos: `precio` no
@@ -41,4 +41,4 @@ export type MaterialElegible = {
  * acción (Parte 2). Ninguno de los dos aparece en `precioCrearSchema`, que es
  * lo que de verdad decide qué puede escribirse.
  */
-export type PrecioEditable = Omit<FilaPrecio, "updatedAt">;
+export type PrecioEditable = Omit<FilaPrecio, "updatedAt" | "createdAt">;

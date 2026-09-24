@@ -44,8 +44,12 @@ export function FiltroEstado({ filtros }: { filtros: FiltrosOt }) {
   }
 
   return (
+    // La etiqueta es solo para lectores de pantalla, igual que la del
+    // buscador: la opción «Todos los estados» ya dice qué filtra.
     <div className="flex items-center gap-2">
-      <Label htmlFor="filtro-estado">Estado</Label>
+      <Label htmlFor="filtro-estado" className="sr-only">
+        Estado
+      </Label>
       <Select
         value={filtros.estado ?? TODOS}
         onValueChange={filtrarPor}

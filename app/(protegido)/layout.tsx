@@ -3,6 +3,8 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { BarraLateral } from "@/components/barra-lateral";
+import { MigasDePan } from "@/components/migas-de-pan";
+import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 import {
   SidebarInset,
@@ -32,14 +34,22 @@ export default async function LayoutProtegido({
     // `flex-1` porque el <body> del layout raíz es `flex flex-col`: sin esto
     // el contenedor de la barra no estira hasta el alto completo.
     <SidebarProvider defaultOpen={barraAbierta} className="flex-1">
-      <BarraLateral nombreUsuario={sesion.user.nombre_completo} />
+      <BarraLateral
+        nombreUsuario={sesion.user.nombre_completo}
+        correoUsuario={sesion.user.email}
+      />
       <SidebarInset>
-        {/* Cabecera mínima: solo el disparador de la barra. En móvil es la
-            única forma de abrir el cajón; en escritorio es el botón de
-            colapsar. Ya no lleva navegación ni sesión — las dos cosas se
-            mudaron a la barra. */}
-        <header className="flex h-12 shrink-0 items-center border-b px-4">
+        {/* Cabecera: el disparador de la barra y las migas de pan. En móvil
+            el disparador es la única forma de abrir el cajón; en escritorio
+            es el botón de colapsar. La sesión no vive aquí: está en el pie de
+            la barra. */}
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />
+          <Separator
+            orientation="vertical"
+            className="data-vertical:h-4 data-vertical:self-center"
+          />
+          <MigasDePan />
         </header>
         {/* `div` y no `main`: `SidebarInset` ya renderiza un <main>. */}
         <div className="flex-1 p-6">{children}</div>

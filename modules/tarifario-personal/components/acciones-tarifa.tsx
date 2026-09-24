@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { BotonAccionFila } from "@/core/components/boton-accion-fila";
 import type { ControlDetalle } from "@/core/fila-clicable";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { cambiarActivoTarifa } from "../actions";
@@ -115,28 +115,25 @@ export function AccionesTarifa({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        title="Editar"
-        onClick={() => control.cambiar("editando")}
-      >
-        <PencilIcon />
-        <span className="sr-only">Editar {nombre}</span>
-      </Button>
+      <BotonAccionFila
+  etiqueta="Editar"
+  etiquetaAccesible={`Editar ${nombre}`}
+  onClick={() => control.cambiar("editando")}
+>
+  <PencilIcon />
+</BotonAccionFila>
 
       {tarifa.activo ? (
         <>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Inactivar"
-            disabled={guardando}
-            onClick={() => setConfirmando(true)}
-          >
-            <XIcon />
-            <span className="sr-only">Inactivar {nombre}</span>
-          </Button>
+          <BotonAccionFila
+  etiqueta="Dar de baja"
+  etiquetaAccesible={`Dar de baja ${nombre}`}
+  destructiva
+  disabled={guardando}
+  onClick={() => setConfirmando(true)}
+>
+  <XIcon />
+</BotonAccionFila>
 
           {/* Cerrar por cualquier vía (Cancelar, Escape, clic fuera) es soltar
               la intención: nada se ha enviado todavía, así que no hay que
@@ -150,7 +147,7 @@ export function AccionesTarifa({
             {confirmando ? (
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Inactivar {nombre}?</AlertDialogTitle>
+                  <AlertDialogTitle>¿Dar de baja {nombre}?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Dejará de aparecer en el tarifario. Sus datos se conservan y
                     puedes volver a activarla cuando quieras desde «Ver solo
@@ -166,7 +163,7 @@ export function AccionesTarifa({
                       aplicar(false);
                     }}
                   >
-                    Inactivar
+                    Dar de baja
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -174,16 +171,14 @@ export function AccionesTarifa({
           </AlertDialog>
         </>
       ) : (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Reactivar"
-          disabled={guardando}
-          onClick={() => aplicar(true)}
-        >
-          <RotateCcwIcon />
-          <span className="sr-only">Reactivar {nombre}</span>
-        </Button>
+        <BotonAccionFila
+  etiqueta="Reactivar"
+  etiquetaAccesible={`Reactivar ${nombre}`}
+  disabled={guardando}
+  onClick={() => aplicar(true)}
+>
+  <RotateCcwIcon />
+</BotonAccionFila>
       )}
     </>
   );

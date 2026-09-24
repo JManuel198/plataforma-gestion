@@ -59,6 +59,12 @@ export type FiltrosEpps = {
    * la tabla por la mitad sin responder nada.
    */
   busqueda?: string;
+  /**
+   * La página del listado (1-based). No es un filtro: no cuenta en «Limpiar
+   * filtros» y se pierde al cambiar cualquier filtro (lo quita
+   * `useFiltrosListado`). Ausente es la primera página.
+   */
+  pagina?: number;
 };
 
 /**
@@ -80,12 +86,21 @@ export function urlListado(filtros: FiltrosEpps = {}): string {
 
   if (filtros.busqueda) params.set("busqueda", filtros.busqueda);
 
+  // Mismo criterio: la primera página es la ausencia del parámetro.
+  if (filtros.pagina && filtros.pagina > 1) {
+    params.set("pagina", String(filtros.pagina));
+  }
+
   const cadena = params.toString();
 
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
 }
 
-/** Si hay al menos un filtro puesto — para el mensaje de lista vacía. */
-export function hayFiltros(filtros: FiltrosEpps): boolean {
-  return Boolean(filtros.busqueda);
+/**
+ * Cuántos filtros hay puestos: el número de «Limpiar filtros», y el que decide
+ * qué estado vacío se enseña (catálogo vacío o búsqueda sin resultados).
+ * `pagina` no cuenta: no es un filtro.
+ */
+export function contarFiltros(filtros: FiltrosEpps): number {
+  return [filtros.busqueda].filter(Boolean).length;
 }

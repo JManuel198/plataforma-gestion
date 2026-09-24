@@ -9,7 +9,9 @@ no hay clave foránea entre las dos tablas todavía.
 - `actions.ts` — Server Actions de alta, edición y cambio de alta/baja.
   Verifican sesión y traducen cualquier fallo a un mensaje; el detalle técnico
   va al log.
-- `queries.ts` — lecturas. Por defecto solo personal activo.
+- `queries.ts` — lecturas. Por defecto solo personal activo. El listado va
+  paginado (`LIMIT`/`OFFSET`), con `contarResultados` (el «de N» del pie) y
+  `contarPersonal` (el contador «N personas activas»).
 - `filtros.ts` — los filtros del listado y cómo se escriben en la URL.
 - `tipos.ts` — `PersonaEditable`, lo que el formulario necesita precargar.
 - `components/` — modal, campos, tabla, buscador, filtro y botón de baja.

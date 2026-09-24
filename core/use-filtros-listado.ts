@@ -88,7 +88,18 @@ export function useFiltrosListado<F extends object>(
    * vacío que luego haya que distinguir.
    */
   function navegar(cambios: Partial<F>, opciones: Opciones = {}) {
-    const destino = urlListado({ ...filtros, ...cambios });
+    // Cambiar un filtro VUELVE A LA PRIMERA PÁGINA: `pagina` se quita antes de
+    // aplicar los cambios. Si no, al buscar desde la página 3 se pediría la
+    // página 3 de un resultado que quizá tiene una sola, o se saltarían sin
+    // aviso las primeras coincidencias. Se hace aquí, una vez, para todos los
+    // listados; un listado que sí quiera fijar una página la pasa en `cambios`.
+    // En los filtros de un módulo sin paginación la clave simplemente sobra:
+    // su `urlListado` no la lee.
+    const destino = urlListado({
+      ...filtros,
+      pagina: undefined,
+      ...cambios,
+    } as F);
 
     iniciarNavegacion(() => {
       // `scroll: false` en las dos ramas: filtrar no debería saltar al inicio

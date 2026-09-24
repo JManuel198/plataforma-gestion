@@ -1,5 +1,6 @@
 "use client";
 
+import { LockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +17,7 @@ import { MONEDAS, type Moneda } from "@/core/monedas";
 import { PERIODOS_TARIFARIO } from "@/core/periodos";
 import { buscarCargosAction } from "../actions";
 import type { FilaTarifa } from "../queries";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -23,16 +25,6 @@ type Props = {
   /** Tarifa existente: se está editando. */
   tarifa?: FilaTarifa;
 };
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
-  );
-}
 
 /**
  * Los campos de una tarifa, sin `<form>` ni botones alrededor.
@@ -93,31 +85,43 @@ export function CamposTarifa({ tarifa, errores }: Props) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="codigo">Código</Label>
-        {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
-            global del servidor (`PRS.0001`, ver ../codigo.ts). Se enseña
-            igualmente porque quien llena la ficha espera ver el código, pero no
-            es una decisión suya.
-
-            `disabled` y sin `name`, en los dos modos: así no viaja en el envío.
-            Que no viaje es la segunda mitad de la garantía — la primera es que
-            `tarifaCrearSchema` ni siquiera lo declara, de modo que un POST
-            directo que lo incluyera tampoco conseguiría imponerlo.
-
-            Al crear no hay número que enseñar todavía: el correlativo se
-            reserva dentro de la transacción del INSERT, así que cualquier valor
-            que se pintara aquí antes de guardar sería una adivinanza que otra
-            alta simultánea dejaría falsa. Mismo criterio, y mismo marcador de
-            posición, que en los otros tres catálogos. */}
-        <Input
-          id="codigo"
-          value={tarifa?.codigo ?? ""}
-          placeholder="Se genera automáticamente al guardar"
-          disabled
-          readOnly
-        />
-      </div>
+      {/* Solo en el alta. Al editar, el código ya existe y va en la cabecera
+          del modal como etiqueta, igual que en Lista de precios: repetirlo
+          aquí en un campo gris no aporta nada. */}
+      {tarifa ? null : (
+        <div className="space-y-2">
+          <Label htmlFor="codigo">Código</Label>
+          {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
+              global del servidor (`PRS.0001`, ver ../codigo.ts). Se enseña
+              igualmente porque quien llena la ficha espera ver el código, pero no
+              es una decisión suya.
+  
+              `disabled` y sin `name`: así no viaja en el envío.
+              Que no viaje es la segunda mitad de la garantía — la primera es que
+              `tarifaCrearSchema` ni siquiera lo declara, de modo que un POST
+              directo que lo incluyera tampoco conseguiría imponerlo.
+  
+              Al crear no hay número que enseñar todavía: el correlativo se
+              reserva dentro de la transacción del INSERT, así que cualquier valor
+              que se pintara aquí antes de guardar sería una adivinanza que otra
+              alta simultánea dejaría falsa. Mismo criterio, y mismo marcador de
+              posición, que en los otros tres catálogos. */}
+          <div className="relative">
+            <LockIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="codigo"
+              value=""
+              placeholder="Se genera automáticamente al guardar"
+              className="pl-8 placeholder:italic"
+              disabled
+              readOnly
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         {/* SUGERENCIAS DEL SERVIDOR — ver la cabecera de este archivo. No hay

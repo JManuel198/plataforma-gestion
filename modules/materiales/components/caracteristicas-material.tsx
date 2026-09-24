@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 /** El tope confirmado. También lo valida el servidor (ver ../schema.ts). */
 const MAXIMO = 3;
@@ -278,15 +279,5 @@ export function CaracteristicasMaterial({
         ) : null}
       </AlertDialog>
     </div>
-  );
-}
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { LockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,6 +20,7 @@ import {
   type CategoriaServicio,
 } from "../constantes";
 import type { FilaServicio } from "../queries";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -26,16 +28,6 @@ type Props = {
   /** Servicio existente: se está editando. */
   servicio?: FilaServicio;
 };
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
-  );
-}
 
 /**
  * Los campos de un servicio, sin `<form>` ni botones alrededor.
@@ -87,32 +79,44 @@ export function CamposServicio({ servicio, errores }: Props) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="codigo">Código</Label>
-        {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
-            global del servidor (`SRV.0000001`, ver ../codigo.ts). Se enseña
-            igualmente porque quien llena la ficha espera ver el código, pero no
-            es una decisión suya.
-
-            `disabled` y sin `name`, en los dos modos: así no viaja en el envío.
-            Que no viaje es la segunda mitad de la garantía — la primera es que
-            `servicioCrearSchema` ni siquiera lo declara, de modo que un POST
-            directo que lo incluyera tampoco conseguiría imponerlo.
-
-            Al crear no hay número que enseñar todavía: el correlativo se
-            reserva dentro de la transacción del INSERT, así que cualquier valor
-            que se pintara aquí antes de guardar sería una adivinanza que otra
-            alta simultánea dejaría falsa. Mismo criterio, y mismo marcador de
-            posición, que `codigo_interno` en Materiales y `codigo_oferta` en
-            Lista de precios. */}
-        <Input
-          id="codigo"
-          value={servicio?.codigo ?? ""}
-          placeholder="Se genera automáticamente al guardar"
-          disabled
-          readOnly
-        />
-      </div>
+      {/* Solo en el alta. Al editar, el código ya existe y va en la cabecera
+          del modal como etiqueta, igual que en Lista de precios: repetirlo
+          aquí en un campo gris no aporta nada. */}
+      {servicio ? null : (
+        <div className="space-y-2">
+          <Label htmlFor="codigo">Código</Label>
+          {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
+              global del servidor (`SRV.0000001`, ver ../codigo.ts). Se enseña
+              igualmente porque quien llena la ficha espera ver el código, pero no
+              es una decisión suya.
+  
+              `disabled` y sin `name`: así no viaja en el envío.
+              Que no viaje es la segunda mitad de la garantía — la primera es que
+              `servicioCrearSchema` ni siquiera lo declara, de modo que un POST
+              directo que lo incluyera tampoco conseguiría imponerlo.
+  
+              Al crear no hay número que enseñar todavía: el correlativo se
+              reserva dentro de la transacción del INSERT, así que cualquier valor
+              que se pintara aquí antes de guardar sería una adivinanza que otra
+              alta simultánea dejaría falsa. Mismo criterio, y mismo marcador de
+              posición, que `codigo_interno` en Materiales y `codigo_oferta` en
+              Lista de precios. */}
+          <div className="relative">
+            <LockIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="codigo"
+              value=""
+              placeholder="Se genera automáticamente al guardar"
+              className="pl-8 placeholder:italic"
+              disabled
+              readOnly
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="categoria">Categoría</Label>

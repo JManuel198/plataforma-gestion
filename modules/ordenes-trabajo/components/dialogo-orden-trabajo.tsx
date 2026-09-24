@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   type EstadoFormulario,
 } from "@/core/estado-formulario";
 import type { OrdenTrabajoEditable } from "../tipos";
+import { ChipCodigo } from "@/core/components/chip-codigo";
 
 type Props = {
   /**
@@ -146,8 +148,8 @@ export function DialogoOrdenTrabajo({
 
       if (!resultado.ok) {
         // Errores por campo o mensaje general: el modal se queda abierto con
-        // lo que el usuario escribió (los campos son no controlados, así que
-        // el navegador conserva los valores) y pinta el error donde toca.
+        // lo que el usuario escribió (se conserva porque el formulario se
+        // envía con `onSubmit`, ver abajo) y pinta el error donde toca.
         setEstado(resultado);
         return;
       }
@@ -213,17 +215,26 @@ export function DialogoOrdenTrabajo({
           prácticamente cero. El render condicional se queda igualmente: es la
           garantía, esto solo la refuerza. */}
       <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+        {/* Cabecera según el modo, como en los catálogos (mockup de
+            docs/diseno/): al ver, el número de OT como etiqueta, el servicio
+            como título y el cliente como subtítulo; al editar, el número y
+            "Editar Orden de Trabajo". */}
         <DialogHeader>
+          {orden ? <ChipCodigo codigo={orden.codigo_ot} /> : null}
           <DialogTitle>
             {orden
               ? editando
                 ? "Editar Orden de Trabajo"
-                : "Detalle de la Orden de Trabajo"
+                : orden.servicio
               : "Nueva Orden de Trabajo"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription
+            className={orden && editando ? "sr-only" : undefined}
+          >
             {orden
-              ? `${orden.codigo_ot} · ${orden.cliente}`
+              ? editando
+                ? `${orden.codigo_ot} · ${orden.cliente}`
+                : orden.cliente
               : "El número de OT y la fecha se generan solos."}
           </DialogDescription>
         </DialogHeader>
@@ -241,7 +252,18 @@ export function DialogoOrdenTrabajo({
             abierto, no dos modales. El alta (`!orden`) nunca pasa por la
             vista — no hay nada que consultar todavía. */}
         {editando || !orden ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {orden ? <input type="hidden" name="id" value={orden.id} /> : null}
 
             {/* `-mx-4 px-4`: el contenedor se estira hasta el borde real del
@@ -295,7 +317,7 @@ export function DialogoOrdenTrabajo({
                 Cancelar
               </DialogClose>
               <Button type="submit" disabled={enviando}>
-                {enviando ? "Guardando…" : orden ? "Guardar cambios" : "Crear OT"}
+                {enviando ? "Guardando…" : orden ? "Guardar" : "Crear OT"}
               </Button>
             </DialogFooter>
           </form>
@@ -322,6 +344,7 @@ export function DialogoOrdenTrabajo({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

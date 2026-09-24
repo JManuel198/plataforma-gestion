@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CamposOrdenTrabajo } from "./campos-orden-trabajo";
@@ -72,7 +72,21 @@ export function FormularioOrdenTrabajo({
   );
 
   return (
-    <form action={accion} className="max-w-2xl space-y-6">
+    // `onSubmit` + `startTransition`, NO `<form action={accion}>`: con
+    // `action`, React 19 restablece los campos no controlados al terminar la
+    // acción, también cuando el servidor devuelve errores, y se perdía lo
+    // escrito justo cuando había que corregirlo. `useActionState` se queda: su
+    // `accion` solo hay que llamarla dentro de una transición, que es lo que
+    // hacía por nosotros el `action` del `<form>`. Mismo arreglo que en los
+    // modales de todos los módulos.
+    <form
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        const datos = new FormData(evento.currentTarget);
+        startTransition(() => accion(datos));
+      }}
+      className="max-w-2xl space-y-6"
+    >
       {orden ? <input type="hidden" name="id" value={orden.id} /> : null}
 
       {estado.mensaje ? (

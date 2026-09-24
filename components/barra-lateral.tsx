@@ -43,7 +43,7 @@ type Enlace = {
   Icono: LucideIcon;
 };
 
-type Seccion = {
+export type Seccion = {
   /**
    * Encabezado visual del grupo. Opcional: sin él los enlaces van sueltos
    * arriba, que es como aparecen Inicio y Órdenes de Trabajo. Cuando lo hay,
@@ -91,7 +91,7 @@ type Seccion = {
  * viajar en el JSON tal cual: habrá que dejar en el archivo de cliente la
  * clave del icono y resolverla contra un mapa en el código.
  */
-const MENU: readonly Seccion[] = [
+export const MENU: readonly Seccion[] = [
   {
     enlaces: [
       { href: "/", etiqueta: "Inicio", Icono: HomeIcon },
@@ -123,6 +123,42 @@ const MENU: readonly Seccion[] = [
     ],
   },
 ];
+
+/**
+ * Si `pathname` cae dentro de la ruta de un enlace del menú.
+ *
+ * `startsWith` además de la igualdad para que las pantallas hijas
+ * (/ordenes-trabajo/nueva, /ordenes-trabajo/x/editar) sigan marcando su
+ * sección. El `/` del final evita que "/ordenes-trabajo-x" se dé por activo —
+ * y de paso deja a Inicio marcándose solo en "/" exacto, porque ningún
+ * pathname empieza por "//".
+ *
+ * Exportada porque las migas de pan (components/migas-de-pan.tsx) tienen que
+ * decidir la sección con la MISMA regla que la barra: si divergieran, la
+ * cabecera diría una sección y la barra resaltaría otra.
+ */
+export function esEnlaceActivo(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * Las iniciales que hacen de avatar en el pie de la barra: la primera letra de
+ * las dos primeras palabras del nombre ("Ana Ramírez" → "AR").
+ *
+ * Las dos PRIMERAS y no la primera y la última: con nombres peruanos del tipo
+ * "Juan Pérez García", la última palabra es el apellido materno, y lo habitual
+ * es identificarse por nombre y apellido paterno. Con un nombre compuesto
+ * ("Ana María Ramírez") da "AM", que es un compromiso aceptable para algo que
+ * solo decora: el nombre completo está escrito al lado.
+ */
+function iniciales(nombre: string): string {
+  return nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((palabra) => palabra.charAt(0).toUpperCase())
+    .join("");
+}
 
 /**
  * Una sección del menú. Si tiene `encabezado`, el encabezado es el disparador
@@ -166,12 +202,7 @@ function SeccionBarra({
   const enlaces = (
     <SidebarMenu>
       {seccion.enlaces.map(({ href, etiqueta, Icono }) => {
-        // `startsWith` además de la igualdad para que las pantallas hijas
-        // (/ordenes-trabajo/nueva, /ordenes-trabajo/x/editar) sigan marcando
-        // su sección. El `/` del final evita que "/ordenes-trabajo-x" se dé
-        // por activo — y de paso deja a Inicio marcándose solo en "/" exacto,
-        // porque ningún pathname empieza por "//".
-        const activo = pathname === href || pathname.startsWith(`${href}/`);
+        const activo = esEnlaceActivo(pathname, href);
 
         return (
           <SidebarMenuItem key={href}>
@@ -235,7 +266,7 @@ function SeccionBarra({
 
 /**
  * Barra lateral del layout protegido: los enlaces en columna agrupados bajo
- * sus encabezados, la marca arriba y la sesión abajo.
+ * sus encabezados, la marca arriba y el usuario con su correo abajo.
  *
  * Es Client Component solo por `usePathname()`, que es lo que marca la sección
  * en la que está el usuario. La sesión NO se lee aquí: llega por prop desde el
@@ -253,7 +284,13 @@ function SeccionBarra({
  * Con grupos, lo que se desvanece es solo el encabezado y los iconos siguen
  * siendo accesibles.
  */
-export function BarraLateral({ nombreUsuario }: { nombreUsuario: string }) {
+export function BarraLateral({
+  nombreUsuario,
+  correoUsuario,
+}: {
+  nombreUsuario: string;
+  correoUsuario: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -264,8 +301,25 @@ export function BarraLateral({ nombreUsuario }: { nombreUsuario: string }) {
     <TooltipProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex h-8 items-center px-2 text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-            Plataforma de Gestión
+          {/* Sin logo todavía (la marca gráfica no está definida): solo el
+              nombre de la empresa y el de la plataforma, como en el mockup de
+              docs/diseno/. Se oculta entero en modo icono — en 3rem no cabe
+              nada legible, y un recorte a dos letras parecería un logo que no
+              lo es. Cuando haya logo, es el que debe quedarse visible ahí.
+
+              "CCM" está escrito aquí a sabiendas, igual que `CODIGO_EMPRESA`
+              en modules/ordenes-trabajo/constantes.ts: la marca de cliente
+              pertenece a config/clientes/*.json, que hoy no tiene ningún
+              archivo (ver AGENTS.md). No se importa esa constante: es el
+              código del correlativo de OT, no el nombre que se muestra, y que
+              hoy coincidan es casualidad. */}
+          <div className="grid px-2 py-1 leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm font-semibold tracking-tight">
+              CCM
+            </span>
+            <span className="truncate text-xs text-muted-foreground">
+              Plataforma de gestión
+            </span>
           </div>
         </SidebarHeader>
 
@@ -286,11 +340,31 @@ export function BarraLateral({ nombreUsuario }: { nombreUsuario: string }) {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              {/* El nombre se oculta al colapsar en vez de truncarse a dos
-                  letras: en 3rem no cabe nada legible, y el icono de cerrar
-                  sesión de abajo ya deja claro que la fila es la del usuario. */}
-              <div className="truncate px-2 py-1 text-sm font-medium group-data-[collapsible=icon]:hidden">
-                {nombreUsuario}
+              {/* No es un botón: hoy no hay perfil ni menú de cuenta al que
+                  llevar, así que es solo información. En modo icono queda
+                  únicamente el cuadro de iniciales, centrado en la franja
+                  (`px-0` + `justify-center`); nombre y correo se ocultan en vez
+                  de truncarse. Las iniciales van con `aria-hidden` porque el
+                  nombre completo ya se lee al lado, y en modo icono lo dice
+                  el `title`. */}
+              <div
+                className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                title={nombreUsuario}
+              >
+                <span
+                  aria-hidden
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted text-xs font-semibold"
+                >
+                  {iniciales(nombreUsuario)}
+                </span>
+                <div className="grid min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
+                  <span className="truncate text-sm font-medium">
+                    {nombreUsuario}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {correoUsuario}
+                  </span>
+                </div>
               </div>
             </SidebarMenuItem>
             <SidebarMenuItem>

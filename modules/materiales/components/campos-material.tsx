@@ -1,11 +1,13 @@
 "use client";
 
+import { LockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CampoListaSugerida } from "@/core/components/campo-lista-sugerida";
 import { UNIDADES } from "@/core/unidades";
 import { CaracteristicasMaterial } from "./caracteristicas-material";
 import type { MaterialEditable } from "../tipos";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -13,16 +15,6 @@ type Props = {
   /** Material existente: se está editando. */
   material?: MaterialEditable;
 };
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
-  );
-}
 
 /**
  * Los campos de un material, sin `<form>` ni botones alrededor.
@@ -51,14 +43,18 @@ function MensajeError({ errores }: { errores?: string[] }) {
 export function CamposMaterial({ material, errores }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="codigo_interno">Código interno</Label>
-        {/* NUNCA EDITABLE, ni al crear ni al editar: lo emite el correlativo
-            global del servidor (`MAT.0000001`, ver ../codigo.ts). Se enseña
-            igualmente porque quien llena la ficha espera ver el código, pero
-            no es una decisión suya.
+      {/* Solo en el alta. Al editar, el código ya existe y va en la cabecera
+          del modal como etiqueta, igual que en Lista de precios: repetirlo
+          aquí en un campo gris no aporta nada. */}
+      {material ? null : (
+        <div className="space-y-2">
+          <Label htmlFor="codigo_interno">Código interno</Label>
+          {/* NUNCA EDITABLE: lo emite el correlativo global del servidor
+            (`MAT.0000001`, ver ../codigo.ts). En el alta se enseña igualmente
+            el campo, porque quien llena la ficha espera ver dónde irá el
+            código, pero no es una decisión suya.
 
-            `disabled` y sin `name`, en los dos modos: así no viaja en el envío.
+            `disabled` y sin `name`: así no viaja en el envío.
             Que no viaje es la segunda mitad de la garantía — la primera es que
             `materialCrearSchema` ni siquiera lo declara, de modo que un POST
             directo que lo incluyera tampoco conseguiría imponerlo.
@@ -68,13 +64,21 @@ export function CamposMaterial({ material, errores }: Props) {
             valor que se pintara aquí antes de guardar sería una adivinanza que
             otra alta simultánea dejaría falsa. Mismo criterio, y mismo
             marcador de posición, que `codigo_ot` en Órdenes de Trabajo. */}
-        <Input
-          id="codigo_interno"
-          defaultValue={material?.codigo_interno ?? ""}
-          placeholder="Se genera automáticamente al guardar"
-          disabled
-        />
-      </div>
+          <div className="relative">
+            <LockIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="codigo_interno"
+              defaultValue=""
+              placeholder="Se genera automáticamente al guardar"
+              className="pl-8 placeholder:italic"
+              disabled
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         {/* SIGUE SIENDO TEXTO LIBRE — el esquema no cambió y el Zod tampoco—,

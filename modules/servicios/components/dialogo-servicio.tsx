@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposServicio } from "./campos-servicio";
 import { VistaServicio } from "./vista-servicio";
 import type { FilaServicio } from "../queries";
+import { ChipCodigo } from "@/core/components/chip-codigo";
+import { formatearMonto } from "@/core/dinero";
 
 type Props = {
   /** Server Action que guarda. Devuelve el resultado, nunca redirige. */
@@ -126,7 +129,7 @@ export function DialogoServicio({
 
       if (!resultado.ok) {
         // El modal se queda abierto con lo que el usuario escribió: los campos
-        // son no controlados, así que el navegador conserva los valores.
+        // se conserva porque el formulario se envía con `onSubmit` (ver abajo).
         setEstado(resultado);
         return;
       }
@@ -160,18 +163,26 @@ export function DialogoServicio({
           al cerrar y el contenedor es `flex-1`, con animación se veía el modal
           colapsar vacío mientras se desvanecía. El Dialog genérico conserva la
           suya. La animación de ENTRADA no se toca. */}
-      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* Cabecera según el modo, como en Lista de precios (mockup de
+            docs/diseno/): al ver, el código como etiqueta y el nombre como
+            título; al editar, el código y "Editar servicio". */}
         <DialogHeader>
+          {servicio?.codigo ? <ChipCodigo codigo={servicio.codigo} /> : null}
           <DialogTitle>
             {servicio
               ? editando
                 ? "Editar servicio"
-                : "Detalle del servicio"
+                : nombre
               : "Nuevo servicio"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription
+            className={servicio && editando ? "sr-only" : undefined}
+          >
             {servicio
-              ? `${codigo} · ${nombre}`
+              ? editando
+                ? `${codigo} · ${nombre}`
+                : servicio.precio !== null && servicio.moneda !== null ? [formatearMonto(servicio.precio, servicio.moneda), servicio.unidad ? `por ${servicio.unidad}` : null].filter(Boolean).join(" ") : "Sin precio"
               : "Servicios del catálogo, con su precio de tarifa."}
           </DialogDescription>
         </DialogHeader>
@@ -190,7 +201,18 @@ export function DialogoServicio({
             quede al ras y el anillo de foco no se corte contra el recorte.
             `py-1` hace lo mismo arriba y abajo. */}
         {editando || !servicio ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {servicio ? (
               <input type="hidden" name="id" value={servicio.id} />
             ) : null}
@@ -215,7 +237,7 @@ export function DialogoServicio({
                 {enviando
                   ? "Guardando…"
                   : servicio
-                    ? "Guardar cambios"
+                    ? "Guardar"
                     : "Registrar"}
               </Button>
             </DialogFooter>
@@ -238,6 +260,7 @@ export function DialogoServicio({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

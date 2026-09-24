@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { formatearMonto } from "@/core/dinero";
 import { Dato, ListaDatos } from "@/core/vista-detalle";
 import type { FilaTarifa } from "../queries";
@@ -32,8 +32,9 @@ export function VistaTarifa({
 }) {
   return (
     <ListaDatos>
-      <Dato etiqueta="Código" valor={tarifa.codigo} />
-      <Dato etiqueta="Cargo" valor={tarifa.cargo} />
+      {/* El código no se repite aquí: va en la cabecera del modal, como
+          etiqueta. */}
+      {/* El cargo tampoco: es el título del modal. */}
       {/* "Unidad" aquí es un PERIODO DE TIEMPO (hora, día, mes, año), no una
           unidad física como en Materiales, Lista de precios y Servicios. Ver
           core/periodos.ts. */}
@@ -59,9 +60,7 @@ export function VistaTarifa({
           sí, porque una etiqueta "Situación" sin valor se leería como un dato
           que falta. Mismo criterio y mismas variantes que `VistaMaterial`. */}
       <Dato etiqueta="Situación">
-        <Badge variant={tarifa.activo ? "outline" : "secondary"}>
-          {tarifa.activo ? "En el tarifario" : "Inactivo"}
-        </Badge>
+        <BadgeSituacion activo={tarifa.activo} />
       </Dato>
     </ListaDatos>
   );

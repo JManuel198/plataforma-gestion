@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposEpp } from "./campos-epp";
 import { VistaEpp } from "./vista-epp";
 import type { FilaEpp } from "../queries";
+import { ChipCodigo } from "@/core/components/chip-codigo";
+import { formatearMonto } from "@/core/dinero";
 
 type Props = {
   /** Server Action que guarda. Devuelve el resultado, nunca redirige. */
@@ -124,7 +127,7 @@ export function DialogoEpp({
 
       if (!resultado.ok) {
         // El modal se queda abierto con lo que el usuario escribió: los campos
-        // son no controlados, así que el navegador conserva los valores.
+        // se conserva porque el formulario se envía con `onSubmit` (ver abajo).
         setEstado(resultado);
         return;
       }
@@ -156,14 +159,33 @@ export function DialogoEpp({
           al cerrar y el contenedor es `flex-1`, con animación se veía el modal
           colapsar vacío mientras se desvanecía. El Dialog genérico conserva la
           suya. La animación de ENTRADA no se toca. */}
-      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* Cabecera según el modo, como en Lista de precios (mockup de
+            docs/diseno/): al ver, el código como etiqueta y el nombre como
+            título; al editar, el código y "Editar EPP". */}
         <DialogHeader>
+          {epp?.codigo ? <ChipCodigo codigo={epp.codigo} /> : null}
           <DialogTitle>
-            {epp ? (editando ? "Editar EPP" : "Detalle del EPP") : "Nuevo EPP"}
-          </DialogTitle>
-          <DialogDescription>
             {epp
-              ? `${codigo} · ${nombre}`
+              ? editando
+                ? "Editar EPP"
+                : nombre
+              : "Nuevo EPP"}
+          </DialogTitle>
+          <DialogDescription
+            className={epp && editando ? "sr-only" : undefined}
+          >
+            {epp
+              ? editando
+                ? `${codigo} · ${nombre}`
+                : epp.precio !== null && epp.moneda !== null
+                  ? [
+                      formatearMonto(epp.precio, epp.moneda),
+                      epp.unidad ? `por ${epp.unidad}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  : "Sin precio"
               : "Equipos de protección personal del catálogo, con su precio."}
           </DialogDescription>
         </DialogHeader>
@@ -182,7 +204,18 @@ export function DialogoEpp({
             quede al ras y el anillo de foco no se corte contra el recorte.
             `py-1` hace lo mismo arriba y abajo. */}
         {editando || !epp ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {epp ? <input type="hidden" name="id" value={epp.id} /> : null}
 
             <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-1">
@@ -199,7 +232,7 @@ export function DialogoEpp({
                 Cancelar
               </DialogClose>
               <Button type="submit" disabled={enviando}>
-                {enviando ? "Guardando…" : epp ? "Guardar cambios" : "Registrar"}
+                {enviando ? "Guardando…" : epp ? "Guardar" : "Registrar"}
               </Button>
             </DialogFooter>
           </form>
@@ -218,6 +251,7 @@ export function DialogoEpp({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

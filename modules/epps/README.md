@@ -14,8 +14,8 @@ del menú es ya un placeholder.
 | `constantes.ts` | El formato del código `EPP.` (6 dígitos) y el ámbito del correlativo. No importa nada, así que viaja al cliente. |
 | `codigo.ts` | `1` → `"EPP.000001"`. Solo formateo; quién decide el número es `core/correlativo.ts`. |
 | `schema.ts` | Validación Zod, incluido el esquema del filtro de búsqueda. Más estricto que la tabla, nunca al revés. |
-| `filtros.ts` | El tipo `FiltrosEpps`, `urlListado` y `hayFiltros` — la navegación por URL, sin Drizzle. |
-| `queries.ts` | El listado, con su búsqueda resuelta en la consulta. También documenta por qué este módulo no tiene `tipos.ts`. |
+| `filtros.ts` | El tipo `FiltrosEpps` (con `pagina`), `urlListado` y `contarFiltros` — la navegación por URL, sin Drizzle. |
+| `queries.ts` | El listado paginado (`LIMIT`/`OFFSET`), con su búsqueda resuelta en la consulta, y `contarResultados` (el «de N» del pie; sin filtros, el total del contador). También documenta por qué este módulo no tiene `tipos.ts`. |
 | `actions.ts` | Alta y edición. La reserva del correlativo va en la misma transacción que el INSERT. |
 | `components/` | Tabla, fila clicable, modal de tres modos, vista de solo lectura y buscador. |
 

@@ -30,7 +30,8 @@ export function VistaServicio({
 }) {
   return (
     <ListaDatos>
-      <Dato etiqueta="Código" valor={servicio.codigo} />
+      {/* El código no se repite aquí: va en la cabecera del modal, como
+          etiqueta. */}
       {/* `capitalizarCategoria` por lo mismo que en el formulario: lo guardado
           es el valor en minúscula de `CATEGORIAS_SERVICIO`, y esto es solo
           cómo se lee. NO es `className="capitalize"` de Tailwind — ver el
@@ -38,11 +39,7 @@ export function VistaServicio({
       <Dato etiqueta="Categoría">
         {servicio.categoria ? capitalizarCategoria(servicio.categoria) : "—"}
       </Dato>
-      <Dato
-        etiqueta="Servicio"
-        valor={servicio.servicio}
-        className="sm:col-span-2"
-      />
+      {/* El nombre del servicio tampoco: es el título del modal. */}
       <Dato etiqueta="Unidad" valor={servicio.unidad} />
       {/* Las dos columnas admiten NULL, y el precio no se puede enseñar sin su
           moneda: `formatearMonto` necesita las dos para poner el símbolo

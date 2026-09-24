@@ -1,6 +1,13 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CODIGO,
+  CLASE_FILA,
+} from "@/core/components/tabla-listado";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   propsFilaClicable,
@@ -54,8 +61,10 @@ export function FilaDeMaterial({
   const control = useControlDetalle();
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium whitespace-nowrap">
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className={`${CELDA_FIJA_INICIO} ${CLASE_CODIGO} px-3`}>
         {oVacio(material.codigo_interno)}
       </TableCell>
       <TableCell
@@ -73,10 +82,10 @@ export function FilaDeMaterial({
       <TableCell className="whitespace-nowrap tabular-nums">
         {fechaCreacion}
       </TableCell>
-      <TableCell>
-        {material.activo ? null : <Badge variant="secondary">Inactivo</Badge>}
+      <TableCell className={`${CELDA_FIJA_ANTES_DEL_FIN} px-3`}>
+        <BadgeSituacion activo={material.activo} />
       </TableCell>
-      <TableCell className="text-right whitespace-nowrap">
+      <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           <AccionesMaterial material={material} control={control} />
           <DialogoMaterial

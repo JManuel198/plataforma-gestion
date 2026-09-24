@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   estadoFormularioInicial,
   type EstadoFormulario,
 } from "@/core/estado-formulario";
+import { ChipCodigo } from "@/core/components/chip-codigo";
 import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposListaPrecio } from "./campos-lista-precio";
 import { VistaListaPrecio } from "./vista-lista-precio";
@@ -49,6 +51,8 @@ type Props = {
    * Solo la trae la fila; el alta desde la cabecera no pasa por la vista.
    */
   fechaActualizacion?: string;
+  /** `created_at` ya formateada, por lo mismo que `fechaActualizacion`. */
+  fechaCreacion?: string;
 };
 
 /**
@@ -83,6 +87,7 @@ export function DialogoListaPrecio({
   control: controlExterno,
   precio,
   fechaActualizacion,
+  fechaCreacion,
 }: Props) {
   const router = useRouter();
   // El hook se llama siempre (no puede ser condicional) y se descarta cuando el
@@ -96,6 +101,10 @@ export function DialogoListaPrecio({
     estadoFormularioInicial,
   );
   const [enviando, iniciarGuardado] = useTransition();
+  // Solo importa en el alta: decide la descripción de la cabecera (en qué paso
+  // está) y si «Registrar» se puede pulsar. Al editar el material ya viene
+  // elegido. Lo avisa `CamposListaPrecio`, que es quien tiene el buscador.
+  const [materialElegido, setMaterialElegido] = useState(false);
 
   // La columna admite NULL, así que no se puede interpolar a pelo: pintaría
   // literalmente "null" en el subtítulo. Mismo criterio que `DialogoMaterial`.
@@ -120,14 +129,16 @@ export function DialogoListaPrecio({
       }
 
       if (!resultado.ok) {
-        // El modal se queda abierto con lo que el usuario escribió: los campos
-        // son no controlados, así que el navegador conserva los valores.
+        // El modal se queda abierto con lo que el usuario escribió. Eso solo es
+        // cierto porque el formulario se envía con `onSubmit` y no con
+        // `action` (ver el `<form>` de abajo).
         setEstado(resultado);
         return;
       }
 
       control.cambiar("cerrado");
       setEstado(estadoFormularioInicial);
+      setMaterialElegido(false);
       toast.success(
         precio ? `${precio.codigo_oferta}: cambios guardados.` : "Oferta registrada.",
       );
@@ -143,7 +154,10 @@ export function DialogoListaPrecio({
         // "cerrado" sin recordar en qué modo estaba: el próximo clic en la
         // fila tiene que abrir la vista otra vez, no la edición de antes.
         control.cambiar(siguiente ? "editando" : "cerrado");
-        if (!siguiente) setEstado(estadoFormularioInicial);
+        if (!siguiente) {
+          setEstado(estadoFormularioInicial);
+          setMaterialElegido(false);
+        }
       }}
     >
       {disparador ? <DialogTrigger render={disparador} /> : null}
@@ -153,19 +167,30 @@ export function DialogoListaPrecio({
           desmontan al cerrar y el contenedor es `flex-1`, con animación se
           veía el modal colapsar vacío mientras se desvanecía. La animación de
           ENTRADA no se toca. */}
-      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* La cabecera cambia con el modo, como en el mockup de docs/diseno/:
+            - viendo: el código como etiqueta, el material como título y el
+              proveedor como subtítulo — lo que identifica a la oferta;
+            - editando: el código y "Editar oferta de precio";
+            - alta: "Nueva oferta de precio" y una descripción que dice en qué
+              paso se está (primero el material, después el resto). */}
         <DialogHeader>
+          {precio ? <ChipCodigo codigo={precio.codigo_oferta} /> : null}
           <DialogTitle>
             {precio
               ? editando
-                ? "Editar oferta"
-                : "Detalle de la oferta"
-              : "Nueva oferta"}
+                ? "Editar oferta de precio"
+                : descripcion
+              : "Nueva oferta de precio"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={precio && editando ? "sr-only" : undefined}>
             {precio
-              ? `${precio.codigo_oferta} · ${descripcion}`
-              : "Elige primero el material; el resto de los campos aparece después."}
+              ? editando
+                ? `${precio.codigo_oferta} · ${descripcion}`
+                : precio.proveedor?.trim() || "Sin proveedor"
+              : materialElegido
+                ? "Completa los datos de la oferta para el material elegido."
+                : "Busca y elige el material al que corresponde esta oferta."}
           </DialogDescription>
         </DialogHeader>
 
@@ -182,7 +207,21 @@ export function DialogoListaPrecio({
             tiene `p-4`) y recupera el margen por dentro, para que la barra de
             scroll quede al ras y el anillo de foco no se corte. */}
         {editando || !precio ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          // `onSubmit` + `preventDefault`, NO `<form action={alEnviar}>`. Con
+          // `action`, React 19 restablece los campos no controlados al terminar
+          // la acción, también cuando el servidor devuelve errores: el usuario
+          // perdía lo que había escrito justo cuando tenía que corregirlo, y la
+          // vista previa del precio (estado propio) se quedaba calculando con
+          // un valor que ya no estaba en el campo. Se vio al probar el estado de
+          // error del mockup. Aquí el `FormData` se arma a mano y el formulario
+          // no se toca.
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {precio ? (
               <input type="hidden" name="id" value={precio.id} />
             ) : null}
@@ -193,6 +232,7 @@ export function DialogoListaPrecio({
                   precio={precio}
                   errores={estado.errores ?? {}}
                   buscarMaterialAction={buscarMaterialAction}
+                  alCambiarMaterial={setMaterialElegido}
                 />
               ) : null}
             </div>
@@ -204,12 +244,14 @@ export function DialogoListaPrecio({
               >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={enviando}>
-                {enviando
-                  ? "Guardando…"
-                  : precio
-                    ? "Guardar cambios"
-                    : "Registrar"}
+              {/* En el alta, «Registrar» espera a que haya material: sin él no
+                  hay oferta posible, y el servidor solo podría devolver el
+                  error. */}
+              <Button
+                type="submit"
+                disabled={enviando || (!precio && !materialElegido)}
+              >
+                {enviando ? "Guardando…" : precio ? "Guardar" : "Registrar"}
               </Button>
             </DialogFooter>
           </form>
@@ -220,6 +262,7 @@ export function DialogoListaPrecio({
                 <VistaListaPrecio
                   precio={precio}
                   fechaActualizacion={fechaActualizacion ?? "—"}
+                  fechaCreacion={fechaCreacion ?? "—"}
                 />
               ) : null}
             </div>
@@ -231,6 +274,7 @@ export function DialogoListaPrecio({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

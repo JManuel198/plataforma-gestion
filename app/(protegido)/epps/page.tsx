@@ -1,11 +1,27 @@
+import { HardHatIcon, PlusIcon, SearchXIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CabeceraListado } from "@/core/components/cabecera-listado";
+import { ContadorRegistros } from "@/core/components/contador-registros";
+import { EstadoVacio } from "@/core/components/estado-vacio";
+import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
+import { PaginacionListado } from "@/core/components/paginacion-listado";
+import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
 import { crearEppEnModal } from "@/modules/epps/actions";
 import { BuscadorEpps } from "@/modules/epps/components/buscador-epps";
 import { DialogoEpp } from "@/modules/epps/components/dialogo-epp";
 import { TablaEpps } from "@/modules/epps/components/tabla-epps";
-import { hayFiltros, type FiltrosEpps } from "@/modules/epps/filtros";
-import { listarEpps } from "@/modules/epps/queries";
-import { filtroBusquedaSchema } from "@/modules/epps/schema";
+import {
+  contarFiltros,
+  urlListado,
+  type FiltrosEpps,
+} from "@/modules/epps/filtros";
+import {
+  contarResultados,
+  listarEpps,
+} from "@/modules/epps/queries";
+import {
+  filtroBusquedaSchema,
+} from "@/modules/epps/schema";
 
 // Ruta plana a propósito: el encabezado "Catálogos maestros" bajo el que
 // aparece este enlace es solo una etiqueta del menú y nunca entra en la URL.
@@ -37,37 +53,91 @@ export const metadata = { title: "EPPs" };
 export default async function PaginaEpps({
   searchParams,
 }: PageProps<"/epps">) {
-  const { busqueda } = await searchParams;
+  const { busqueda, pagina } = await searchParams;
 
+  // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro
+  // inventado o repetido se ignora en vez de reventar la pantalla.
   const filtros: FiltrosEpps = {
     busqueda: filtroBusquedaSchema.parse(busqueda),
+    pagina: paginaSchema.parse(pagina),
   };
 
-  const epps = await listarEpps(filtros);
+  // El total va primero porque decide qué página se trae: una página que ya
+  // no existe se ajusta a la última real. Ver `calcularPaginacion`.
+  // Sin baja lógica no hay activos ni inactivos que contar: el contador de la
+  // barra enseña el catálogo entero (la misma consulta, sin filtros).
+  const [total, totalCatalogo] = await Promise.all([
+    contarResultados(filtros),
+    contarResultados({}),
+  ]);
+  const paginacion = calcularPaginacion(total, filtros.pagina);
+  const epps = await listarEpps(filtros, paginacion);
+  const filtrosPuestos = contarFiltros(filtros);
+
+  // El mismo disparador para la cabecera y el estado vacío: dos modales
+  // independientes, no uno compartido.
+  const nuevoEpp = (
+    <DialogoEpp
+      guardarAction={crearEppEnModal}
+      disparador={
+        <Button>
+          <PlusIcon />
+          Nuevo EPP
+        </Button>
+      }
+    />
+  );
+
+  const limpiar = (
+    <LimpiarFiltros href={urlListado()} cantidad={filtrosPuestos} />
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">EPPs</h1>
-          <p className="text-sm text-muted-foreground">
-            Catálogo de equipos de protección personal
-          </p>
+      <CabeceraListado
+        titulo="EPPs"
+        descripcion="Catálogo de equipos de protección personal"
+        accion={nuevoEpp}
+      />
+
+      {/* Cada control recibe los filtros completos, no solo el suyo: así el
+          que cambia conserva al otro en la URL en vez de pisarlo. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <BuscadorEpps filtros={filtros} />
+          {limpiar}
         </div>
-        <DialogoEpp
-          guardarAction={crearEppEnModal}
-          disparador={<Button>Nuevo EPP</Button>}
+        <ContadorRegistros
+          texto={`${totalCatalogo} ${totalCatalogo === 1 ? "EPP registrado" : "EPPs registrados"}`}
+          activos
         />
       </div>
 
-      {/* Un solo control hoy, pero en el mismo contenedor flex que usan los
-          otros listados: el día que entre un segundo filtro se pone al lado
-          sin tocar este marcado. */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <BuscadorEpps filtros={filtros} />
-      </div>
-
-      <TablaEpps epps={epps} filtrado={hayFiltros(filtros)} />
+      {epps.length > 0 ? (
+        <TablaEpps
+          epps={epps}
+          pie={
+            <PaginacionListado
+              paginacion={paginacion}
+              hrefPagina={(numero) => urlListado({ ...filtros, pagina: numero })}
+            />
+          }
+        />
+      ) : filtros.busqueda ? (
+        <EstadoVacio
+          Icono={SearchXIcon}
+          titulo="Ningún EPP coincide con la búsqueda"
+          descripcion="Prueba con otro código, descripción o unidad, o quita los filtros."
+          accion={limpiar}
+        />
+      ) : (
+        <EstadoVacio
+          Icono={HardHatIcon}
+          titulo="Aún no hay EPPs registrados"
+          descripcion="Cuando registres el primer equipo de protección personal, aparecerá aquí."
+          accion={nuevoEpp}
+        />
+      )}
     </div>
   );
 }

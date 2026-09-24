@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { BotonAccionFila } from "@/core/components/boton-accion-fila";
 import type { ControlDetalle } from "@/core/fila-clicable";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { cambiarActivoPrecio } from "../actions";
@@ -35,8 +35,9 @@ import type { FilaPrecio } from "../queries";
  * - Ninguno de los dos monta su propio modal: los dos mueven el
  *   `ControlDetalle` de la fila, que es quien monta el único modal que hay.
  * - Iconos sin texto, con su nombre en un `<span class="sr-only">` —lo que
- *   anuncia un lector de pantalla— y un `title` para el tooltip del navegador.
- *   Un icono suelto sin ninguna de las dos cosas sería inaccesible. Aquí el
+ *   anuncia un lector de pantalla— y en un tooltip al pasar el ratón (los dos
+ *   los pone `BotonAccionFila`, de core/components/). Un icono suelto sin
+ *   ninguna de las dos cosas sería inaccesible. Aquí el
  *   argumento del ancho pesa más que en Materiales: esta tabla tiene ONCE
  *   columnas.
  * - INACTIVAR SE CONFIRMA; REACTIVAR NO. Inactivar saca la oferta de la lista
@@ -109,28 +110,25 @@ export function AccionesPrecio({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        title="Editar"
+      <BotonAccionFila
+        etiqueta="Editar"
+        etiquetaAccesible={`Editar ${codigo}`}
         onClick={() => control.cambiar("editando")}
       >
         <PencilIcon />
-        <span className="sr-only">Editar {codigo}</span>
-      </Button>
+      </BotonAccionFila>
 
       {precio.activo ? (
         <>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Inactivar"
+          <BotonAccionFila
+            etiqueta="Dar de baja"
+            etiquetaAccesible={`Dar de baja ${codigo}`}
+            destructiva
             disabled={guardando}
             onClick={() => setConfirmando(true)}
           >
             <XIcon />
-            <span className="sr-only">Inactivar {codigo}</span>
-          </Button>
+          </BotonAccionFila>
 
           {/* Cerrar por cualquier vía (Cancelar, Escape, clic fuera) es soltar
               la intención: nada se ha enviado todavía, así que no hay que
@@ -145,14 +143,14 @@ export function AccionesPrecio({
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    ¿Inactivar la oferta {codigo}?
+                    ¿Dar de baja la oferta {codigo}?
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     {material
                       ? `Este precio de ${material} dejará de aparecer en la lista vigente. `
                       : "Dejará de aparecer en la lista de precios vigente. "}
                     Sus datos se conservan y puedes volver a activarla cuando
-                    quieras desde «Ver solo inactivas».
+                    quieras desde «Ver solo inactivos».
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -164,7 +162,7 @@ export function AccionesPrecio({
                       aplicar(false);
                     }}
                   >
-                    Inactivar
+                    Dar de baja
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -172,16 +170,14 @@ export function AccionesPrecio({
           </AlertDialog>
         </>
       ) : (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Reactivar"
+        <BotonAccionFila
+          etiqueta="Reactivar"
+          etiquetaAccesible={`Reactivar ${codigo}`}
           disabled={guardando}
           onClick={() => aplicar(true)}
         >
           <RotateCcwIcon />
-          <span className="sr-only">Reactivar {codigo}</span>
-        </Button>
+        </BotonAccionFila>
       )}
     </>
   );

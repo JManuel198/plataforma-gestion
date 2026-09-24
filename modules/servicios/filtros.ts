@@ -37,6 +37,12 @@ export type FiltrosServicios = {
    * y las fechas en Órdenes de Trabajo (`FiltrosOt`, mismo criterio).
    */
   categoria?: CategoriaServicio;
+  /**
+   * La página del listado (1-based). No es un filtro: no cuenta en «Limpiar
+   * filtros» y se pierde al cambiar cualquier filtro (lo quita
+   * `useFiltrosListado`). Ausente es la primera página.
+   */
+  pagina?: number;
 };
 
 /**
@@ -55,12 +61,21 @@ export function urlListado(filtros: FiltrosServicios = {}): string {
   if (filtros.busqueda) params.set("busqueda", filtros.busqueda);
   if (filtros.categoria) params.set("categoria", filtros.categoria);
 
+  // Mismo criterio: la primera página es la ausencia del parámetro.
+  if (filtros.pagina && filtros.pagina > 1) {
+    params.set("pagina", String(filtros.pagina));
+  }
+
   const cadena = params.toString();
 
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
 }
 
-/** Si hay al menos un filtro puesto — para el mensaje de lista vacía. */
-export function hayFiltros(filtros: FiltrosServicios): boolean {
-  return Boolean(filtros.busqueda || filtros.categoria);
+/**
+ * Cuántos filtros hay puestos: el número de «Limpiar filtros», y el que decide
+ * qué estado vacío se enseña (catálogo vacío o búsqueda sin resultados).
+ * `pagina` no cuenta: no es un filtro.
+ */
+export function contarFiltros(filtros: FiltrosServicios): number {
+  return [filtros.busqueda, filtros.categoria].filter(Boolean).length;
 }

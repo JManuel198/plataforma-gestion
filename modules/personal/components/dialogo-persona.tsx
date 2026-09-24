@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,7 @@ export function DialogoPersona({
 
       if (!resultado.ok) {
         // El modal se queda abierto con lo que el usuario escribió: los campos
-        // son no controlados, así que el navegador conserva los valores.
+        // se conserva porque el formulario se envía con `onSubmit` (ver abajo).
         setEstado(resultado);
         return;
       }
@@ -154,17 +155,21 @@ export function DialogoPersona({
           genérico conserva la suya — otros usos no cambian de tamaño al
           cerrarse. La animación de ENTRADA no se toca. */}
       <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* Cabecera según el modo, como en los catálogos (mockup de
+            docs/diseno/), sin etiqueta de código: Personal no tiene código
+            autogenerado. Al ver, el nombre como título y DNI · cargo como
+            subtítulo; al editar, "Editar persona". */}
         <DialogHeader>
           <DialogTitle>
             {persona
               ? editando
                 ? "Editar persona"
-                : "Detalle de la persona"
+                : `${persona.nombre} ${persona.apellido}`
               : "Nueva persona"}
           </DialogTitle>
           <DialogDescription>
             {persona
-              ? `${persona.nombre} ${persona.apellido} · DNI ${persona.dni}`
+              ? [`DNI ${persona.dni}`, persona.cargo].filter(Boolean).join(" · ")
               : "La edad se calcula sola a partir de la fecha de nacimiento."}
           </DialogDescription>
         </DialogHeader>
@@ -183,7 +188,18 @@ export function DialogoPersona({
             de scroll quede al ras y el anillo de foco no se corte contra el
             recorte. `py-1` hace lo mismo arriba y abajo. */}
         {editando || !persona ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {persona ? (
               <input type="hidden" name="id" value={persona.id} />
             ) : null}
@@ -208,7 +224,7 @@ export function DialogoPersona({
                 {enviando
                   ? "Guardando…"
                   : persona
-                    ? "Guardar cambios"
+                    ? "Guardar"
                     : "Registrar"}
               </Button>
             </DialogFooter>
@@ -227,6 +243,7 @@ export function DialogoPersona({
                   existiendo; esto es el mismo salto a edición para quien
                   llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>

@@ -29,13 +29,10 @@ export function VistaEpp({
 }) {
   return (
     <ListaDatos>
-      <Dato etiqueta="Código" valor={epp.codigo} />
+      {/* El código no se repite aquí: va en la cabecera del modal, como
+          etiqueta. */}
       <Dato etiqueta="Unidad" valor={epp.unidad} />
-      <Dato
-        etiqueta="Descripción"
-        valor={epp.descripcion}
-        className="sm:col-span-2"
-      />
+      {/* La descripción tampoco: es el título del modal. */}
       {/* Las dos columnas admiten NULL, y el precio no se puede enseñar sin su
           moneda: `formatearMonto` necesita las dos para poner el símbolo
           correcto. Si falta cualquiera de ellas se pinta el guion de "no

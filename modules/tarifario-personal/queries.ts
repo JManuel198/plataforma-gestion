@@ -1,8 +1,9 @@
-import { and, asc, eq, ilike, isNotNull, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, isNotNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { tarifarioPersonal } from "@/db/schema/tarifario-personal";
 import { patronParcial } from "@/core/busqueda";
 import type { FiltrosTarifario } from "./filtros";
+import type { Paginacion } from "@/core/paginacion";
 
 /**
  * Las columnas que muestra el listado.
@@ -29,20 +30,16 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista el tarifario aplicando los filtros que vengan.
- *
- * Los dos filtros se combinan con AND entre sí — cambiar a la vista de
- * inactivas no borra el texto buscado, y viceversa. Mismo criterio que
- * `listarMateriales` y `listarPrecios`.
- *
- * Todo se resuelve aquí, nunca en el navegador (regla 1 de AGENTS.md): la
- * pantalla jamás llega a tener en memoria las filas que no coinciden.
+ * Las condiciones del listado, compartidas por `listarTarifas` y
+ * `contarResultados`. Tienen que ser EXACTAMENTE las mismas en las dos: si el
+ * conteo filtrara distinto que la página, el pie diría «1–10 de 14» sobre un
+ * resultado de otro tamaño, y la última página podría salir vacía.
  */
-export async function listarTarifas(filtros: FiltrosTarifario = {}) {
+function condicionesListado(filtros: FiltrosTarifario) {
   const { busqueda, inactivos } = filtros;
   const patron = busqueda ? patronParcial(busqueda) : null;
 
-  const condiciones = [
+  return and(
     // ALTERNA entre dos vistas excluyentes, NO acumula: sin la bandera se ven
     // las activas, con ella SOLO las inactivas. Nunca
     // `inactivos ? undefined : eq(activo, true)` — eso es no poner condición, y
@@ -67,20 +64,72 @@ export async function listarTarifas(filtros: FiltrosTarifario = {}) {
           ilike(tarifarioPersonal.unidad, patron),
         )
       : undefined,
-  ];
+  );
+}
+
+/**
+ * Cuántos tarifas casan con los filtros, en todas las páginas: el «de N» del
+ * pie de la tabla. Mismo `FROM` y mismas condiciones que `listarTarifas`.
+ */
+export async function contarResultados(filtros: FiltrosTarifario): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(tarifarioPersonal)
+    // `and()` ignora los `undefined` y devuelve `undefined` si no queda
+    // ninguna condición — que es exactamente "sin WHERE".
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Cuántos tarifas hay en la vista de activos o en la de inactivos, sin mirar
+ * la búsqueda: el contador de la barra de filtros, que responde "¿cuántos
+ * hay?", no "¿cuántos encontré?". Mismo criterio de alternancia que el
+ * listado: una vista u otra, nunca las dos sumadas.
+ */
+export async function contarTarifas(inactivos = false): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(tarifarioPersonal)
+    .where(eq(tarifarioPersonal.activo, inactivos ? false : true));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Lista el tarifario aplicando los filtros que vengan.
+ *
+ * Los dos filtros se combinan con AND entre sí — cambiar a la vista de
+ * inactivas no borra el texto buscado, y viceversa. Mismo criterio que
+ * `listarMateriales` y `listarPrecios`.
+ *
+ * Todo se resuelve aquí, nunca en el navegador (regla 1 de AGENTS.md): la
+ * pantalla jamás llega a tener en memoria las filas que no coinciden.
+ *
+ * Paginada con `LIMIT`/`OFFSET`: `pagina` sale de `calcularPaginacion`
+ * (core/), que necesita antes el total de `contarResultados`.
+ */
+export async function listarTarifas(
+  filtros: FiltrosTarifario,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
+
 
   return db
     .select(columnasListado)
     .from(tarifarioPersonal)
     // `and()` ignora los `undefined` y devuelve `undefined` si no queda
     // ninguna condición — que es exactamente "sin WHERE".
-    .where(and(...condiciones))
+    .where(condicionesListado(filtros))
     // Por código, que desde que se autogenera es además el orden de alta:
     // `PRS.0001`, `PRS.0002`… Con cuatro dígitos fijos y ceros a la izquierda,
     // el orden alfabético y el numérico coinciden — hasta `PRS.9999`, límite
     // asumido y explicado en `PREFIJO_TARIFA` (./constantes.ts). Mismo
     // razonamiento que en `listarMateriales` y `listarServicios`.
-    .orderBy(asc(tarifarioPersonal.codigo));
+    .orderBy(asc(tarifarioPersonal.codigo))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 }
 
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */

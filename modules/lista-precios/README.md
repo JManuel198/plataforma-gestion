@@ -90,15 +90,22 @@ de la tabla en `docs/spec/entidades.md`.
 - `filtros.ts` — la forma de los filtros del listado y cómo se escriben en la
   URL. Sin imports de servidor: lo usan la consulta y los controles, que son
   cliente. `RUTA_LISTADO` no se redeclara aquí, viene de `constantes.ts`.
-- `queries.ts` — el listado (JOIN a `materiales`, filtros y precio ya
-  calculado en el servidor) y las sugerencias de proveedor.
+- `queries.ts` — el listado (JOIN a `materiales`, filtros, página con
+  `LIMIT`/`OFFSET` y precio ya calculado en el servidor), los dos conteos —
+  `contarResultados` (lo que casa con los filtros: el «de 14» del pie) y
+  `contarPrecios` (la vista entera: «86 ofertas activas»)— y las sugerencias
+  de proveedor. La paginación en sí (`calcularPaginacion`, `?pagina=`) es
+  común y vive en `core/paginacion.ts`.
 - `actions.ts` — Server Actions: crear, editar, cambiar `activo` y buscar
   proveedores. Todas verifican sesión. El alta reserva el correlativo y hace
   el INSERT **en la misma transacción**, para que un fallo no deje huecos en
   la numeración.
-- `components/` — campos, modal (tres modos), vista de detalle, fila, tabla,
-  acciones de fila (lápiz + inactivar), buscador de tabla, filtro de
-  inactivas y el hook de navegación de los filtros.
+- `components/` — campos, modal (tres modos), vista de detalle, fila, tabla y
+  acciones de fila (lápiz + inactivar). El buscador de tabla y el interruptor
+  «Ver solo inactivos» son envoltorios finos de los comunes de
+  `core/components/` (`BuscadorListado`, `FiltroSoloInactivos`), que reciben
+  la `urlListado` de este módulo. La cabecera, «Limpiar filtros», el contador,
+  el badge de situación y el estado vacío también salen de ahí.
 
 Tabla en `db/schema/lista-precios.ts`. Pantalla en
 `app/(protegido)/lista-precios/page.tsx` — ruta plana a propósito: el

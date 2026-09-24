@@ -31,7 +31,9 @@ Dos cosas SÍ están confirmadas y ya aplicadas:
   dígitos, correlativo inicial y clave del contador.
 - `codigo.ts` — arma el código visible (`formatearCodigoMaterial`: `1` →
   `MAT.0000001`) a partir del número reservado.
-- `queries.ts` — lecturas (listado, detalle).
+- `queries.ts` — lecturas: el listado paginado (`LIMIT`/`OFFSET`, con la
+  paginación común de `core/paginacion.ts`), `contarResultados` (el «de N» del
+  pie) y `contarMateriales` (el contador «42 materiales activos»).
 - `actions.ts` — Server Actions de crear, editar, inactivar/reactivar
   (`cambiarActivoMaterial`) y el buscador de selección que usa Lista de
   precios (`buscarMaterialesParaSeleccionAction`). Verifican sesión.
@@ -48,7 +50,8 @@ Dos cosas SÍ están confirmadas y ya aplicadas:
   - `acciones-material.tsx` — los iconos de la fila (editar, inactivar o
     reactivar).
   - `buscador-materiales.tsx` y `filtro-inactivos.tsx` — los filtros del
-    listado.
+    listado: envoltorios finos de `BuscadorListado` y `FiltroSoloInactivos`
+    (core/components/), a los que pasan la `urlListado` de este módulo.
 
 Tabla en `db/schema/materiales.ts`. Pantalla en
 `app/(protegido)/materiales/page.tsx` — ruta plana a propósito: el encabezado

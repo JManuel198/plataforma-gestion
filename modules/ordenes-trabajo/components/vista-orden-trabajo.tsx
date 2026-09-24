@@ -43,22 +43,13 @@ export function VistaOrdenTrabajo({
 }) {
   return (
     <ListaDatos>
-      <Dato etiqueta="Orden de trabajo (OT)" valor={orden.codigo_ot} />
+      {/* El número de OT, el servicio y el cliente no se repiten aquí: van en
+          la cabecera del modal (etiqueta, título y subtítulo). */}
       <Dato etiqueta="Fecha de creación" valor={fechaCreacion} />
       <Dato etiqueta="Cotización (COT.)" valor={orden.codigo_cotizacion} />
       <Dato etiqueta="Revisión (REV.)" valor={orden.codigo_revision} />
       <Dato etiqueta="Orden de compra (OC)" valor={orden.codigo_oc} />
       <Dato etiqueta="Responsable" valor={orden.responsable} />
-      <Dato
-        etiqueta="Servicio"
-        valor={orden.servicio}
-        className="sm:col-span-2"
-      />
-      <Dato
-        etiqueta="Cliente"
-        valor={orden.cliente}
-        className="sm:col-span-2"
-      />
       <Dato etiqueta="Precio" valor={precio} />
       <Dato etiqueta="Moneda" valor={orden.moneda} />
       {/* El estado se pinta con el mismo Badge y el mismo color que en la
