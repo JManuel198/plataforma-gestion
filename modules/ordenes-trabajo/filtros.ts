@@ -19,6 +19,12 @@ export type FiltrosOt = {
   desde?: string;
   /** `YYYY-MM-DD`, ya validada. Inclusiva: incluye todo ese día. */
   hasta?: string;
+  /**
+   * La página del listado (1-based). No es un filtro: no cuenta en «Limpiar
+   * filtros» y se pierde al cambiar cualquier filtro (lo quita
+   * `useFiltrosListado`). Ausente es la primera página.
+   */
+  pagina?: number;
 };
 
 /**
@@ -38,14 +44,27 @@ export function urlListado(filtros: FiltrosOt = {}): string {
   if (filtros.desde) params.set("desde", filtros.desde);
   if (filtros.hasta) params.set("hasta", filtros.hasta);
 
+  // Mismo criterio: la primera página es la ausencia del parámetro.
+  if (filtros.pagina && filtros.pagina > 1) {
+    params.set("pagina", String(filtros.pagina));
+  }
+
   const cadena = params.toString();
 
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
 }
 
-/** Si hay al menos un filtro puesto — para el mensaje de lista vacía. */
-export function hayFiltros(filtros: FiltrosOt): boolean {
-  return Boolean(
-    filtros.estado || filtros.busqueda || filtros.desde || filtros.hasta,
-  );
+/**
+ * Cuántos filtros hay puestos: el número de «Limpiar filtros», y el que decide
+ * qué estado vacío se enseña. El RANGO DE FECHAS CUENTA COMO UNO aunque viaje en
+ * dos parámetros (`desde`, `hasta`): para quien lo usa es un solo filtro, y un
+ * «2» por haber puesto las dos puntas del mismo rango confundiría. `pagina` no
+ * cuenta: no es un filtro.
+ */
+export function contarFiltros(filtros: FiltrosOt): number {
+  return [
+    filtros.estado,
+    filtros.busqueda,
+    filtros.desde || filtros.hasta,
+  ].filter(Boolean).length;
 }

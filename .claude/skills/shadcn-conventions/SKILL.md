@@ -25,8 +25,7 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   de una sola vez con `npx shadcn@latest add sidebar`, para la barra lateral
   del layout protegido.
 - **No existe un primitivo `Form`/`FormField`/`Field` en este proyecto**, y no
-  hace falta: el patrón de formulario es el de abajo, con `<form action={...}>`
-  nativo. No lo instales para "seguir la convención de shadcn" — la convención
+  hace falta: el patrón de formulario es el de abajo, con un `<form>` nativo. No lo instales para "seguir la convención de shadcn" — la convención
   de este proyecto es la que está documentada aquí.
 - El estilo instalado es `base-nova`, así que los componentes de
   `components/ui/` envuelven **Base UI** (`@base-ui/react`), no Radix. Eso
@@ -160,8 +159,26 @@ servidor.** La referencia a copiar es
 `modules/ordenes-trabajo/actions.ts` y `modules/ordenes-trabajo/schema.ts`.
 
 - El formulario es un Client Component con campos **no controlados**: cada uno
-  lleva `name` y `defaultValue`, y el envío va por `<form action={accion}>`.
-  Sin `useState` por campo, sin librería de formularios.
+  lleva `name` y `defaultValue`. Sin `useState` por campo, sin librería de
+  formularios.
+- **El envío va por `onSubmit`, NUNCA por `<form action={...}>`.** Con `action`,
+  React 19 restablece los campos no controlados al terminar la acción, también
+  cuando el servidor devuelve errores: el usuario pierde lo que escribió justo
+  cuando tiene que corregirlo. Estuvo así en los siete módulos hasta el
+  rediseño de 2026-09-24 (se vio al probar un error de validación). La forma
+  correcta:
+  ```tsx
+  <form
+    onSubmit={(evento) => {
+      evento.preventDefault();
+      const datos = new FormData(evento.currentTarget);
+      startTransition(() => accion(datos)); // o alEnviar(datos) en los modales
+    }}
+  >
+  ```
+  Con `useActionState`, su `accion` hay que llamarla dentro de una transición
+  (`startTransition`), que es lo que antes hacía por nosotros el `action` del
+  `<form>`. Referencia: `formulario-orden-trabajo.tsx` y cualquier `dialogo-*.tsx`.
 - `const [estado, accion, enviando] = useActionState(guardarAction, estadoFormularioInicial)`.
   La Server Action llega como prop desde el Server Component de la página; el
   nombre de la prop termina en `Action` (convención de Next).

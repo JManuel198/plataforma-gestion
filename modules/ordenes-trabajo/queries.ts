@@ -1,9 +1,10 @@
-import { and, desc, eq, gte, ilike, lt, or } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lt, or } from "drizzle-orm";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
 import { patronParcial } from "@/core/busqueda";
 import { inicioDelDia, inicioDelDiaSiguiente } from "@/lib/fecha";
 import type { FiltrosOt } from "./filtros";
+import type { Paginacion } from "@/core/paginacion";
 
 /**
  * Las columnas que muestra el listado. Desde la fusión con Servicio salen
@@ -27,21 +28,16 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista las órdenes de trabajo aplicando los filtros que vengan.
- *
- * Todo se resuelve en la consulta, nunca en el navegador: la pantalla recibe
- * solo las filas que va a mostrar (regla de tablas de
- * .claude/skills/shadcn-conventions/SKILL.md).
- *
- * Los filtros se combinan con AND entre sí — poner una fecha no borra el
- * estado ni la búsqueda. Dentro de la búsqueda, en cambio, los tres campos van
- * con OR: basta con que coincida uno.
+ * Las condiciones del listado, compartidas por `listarOrdenesTrabajo` y
+ * `contarResultados`. Tienen que ser EXACTAMENTE las mismas en las dos: si el
+ * conteo filtrara distinto que la página, el pie diría «1–10 de 14» sobre un
+ * resultado de otro tamaño, y la última página podría salir vacía.
  */
-export async function listarOrdenesTrabajo(filtros: FiltrosOt = {}) {
+function condicionesListado(filtros: FiltrosOt) {
   const { estado, busqueda, desde, hasta } = filtros;
   const patron = busqueda ? patronParcial(busqueda) : null;
 
-  const condiciones = [
+  return and(
     estado ? eq(ordenTrabajo.estado, estado) : undefined,
     patron
       ? or(
@@ -59,15 +55,53 @@ export async function listarOrdenesTrabajo(filtros: FiltrosOt = {}) {
     hasta
       ? lt(ordenTrabajo.fecha_creacion, inicioDelDiaSiguiente(hasta))
       : undefined,
-  ];
+  );
+}
+
+/**
+ * Cuántos órdenes de trabajo casan con los filtros, en todas las páginas: el «de N» del
+ * pie de la tabla. Mismo `FROM` y mismas condiciones que `listarOrdenesTrabajo`.
+ */
+export async function contarResultados(filtros: FiltrosOt): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(ordenTrabajo)
+    // `and()` ignora los `undefined`, y devuelve `undefined` si no queda
+    // ninguna condición — que es exactamente "sin WHERE".
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Lista las órdenes de trabajo aplicando los filtros que vengan.
+ *
+ * Todo se resuelve en la consulta, nunca en el navegador: la pantalla recibe
+ * solo las filas que va a mostrar (regla de tablas de
+ * .claude/skills/shadcn-conventions/SKILL.md).
+ *
+ * Los filtros se combinan con AND entre sí — poner una fecha no borra el
+ * estado ni la búsqueda. Dentro de la búsqueda, en cambio, los tres campos van
+ * con OR: basta con que coincida uno.
+ *
+ * Paginada con `LIMIT`/`OFFSET`: `pagina` sale de `calcularPaginacion`
+ * (core/), que necesita antes el total de `contarResultados`.
+ */
+export async function listarOrdenesTrabajo(
+  filtros: FiltrosOt,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
+
 
   return db
     .select(columnasListado)
     .from(ordenTrabajo)
     // `and()` ignora los `undefined`, y devuelve `undefined` si no queda
     // ninguna condición — que es exactamente "sin WHERE".
-    .where(and(...condiciones))
-    .orderBy(desc(ordenTrabajo.fecha_creacion), desc(ordenTrabajo.createdAt));
+    .where(condicionesListado(filtros))
+    .orderBy(desc(ordenTrabajo.fecha_creacion), desc(ordenTrabajo.createdAt), desc(ordenTrabajo.codigo_ot))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 }
 
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */

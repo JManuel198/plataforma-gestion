@@ -14,7 +14,9 @@ es a la vez el documento de ejecución en campo y el registro comercial
 - `schema.ts` — validaciones Zod. Todo lo que llega del formulario pasa por
   aquí. `codigo_ot` y `fecha_creacion` nunca están.
 - `actions.ts` — Server Actions de crear y editar. Verifican sesión.
-- `queries.ts` — lecturas (listado con filtro por estado, detalle).
+- `queries.ts` — lecturas (listado con filtros por estado, búsqueda y fechas,
+  paginado con `LIMIT`/`OFFSET`; `contarResultados` para el «de N» del pie y,
+  sin filtros, para el contador de la barra; detalle).
 - `components/` — formulario, tabla, filtro y toast.
 
 La OT se crea desde su propio listado (`Nueva OT` →

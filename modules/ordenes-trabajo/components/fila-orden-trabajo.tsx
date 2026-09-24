@@ -1,7 +1,7 @@
 "use client";
 
 import { PencilIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BotonAccionFila } from "@/core/components/boton-accion-fila";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   propsFilaClicable,
@@ -12,6 +12,14 @@ import { editarOrdenTrabajoEnModal } from "../actions";
 import type { FilaOrdenTrabajo } from "../queries";
 import { DialogoOrdenTrabajo } from "./dialogo-orden-trabajo";
 import { SelectorEstadoFila } from "./selector-estado-fila";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CIFRA,
+  CLASE_CODIGO,
+  CLASE_FILA,
+} from "@/core/components/tabla-listado";
 
 /**
  * Una fila del listado de OT, con su modal.
@@ -77,8 +85,10 @@ export function FilaDeOrdenTrabajo({
   const control = useControlDetalle();
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium whitespace-nowrap">
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className={`${CELDA_FIJA_INICIO} ${CLASE_CODIGO} px-3`}>
         {orden.codigo_ot}
       </TableCell>
       <TableCell>{orden.codigo_cotizacion}</TableCell>
@@ -90,14 +100,16 @@ export function FilaDeOrdenTrabajo({
       <TableCell>{orden.cliente}</TableCell>
       {/* El monto se guarda en céntimos y solo se formatea para mostrarlo: el
           frontend muestra, no calcula (regla 1 de AGENTS.md). */}
-      <TableCell className="text-right whitespace-nowrap">{precio}</TableCell>
+      <TableCell className={CLASE_CIFRA}>{precio}</TableCell>
       <TableCell>{orden.responsable ?? "—"}</TableCell>
       <TableCell className="whitespace-nowrap">{fechaCreacion}</TableCell>
       {/* Editable en el sitio: cambiar el estado es la operación más frecuente
           del listado y no merece abrir el formulario entero. Va envuelto — ver
           el comentario de arriba, es el control más fácil de dejarse suelto de
           los tres módulos. */}
-      <TableCell>
+      {/* Fija a la derecha junto a las acciones, en el sitio que en los
+          catálogos ocupa la «Situación»: es el dato de estado de la fila. */}
+      <TableCell className={`${CELDA_FIJA_ANTES_DEL_FIN} px-3`}>
         <SinPropagacion>
           <SelectorEstadoFila
             id={orden.id}
@@ -115,19 +127,17 @@ export function FilaDeOrdenTrabajo({
           Icono y no texto, a diferencia de Personal: esta tabla tiene once
           columnas, la más ancha del proyecto, y una etiqueta por fila empuja
           el contenido. El nombre va en un `<span class="sr-only">` —que es lo
-          que anuncia un lector de pantalla— y en un `title` para el tooltip
-          del navegador. */}
-      <TableCell className="text-right">
+          que anuncia un lector de pantalla— y en un tooltip (los dos los pone
+          `BotonAccionFila`). */}
+      <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Editar"
+          <BotonAccionFila
+            etiqueta="Editar"
+            etiquetaAccesible={`Editar {orden.codigo_ot}`}
             onClick={() => control.cambiar("editando")}
           >
             <PencilIcon />
-            <span className="sr-only">Editar {orden.codigo_ot}</span>
-          </Button>
+          </BotonAccionFila>
           {/* El modal también va dentro del envoltorio: es un portal, y los
               eventos de un portal burbujean igual por el árbol de componentes.
               Sin esto, el "Cancelar" del formulario abriría de nuevo la vista

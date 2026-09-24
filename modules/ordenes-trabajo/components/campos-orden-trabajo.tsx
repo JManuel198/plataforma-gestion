@@ -14,6 +14,7 @@ import {
 import { aMontoDecimal } from "@/core/dinero";
 import { MONEDAS } from "@/core/monedas";
 import { ESTADOS_OT } from "../constantes";
+import { MensajeError } from "@/core/components/mensaje-error";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -40,16 +41,6 @@ type Props = {
       fechaHoy: string;
     }
 );
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p className="text-sm text-destructive" role="alert">
-      {errores[0]}
-    </p>
-  );
-}
 
 /**
  * Los campos del documento de OT, sin `<form>` ni botones alrededor.
