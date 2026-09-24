@@ -4,6 +4,8 @@ import { CabeceraListado } from "@/core/components/cabecera-listado";
 import { ContadorRegistros } from "@/core/components/contador-registros";
 import { EstadoVacio } from "@/core/components/estado-vacio";
 import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
+import { PaginacionListado } from "@/core/components/paginacion-listado";
+import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
 import { buscarMaterialesParaSeleccionAction } from "@/modules/materiales/actions";
 import { crearPrecioEnModal } from "@/modules/lista-precios/actions";
 import { BuscadorListaPrecios } from "@/modules/lista-precios/components/buscador-lista-precios";
@@ -15,7 +17,11 @@ import {
   urlListado,
   type FiltrosListaPrecios,
 } from "@/modules/lista-precios/filtros";
-import { contarPrecios, listarPrecios } from "@/modules/lista-precios/queries";
+import {
+  contarPrecios,
+  contarResultados,
+  listarPrecios,
+} from "@/modules/lista-precios/queries";
 import {
   filtroBusquedaSchema,
   filtroInactivosSchema,
@@ -48,19 +54,25 @@ export const metadata = { title: "Lista de precios" };
 export default async function PaginaListaPrecios({
   searchParams,
 }: PageProps<"/lista-precios">) {
-  const { busqueda, inactivos } = await searchParams;
+  const { busqueda, inactivos, pagina } = await searchParams;
 
   // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro
   // inventado o repetido se ignora en vez de reventar la pantalla.
   const filtros: FiltrosListaPrecios = {
     busqueda: filtroBusquedaSchema.parse(busqueda),
     inactivos: filtroInactivosSchema.parse(inactivos) === "1",
+    pagina: paginaSchema.parse(pagina),
   };
 
-  const [precios, totalVista] = await Promise.all([
-    listarPrecios(filtros),
+  // El total va primero porque decide qué página se trae: una página que ya
+  // no existe (p. ej. tras dar de baja la única fila de la última) se ajusta
+  // a la última real. Ver `calcularPaginacion`.
+  const [total, totalVista] = await Promise.all([
+    contarResultados(filtros),
     contarPrecios(filtros.inactivos),
   ]);
+  const paginacion = calcularPaginacion(total, filtros.pagina);
+  const precios = await listarPrecios(filtros, paginacion);
   const filtrosPuestos = contarFiltros(filtros);
 
   // Solo hace falta cuando la vista de activas sale vacía sin filtros: ahí hay
@@ -112,6 +124,14 @@ export default async function PaginaListaPrecios({
         <TablaListaPrecios
           precios={precios}
           buscarMaterialAction={buscarMaterialesParaSeleccionAction}
+          pie={
+            <PaginacionListado
+              paginacion={paginacion}
+              hrefPagina={(numero) =>
+                urlListado({ ...filtros, pagina: numero })
+              }
+            />
+          }
         />
       ) : filtros.busqueda ? (
         <EstadoVacio

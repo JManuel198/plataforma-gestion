@@ -90,8 +90,12 @@ de la tabla en `docs/spec/entidades.md`.
 - `filtros.ts` — la forma de los filtros del listado y cómo se escriben en la
   URL. Sin imports de servidor: lo usan la consulta y los controles, que son
   cliente. `RUTA_LISTADO` no se redeclara aquí, viene de `constantes.ts`.
-- `queries.ts` — el listado (JOIN a `materiales`, filtros y precio ya
-  calculado en el servidor) y las sugerencias de proveedor.
+- `queries.ts` — el listado (JOIN a `materiales`, filtros, página con
+  `LIMIT`/`OFFSET` y precio ya calculado en el servidor), los dos conteos —
+  `contarResultados` (lo que casa con los filtros: el «de 14» del pie) y
+  `contarPrecios` (la vista entera: «86 ofertas activas»)— y las sugerencias
+  de proveedor. La paginación en sí (`calcularPaginacion`, `?pagina=`) es
+  común y vive en `core/paginacion.ts`.
 - `actions.ts` — Server Actions: crear, editar, cambiar `activo` y buscar
   proveedores. Todas verifican sesión. El alta reserva el correlativo y hace
   el INSERT **en la misma transacción**, para que un fallo no deje huecos en

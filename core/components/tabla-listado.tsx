@@ -11,12 +11,25 @@ import type { ReactNode } from "react";
  */
 
 /**
- * El marco de la tabla: borde y esquinas redondeadas. El scroll horizontal no
- * va aquí sino en el contenedor que ya pone `<Table>` (components/ui/table.tsx),
- * que es también el contenedor respecto al que se pegan las columnas fijas.
+ * El marco de la tabla: borde y esquinas redondeadas, con un pie opcional
+ * debajo (la paginación). El scroll horizontal no va aquí sino en el
+ * contenedor que ya pone `<Table>` (components/ui/table.tsx), que es también
+ * el contenedor respecto al que se pegan las columnas fijas — así el pie se
+ * queda quieto mientras la tabla se desplaza.
  */
-export function MarcoTabla({ children }: { children: ReactNode }) {
-  return <div className="overflow-hidden rounded-lg border">{children}</div>;
+export function MarcoTabla({
+  children,
+  pie,
+}: {
+  children: ReactNode;
+  pie?: ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      {children}
+      {pie ? <div className="border-t px-3 py-2">{pie}</div> : null}
+    </div>
+  );
 }
 
 /**

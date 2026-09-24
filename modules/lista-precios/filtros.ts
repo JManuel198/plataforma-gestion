@@ -43,6 +43,12 @@ export type FiltrosListaPrecios = {
    * apareciendo ahí (ver la deuda técnica del 2026-09-21 en AGENTS.md).
    */
   inactivos?: boolean;
+  /**
+   * La página del listado (1-based). No es un filtro: no cuenta en «Limpiar
+   * filtros» y se pierde al cambiar cualquier filtro (lo quita
+   * `useFiltrosListado`). Ausente es la primera página.
+   */
+  pagina?: number;
 };
 
 export function urlListado(filtros: FiltrosListaPrecios = {}): string {
@@ -52,6 +58,10 @@ export function urlListado(filtros: FiltrosListaPrecios = {}): string {
   // Solo el caso verdadero viaja en la URL: "sin filtro" es la ausencia del
   // parámetro, no un `inactivos=0` que luego haya que distinguir.
   if (filtros.inactivos) params.set("inactivos", "1");
+  // Mismo criterio: la primera página es la ausencia del parámetro.
+  if (filtros.pagina && filtros.pagina > 1) {
+    params.set("pagina", String(filtros.pagina));
+  }
 
   const cadena = params.toString();
 

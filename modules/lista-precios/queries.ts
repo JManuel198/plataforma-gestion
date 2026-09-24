@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { listaPrecios } from "@/db/schema/lista-precios";
 import { materiales } from "@/db/schema/materiales";
 import { patronParcial } from "@/core/busqueda";
+import type { Paginacion } from "@/core/paginacion";
 import type { FiltrosListaPrecios } from "./filtros";
 import { calcularPrecio } from "./precio";
 
@@ -59,20 +60,16 @@ export async function contarPrecios(inactivos = false): Promise<number> {
 }
 
 /**
- * Lista las ofertas del catálogo aplicando los filtros que vengan.
- *
- * Por defecto solo las activas: la baja es lógica (`activo = false`, nunca un
- * DELETE — regla invariable 9), pero de cara al usuario tiene que verse como un
- * borrado. Quien quiera ver las inactivas lo pide explícitamente con
- * `inactivos`.
- *
- * Todo se resuelve en la consulta, nunca en el navegador.
+ * Las condiciones del listado, compartidas por `listarPrecios` y
+ * `contarResultados`. Tienen que ser EXACTAMENTE las mismas en las dos: si el
+ * conteo filtrara distinto que la página, el pie diría «1–10 de 14» sobre un
+ * resultado de otro tamaño, y la última página podría salir vacía o no existir.
  */
-export async function listarPrecios(filtros: FiltrosListaPrecios = {}) {
+function condicionesListado(filtros: FiltrosListaPrecios) {
   const { busqueda, inactivos } = filtros;
   const patron = busqueda ? patronParcial(busqueda) : null;
 
-  const condiciones = [
+  return and(
     // El filtro ALTERNA entre dos vistas excluyentes, no acumula: sin él se ven
     // las activas, con él SOLO las inactivas. Nunca
     // `inactivos ? undefined : eq(activo, true)` —o sea, sin condición—, que es
@@ -98,17 +95,60 @@ export async function listarPrecios(filtros: FiltrosListaPrecios = {}) {
           ilike(materiales.descripcion, patron),
         )
       : undefined,
-  ];
+  );
+}
 
+/**
+ * Cuántas ofertas casan con los filtros, en todas las páginas: el «de 14» del
+ * pie. A diferencia de `contarPrecios`, este SÍ aplica la búsqueda.
+ *
+ * Lleva el mismo JOIN que el listado porque la búsqueda mira también la
+ * descripción del material, que vive en `materiales`.
+ */
+export async function contarResultados(
+  filtros: FiltrosListaPrecios,
+): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(listaPrecios)
+    .innerJoin(materiales, eq(listaPrecios.material_id, materiales.id))
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Lista las ofertas del catálogo aplicando los filtros que vengan.
+ *
+ * Por defecto solo las activas: la baja es lógica (`activo = false`, nunca un
+ * DELETE — regla invariable 9), pero de cara al usuario tiene que verse como un
+ * borrado. Quien quiera ver las inactivas lo pide explícitamente con
+ * `inactivos`.
+ *
+ * Todo se resuelve en la consulta, nunca en el navegador: también la página,
+ * con `LIMIT`/`OFFSET`. `pagina` sale de `calcularPaginacion` (core/), que
+ * necesita antes el total de `contarResultados`.
+ */
+export async function listarPrecios(
+  filtros: FiltrosListaPrecios,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
   const filas = await db
     .select(columnasListado)
     .from(listaPrecios)
     .innerJoin(materiales, eq(listaPrecios.material_id, materiales.id))
-    .where(and(...condiciones))
+    .where(condicionesListado(filtros))
     // Lo último registrado primero: a diferencia de Materiales —que se ordena
     // por código porque se consulta como una lista de papel— una lista de
     // precios se mira para ver qué se cotizó hace poco.
-    .orderBy(desc(listaPrecios.updatedAt));
+    //
+    // `codigo_oferta` desempata, y con paginación es obligatorio: dos ofertas
+    // con el mismo `updated_at` podrían salir en cualquier orden en cada
+    // consulta, y una fila saltaría de página (o saldría en dos) al avanzar.
+    // El código es UNIQUE, así que el orden queda totalmente determinado.
+    .orderBy(desc(listaPrecios.updatedAt), desc(listaPrecios.codigo_oferta))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 
   // El precio se calcula AQUÍ, en el servidor, y viaja ya resuelto a la tabla
   // (regla invariable 1 de AGENTS.md). No es una columna: ver precio.ts para el

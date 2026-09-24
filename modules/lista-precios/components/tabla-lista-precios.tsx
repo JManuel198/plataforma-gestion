@@ -5,6 +5,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { ReactNode } from "react";
 import {
   CELDA_FIJA_ANTES_DEL_FIN,
   CELDA_FIJA_FIN,
@@ -35,16 +36,19 @@ import { FilaDePrecio } from "./fila-lista-precio";
 export function TablaListaPrecios({
   precios,
   buscarMaterialAction,
+  pie,
 }: {
   precios: FilaPrecio[];
   buscarMaterialAction: (texto: string) => Promise<MaterialElegible[]>;
+  /** Lo que va debajo de la tabla, dentro del marco: la paginación. */
+  pie?: ReactNode;
 }) {
   // Once columnas no caben holgadas ni en escritorio: la tabla se desplaza en
   // horizontal dentro de su marco, con el código fijo a la izquierda y la
   // situación y las acciones fijas a la derecha (ver core/components/
   // tabla-listado.tsx).
   return (
-    <MarcoTabla>
+    <MarcoTabla pie={pie}>
       <Table>
         <TableHeader>
           <TableRow className={CLASE_FILA_CABECERA}>
