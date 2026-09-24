@@ -54,8 +54,9 @@ trabaje en este código.
   aparte, no generalizar este. Lo de arriba sigue describiendo cómo está
   pensado el mecanismo, no un objetivo en curso: por eso config/clientes/
   no tiene todavía ningún .json y varias cosas que "deberían" vivir ahí
-  (el correlativo de OT, el array MENU de la barra lateral) siguen en el
-  código a sabiendas. No inviertas esfuerzo en generalizar por cliente sin
+  (el correlativo de OT, el array MENU de la barra lateral y el nombre
+  "CCM" de la cabecera de la barra, en components/barra-lateral.tsx)
+  siguen en el código a sabiendas. No inviertas esfuerzo en generalizar por cliente sin
   que alguien lo pida explícitamente.
 - docs/spec/ — especificación de negocio capturada de la plataforma guía.
   Fuente de verdad antes que el código: ante cualquier duda sobre una
@@ -66,6 +67,12 @@ trabaje en este código.
 ## Reglas invariables
 1. Toda regla de negocio y todo cálculo vive en el backend. El frontend
    nunca calcula totales, descuentos ni impuestos, solo los muestra.
+   Única excepción, acotada: la vista previa en vivo del precio en el modal
+   de Lista de precios. Llama a la MISMA función que usa el servidor
+   (modules/lista-precios/precio.ts), el resultado no se envía y el servidor
+   recalcula al guardar. Las condiciones que la hacen aceptable están en la
+   skill de convenciones, sección "Valores calculados que se muestran en
+   vivo"; si el cálculo se complica, se deja de previsualizar.
 2. Todo monto se guarda como entero en la unidad mínima (céntimos), nunca
    como float.
 3. Ninguna cotización se edita después de aprobada — los cambios generan

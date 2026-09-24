@@ -94,7 +94,10 @@ export function AccionesTarifa({
         // lanzado. Es navegación, no fallo: se deja pasar.
         if (esRedireccionDeNext(error)) throw error;
 
-        console.error("[Tarifario] fallo inesperado al cambiar el activo", error);
+        console.error(
+          "[Tarifario] fallo inesperado al cambiar el activo",
+          error,
+        );
         toast.error("No se pudo completar. Intenta de nuevo.");
         return;
       }
@@ -116,24 +119,24 @@ export function AccionesTarifa({
   return (
     <>
       <BotonAccionFila
-  etiqueta="Editar"
-  etiquetaAccesible={`Editar ${nombre}`}
-  onClick={() => control.cambiar("editando")}
->
-  <PencilIcon />
-</BotonAccionFila>
+        etiqueta="Editar"
+        etiquetaAccesible={`Editar ${nombre}`}
+        onClick={() => control.cambiar("editando")}
+      >
+        <PencilIcon />
+      </BotonAccionFila>
 
       {tarifa.activo ? (
         <>
           <BotonAccionFila
-  etiqueta="Dar de baja"
-  etiquetaAccesible={`Dar de baja ${nombre}`}
-  destructiva
-  disabled={guardando}
-  onClick={() => setConfirmando(true)}
->
-  <XIcon />
-</BotonAccionFila>
+            etiqueta="Dar de baja"
+            etiquetaAccesible={`Dar de baja ${nombre}`}
+            destructiva
+            disabled={guardando}
+            onClick={() => setConfirmando(true)}
+          >
+            <XIcon />
+          </BotonAccionFila>
 
           {/* Cerrar por cualquier vía (Cancelar, Escape, clic fuera) es soltar
               la intención: nada se ha enviado todavía, así que no hay que
@@ -172,13 +175,13 @@ export function AccionesTarifa({
         </>
       ) : (
         <BotonAccionFila
-  etiqueta="Reactivar"
-  etiquetaAccesible={`Reactivar ${nombre}`}
-  disabled={guardando}
-  onClick={() => aplicar(true)}
->
-  <RotateCcwIcon />
-</BotonAccionFila>
+          etiqueta="Reactivar"
+          etiquetaAccesible={`Reactivar ${nombre}`}
+          disabled={guardando}
+          onClick={() => aplicar(true)}
+        >
+          <RotateCcwIcon />
+        </BotonAccionFila>
       )}
     </>
   );
