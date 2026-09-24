@@ -76,12 +76,15 @@ futuros que toquen dinero o Server Actions:
     dividir — vale la pena revisar con la misma sospecha cualquier cálculo
     monetario nuevo que multiplique un céntimo grande por un factor de escala
     antes de dividir.
-  - `useFiltros` de este módulo es el CUARTO hook idéntico (materiales,
-    personal, ordenes-trabajo, lista-precios) y deliberadamente NO se subió a
-    core/: el criterio de "mover a la tercera copia" aplica a lógica que puede
-    divergir en silencio (regex, parseo de errores), no a ocho líneas sin
-    lógica propia donde el síntoma de una divergencia sería visible al tocar
-    el filtro. Útil como criterio para no exigir de más en una futura auditoría.
+  - `useFiltros` de este módulo era entonces el CUARTO hook idéntico
+    (materiales, personal, ordenes-trabajo, lista-precios) y deliberadamente
+    NO se subió a core/. **Ya no es así**: llegó a seis copias y se unificó en
+    `core/use-filtros-listado.ts` (`useFiltrosListado<F>`), ver AGENTS.md
+    deuda técnica "RESUELTO (2026-09-23)". Verificado de nuevo en el PR #3
+    (2026-09-24, mockups): los 7 módulos importan de `core/`, ninguno tiene ya
+    su propia copia. Ojo con este tipo de nota — es justo el caso que AGENTS.md
+    señala como lección: un estado "no se sube todavía" caduca solo, hay que
+    comprobarlo contra el repo cada vez, no repetirlo de memoria.
 
 - **EPPs (Bloque 16, Parte 1, auditado 2026-09-23 — sin hallazgos).** Quinto y
   último catálogo maestro del menú (cierra Materiales, Lista de precios,

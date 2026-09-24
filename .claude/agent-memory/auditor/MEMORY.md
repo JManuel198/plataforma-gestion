@@ -5,3 +5,4 @@
 - [ESTADOS_OT duplicado — RESUELTO](proyecto_estados-ot-duplicados.md) — ESTADOS_OT y MONEDAS se unificaron en 623a659 (2026-09-19); solo queda vigilar que no reaparezca un segundo literal.
 - [Patrón fila clicable → vista → editar](proyecto_patron-fila-clicable.md) — core/fila-clicable.tsx y core/vista-detalle.tsx, validado en Materiales, Personal y OT; en OT el SelectorEstadoFila (role="option" no nativo) confirma bien envuelto, no solo por la red de esClicDeLaFila.
 - [git status puede omitir un archivo modificado](feedback_git-status-flakiness.md) — confirmar con `git diff HEAD -- <archivo>` si el encargo nombra un archivo que no aparece en `git status`.
+- [PR #3 — mockups en los 7 listados](proyecto_pr3-mockups-listados.md) — hallazgos: calc de descuento en cliente (lista-precios), bug de interpolación en fila-orden-trabajo.tsx, indentación rota en 2 archivos, "CCM" hardcodeado en barra-lateral.tsx.
