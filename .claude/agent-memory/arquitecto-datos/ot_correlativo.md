@@ -29,9 +29,14 @@ a mano — hay que poner `updated_at = now()` en el `SET`.
 **Supuestos abiertos registrados** (`docs/spec/preguntas-abiertas.md`,
 supuestos 5 a 9): inicio en `0001` y no `0000` (cambiar no requiere
 migración, solo el `VALUES ($anio, 1)`); `responsable` y `codigo_oc`
-nullables; uno-a-muchos Servicio→OT sin `UNIQUE` en `servicio_id`; sin
-borrado — `Cancelada` hace de `activo=false`, por eso `orden_trabajo` es la
-excepción consciente a la regla de columna `activo`.
+nullables; sin borrado — `Cancelada` hace de `activo=false`, por eso
+`orden_trabajo` es la excepción consciente a la regla de columna `activo`.
+(El supuesto de uno-a-muchos Servicio→OT sin `UNIQUE` en `servicio_id` ya no
+aplica: `servicio_id` y la tabla `servicio` se eliminaron en las migraciones
+0004 y 0005 con la fusión Servicio + OT, ver [[fusion-servicio-ot]].)
 
-Ver también [[precio-bigint]] y [[feedback-generar-no-aplicar]] (la
-migración `0003_lively_leo.sql` quedó generada y **no aplicada**).
+**Migración:** `0003_lively_leo.sql`. Se generó sin aplicar
+([[feedback-generar-no-aplicar]]); esta nota decía "no aplicada" como si
+fuera permanente.
+
+**Estado al escribir (2026-09-24), verificar antes de usar:** la migración figura en `db/migrations/meta/_journal.json`, cuyos `when` son estrictamente crecientes. La tabla `ot_correlativo` sí existe en la base: [[correlativo_generico]] (2026-09-22) la describe con datos reales de OT, y es la razón por la que no se migró a la tabla `correlativo`. NO se ha comprobado que conste en `drizzle.__drizzle_migrations`: desde el contenedor donde se corrigió esta nota no había acceso a Neon. Para confirmarlo, busca su `when` (`1789784810215`) en la columna `created_at` de esa tabla.
