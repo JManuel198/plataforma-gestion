@@ -204,7 +204,8 @@ servidor.** La referencia a copiar es
   exportar un objeto ahí rompe el build.
 - Toda Server Action **re-verifica la sesión dentro de la función**, no solo
   confía en que el layout protegió la ruta: una action es invocable con un POST
-  directo. Ver `exigirSesion()` en `modules/ordenes-trabajo/actions.ts`.
+  directo. Se hace importando `exigirSesion()` de `core/sesion.ts`, nunca con
+  una copia local.
 - Mientras el envío está en curso, el botón de submit se deshabilita con el
   tercer valor de `useActionState` (`disabled={enviando}`) — sin spinner
   custom.
