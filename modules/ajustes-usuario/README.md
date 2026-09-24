@@ -11,6 +11,10 @@ usuario". Hoy: solo perfil (nombre, dni, telefono).
 - `actions.ts` — `actualizarPerfil()`. Toma el usuario de la sesión, escribe
   el nombre en `nombre_completo` y en `name` a la vez, y traduce el choque del
   UNIQUE de `dni`.
+- `components/formulario-perfil.tsx` — el formulario de la pantalla
+  `/ajustes` (`app/(protegido)/ajustes/page.tsx`). El correo se muestra fuera
+  del `<form>`, como dato de solo lectura. Se entra desde el bloque del
+  usuario al pie de la barra lateral.
 
 La tabla es `user` de Better Auth (`db/schema/auth.ts`); este módulo no tiene
 tabla propia.
