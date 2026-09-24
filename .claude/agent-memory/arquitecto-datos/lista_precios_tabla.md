@@ -26,14 +26,7 @@ ya como `0012`. Esta nota entró en el mismo commit que `0012`
 (`0d1a3d4`), pero describía la versión anterior de la migración, y nadie la
 contrastó con el archivo que se estaba commiteando.
 
-**Estado al escribir (2026-09-24), verificar antes de usar:** `0012` figura
-en `db/migrations/meta/_journal.json`, cuyos `when` son estrictamente
-crecientes. La tabla `lista_precios` sí existe en la base:
-[[unidad_texto_libre_unificado]] consultó `information_schema.columns` de
-`lista_precios.unidad` contra Neon el 2026-09-22. NO se ha comprobado que
-`0012` conste en `drizzle.__drizzle_migrations`: desde el contenedor donde
-se corrigió esta nota no había acceso a Neon. Para confirmarlo, busca su
-`when` (`1790103389405`) en la columna `created_at` de esa tabla.
+**Confirmado el 2026-09-24:** `0012_fat_lionheart` está aplicada en Neon. Se comparó `drizzle.__drizzle_migrations` fila por fila con `db/migrations/meta/_journal.json`: las 16 entradas del journal tienen su fila, sin filas de más ni de menos, en el mismo orden, y en cada una coinciden `created_at` con el `when` del journal y `hash` con el SHA-256 del `.sql` (así que el archivo no se editó después de aplicarse). Esta en concreto es la fila `id` 13 (`created_at` `1790103389405`). La tabla `lista_precios`, además, se consultó en Neon el 2026-09-22 (ver [[unidad_texto_libre_unificado]]).
 
 **`precio` no es columna, se deriva:** `precio_lista × (1 − descuento/100)`,
 calculado siempre en `modules/lista-precios/` (backend). Mismo principio que

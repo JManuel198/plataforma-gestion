@@ -12,7 +12,7 @@ aplicada" como si fuera permanente, y ya no lo es. Primer módulo de negocio
 (`modules/personal/`, hoy terminado) con tabla propia fuera de
 `orden_trabajo`.
 
-**Estado al escribir (2026-09-24), verificar antes de usar:** la migración figura en `db/migrations/meta/_journal.json`, cuyos `when` son estrictamente crecientes. La tabla `personal` sí existe en la base: la deuda técnica de `AGENTS.md` registra que el UNIQUE de `personal.dni` se probó rechazando duplicados "en la base real" (antes del 2026-09-21), y `modules/personal/` está construido sobre ella. NO se ha comprobado que conste en `drizzle.__drizzle_migrations`: desde el contenedor donde se corrigió esta nota no había acceso a Neon. Para confirmarlo, busca su `when` (`1789927015357`) en la columna `created_at` de esa tabla.
+**Confirmado el 2026-09-24:** `0008_crea_tabla_personal` está aplicada en Neon. Se comparó `drizzle.__drizzle_migrations` fila por fila con `db/migrations/meta/_journal.json`: las 16 entradas del journal tienen su fila, sin filas de más ni de menos, en el mismo orden, y en cada una coinciden `created_at` con el `when` del journal y `hash` con el SHA-256 del `.sql` (así que el archivo no se editó después de aplicarse). Esta en concreto es la fila `id` 9 (`created_at` `1789927015357`). La tabla `personal`, además, se probó en la base antes del 2026-09-21 (el UNIQUE de `personal.dni`, según la deuda técnica de `AGENTS.md`).
 
 Decisiones de modelado, todas especificadas explícitamente por el usuario
 (no asumidas por mí, por eso no generaron entrada nueva en
