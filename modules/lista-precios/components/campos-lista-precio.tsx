@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CircleAlertIcon, LockIcon } from "lucide-react";
+import { LockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,6 +14,7 @@ import {
 import { BuscadorSeleccion } from "@/core/components/buscador-seleccion";
 import { CampoConSugerencias } from "@/core/components/campo-con-sugerencias";
 import { CampoListaSugerida } from "@/core/components/campo-lista-sugerida";
+import { MensajeError } from "@/core/components/mensaje-error";
 import {
   aCentimos,
   aMontoDecimal,
@@ -45,20 +46,6 @@ type Props = {
    */
   alCambiarMaterial?: (elegido: boolean) => void;
 };
-
-function MensajeError({ errores }: { errores?: string[] }) {
-  if (!errores?.length) return null;
-
-  return (
-    <p
-      className="flex items-center gap-1.5 text-sm text-destructive"
-      role="alert"
-    >
-      <CircleAlertIcon aria-hidden className="size-3.5 shrink-0" />
-      {errores[0]}
-    </p>
-  );
-}
 
 /** Junta marca y modelo para la línea de contexto de cada resultado. */
 function contextoDe(material: MaterialElegible): string {

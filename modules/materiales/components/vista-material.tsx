@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { Dato, ListaDatos } from "@/core/vista-detalle";
 import type { MaterialEditable } from "../tipos";
 
@@ -25,13 +25,10 @@ export function VistaMaterial({
 }) {
   return (
     <ListaDatos>
-      <Dato etiqueta="Código interno" valor={material.codigo_interno} />
+      {/* El código interno no se repite aquí: va en la cabecera del modal,
+          como etiqueta (ver `DialogoMaterial`). */}
+      {/* La descripción tampoco: es el título del modal. */}
       <Dato etiqueta="Unidad" valor={material.unidad} />
-      <Dato
-        etiqueta="Descripción"
-        valor={material.descripcion}
-        className="sm:col-span-2"
-      />
       <Dato etiqueta="Marca" valor={material.marca} />
       <Dato etiqueta="Modelo" valor={material.modelo} />
       <Dato etiqueta="Código de fábrica" valor={material.codigo_fabrica} />
@@ -58,15 +55,9 @@ export function VistaMaterial({
           "—"
         )}
       </Dato>
-      {/* El "Inactivo" va en `secondary`, la misma variante con la que lo
-          marca la tabla: es el mismo dato y no debe verse de dos maneras.
-          El activo no lleva chip en la tabla —no hace falta marcar lo
-          normal—, pero aquí sí, porque una etiqueta "Situación" sin valor
-          se leería como un dato que falta. */}
+      {/* Mismo badge que la columna «Situación» de la tabla. */}
       <Dato etiqueta="Situación">
-        <Badge variant={material.activo ? "outline" : "secondary"}>
-          {material.activo ? "En el catálogo" : "Inactivo"}
-        </Badge>
+        <BadgeSituacion activo={material.activo} />
       </Dato>
     </ListaDatos>
   );

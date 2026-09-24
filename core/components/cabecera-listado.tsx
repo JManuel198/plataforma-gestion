@@ -11,14 +11,27 @@ import type { ReactNode } from "react";
  */
 export function CabeceraListado({
   titulo,
+  descripcion,
   accion,
 }: {
   titulo: string;
+  /**
+   * Una línea bajo el título, solo cuando dice algo que el título no dice
+   * (Materiales: "Herramientas, Materiales y Consumibles", que es como el
+   * cliente nombra ese catálogo). El mockup no la lleva; no se añade por
+   * rellenar.
+   */
+  descripcion?: string;
   accion?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+        {descripcion ? (
+          <p className="text-sm text-muted-foreground">{descripcion}</p>
+        ) : null}
+      </div>
       {accion}
     </div>
   );

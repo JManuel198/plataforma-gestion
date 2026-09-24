@@ -1,9 +1,10 @@
-import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { materiales } from "@/db/schema/materiales";
 import { materialCaracteristicas } from "@/db/schema/material-caracteristicas";
 import { patronParcial } from "@/core/busqueda";
 import type { FiltrosMateriales } from "./filtros";
+import type { Paginacion } from "@/core/paginacion";
 
 /**
  * Las columnas que muestra el listado: todas las de negocio, más `activo`
@@ -28,20 +29,16 @@ const columnasListado = {
 } as const;
 
 /**
- * Lista el catálogo de materiales aplicando los filtros que vengan.
- *
- * Por defecto solo los activos: la baja es lógica (`activo = false`, nunca un
- * DELETE — regla invariable 9), pero de cara al usuario tiene que verse como
- * un borrado. Quien quiera ver los inactivos lo pide explícitamente con
- * `inactivos`.
- *
- * Todo se resuelve en la consulta, nunca en el navegador.
+ * Las condiciones del listado, compartidas por `listarMateriales` y
+ * `contarResultados`. Tienen que ser EXACTAMENTE las mismas en las dos: si el
+ * conteo filtrara distinto que la página, el pie diría «1–10 de 14» sobre un
+ * resultado de otro tamaño, y la última página podría salir vacía.
  */
-export async function listarMateriales(filtros: FiltrosMateriales = {}) {
+function condicionesListado(filtros: FiltrosMateriales) {
   const { busqueda, inactivos } = filtros;
   const patron = busqueda ? patronParcial(busqueda) : null;
 
-  const condiciones = [
+  return and(
     // El filtro ALTERNA entre dos vistas excluyentes, no acumula: sin él se
     // ven los activos, con él SOLO los inactivos. Antes era
     // `inactivos ? undefined : eq(activo, true)` —o sea, sin condición— y eso
@@ -63,18 +60,68 @@ export async function listarMateriales(filtros: FiltrosMateriales = {}) {
           ilike(materiales.modelo, patron),
         )
       : undefined,
-  ];
+  );
+}
 
+/**
+ * Cuántos materiales casan con los filtros, en todas las páginas: el «de N» del
+ * pie de la tabla. Mismo `FROM` y mismas condiciones que `listarMateriales`.
+ */
+export async function contarResultados(
+  filtros: FiltrosMateriales,
+): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(materiales)
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Cuántos materiales hay en la vista de activos o en la de inactivos, sin mirar
+ * la búsqueda: el contador de la barra de filtros, que responde "¿cuántos
+ * hay?", no "¿cuántos encontré?". Mismo criterio de alternancia que el
+ * listado: una vista u otra, nunca las dos sumadas.
+ */
+export async function contarMateriales(inactivos = false): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(materiales)
+    .where(eq(materiales.activo, inactivos ? false : true));
+
+  return fila?.total ?? 0;
+}
+
+/**
+ * Lista el catálogo de materiales aplicando los filtros que vengan.
+ *
+ * Por defecto solo los activos: la baja es lógica (`activo = false`, nunca un
+ * DELETE — regla invariable 9), pero de cara al usuario tiene que verse como
+ * un borrado. Quien quiera ver los inactivos lo pide explícitamente con
+ * `inactivos`.
+ *
+ * Todo se resuelve en la consulta, nunca en el navegador.
+ *
+ * Paginada con `LIMIT`/`OFFSET`: `pagina` sale de `calcularPaginacion`
+ * (core/), que necesita antes el total de `contarResultados`.
+ */
+export async function listarMateriales(
+  filtros: FiltrosMateriales,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
   const filas = await db
     .select(columnasListado)
     .from(materiales)
-    .where(and(...condiciones))
+    .where(condicionesListado(filtros))
     // Por código interno, que desde que se autogenera es además el orden de
     // alta: `MAT.0000001`, `MAT.0000002`… Con 7 dígitos fijos y ceros a la
     // izquierda, el orden alfabético y el numérico coinciden, así que ordenar
     // el texto no hace falsos saltos (que es justo lo que pasaría con un
     // código de ancho variable).
-    .orderBy(asc(materiales.codigo_interno));
+    .orderBy(asc(materiales.codigo_interno), asc(materiales.id))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 
   return conCaracteristicas(filas);
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   estadoFormularioInicial,
   type EstadoFormulario,
 } from "@/core/estado-formulario";
+import { ChipCodigo } from "@/core/components/chip-codigo";
 import { useControlDetalle, type ControlDetalle } from "@/core/fila-clicable";
 import { CamposMaterial } from "./campos-material";
 import { VistaMaterial } from "./vista-material";
@@ -127,7 +129,7 @@ export function DialogoMaterial({
 
       if (!resultado.ok) {
         // El modal se queda abierto con lo que el usuario escribió: los campos
-        // son no controlados, así que el navegador conserva los valores.
+        // se conserva porque el formulario se envía con `onSubmit` (ver abajo).
         setEstado(resultado);
         return;
       }
@@ -161,18 +163,30 @@ export function DialogoMaterial({
           desmontan al cerrar y el contenedor es `flex-1`, con animación se
           veía el modal colapsar vacío mientras se desvanecía. El Dialog
           genérico conserva la suya. La animación de ENTRADA no se toca. */}
-      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85svh] flex-col data-closed:animate-none duration-0 sm:max-w-lg">
+        {/* Cabecera según el modo, como en Lista de precios (mockup de
+            docs/diseno/): al ver, el código como etiqueta y la descripción
+            como título; al editar, el código y "Editar material". */}
         <DialogHeader>
+          {material?.codigo_interno ? (
+            <ChipCodigo codigo={material.codigo_interno} />
+          ) : null}
           <DialogTitle>
             {material
               ? editando
                 ? "Editar material"
-                : "Detalle del material"
+                : descripcion
               : "Nuevo material"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription
+            className={material && editando ? "sr-only" : undefined}
+          >
             {material
-              ? `${codigo} · ${descripcion}`
+              ? editando
+                ? `${codigo} · ${descripcion}`
+                : [material.marca, material.modelo]
+                    .filter((parte) => parte?.trim())
+                    .join(" · ") || "Sin marca ni modelo"
               : "Herramientas, materiales y consumibles del catálogo."}
           </DialogDescription>
         </DialogHeader>
@@ -191,7 +205,18 @@ export function DialogoMaterial({
             de scroll quede al ras y el anillo de foco no se corte contra el
             recorte. `py-1` hace lo mismo arriba y abajo. */}
         {editando || !material ? (
-          <form action={alEnviar} className="flex min-h-0 flex-1 flex-col gap-4">
+          <form
+            // `onSubmit` + `preventDefault`, NO `action={alEnviar}`: con
+            // `action`, React 19 restablece los campos no controlados al
+            // terminar, también cuando el servidor devuelve errores, y se
+            // perdía lo escrito justo cuando había que corregirlo. Mismo
+            // arreglo que en Lista de precios.
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              alEnviar(new FormData(evento.currentTarget));
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {material ? (
               <input type="hidden" name="id" value={material.id} />
             ) : null}
@@ -216,7 +241,7 @@ export function DialogoMaterial({
                 {enviando
                   ? "Guardando…"
                   : material
-                    ? "Guardar cambios"
+                    ? "Guardar"
                     : "Registrar"}
               </Button>
             </DialogFooter>
@@ -239,6 +264,7 @@ export function DialogoMaterial({
               {/* El atajo de siempre —el lápiz de la fila— sigue existiendo;
                   esto es el mismo salto a edición para quien llegó mirando. */}
               <Button type="button" onClick={() => control.cambiar("editando")}>
+                <PencilIcon />
                 Editar
               </Button>
             </DialogFooter>
