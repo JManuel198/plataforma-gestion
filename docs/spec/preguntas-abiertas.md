@@ -718,3 +718,13 @@ cada punto.
     decidirlo **antes** de que la Server Action de perfil lea la sesión para
     rellenar el formulario, porque ese es el momento en que el default deja
     de ser inofensivo. (Anotado a raíz de la auditoría del cambio.)
+
+22. **Formato de `user.telefono` y de `user.dni`.** Supuestos, sin confirmar
+    (2026-09-24). El DNI usa el mismo supuesto que Personal (supuesto 1: ocho
+    dígitos exactos), copiado en `modules/ajustes-usuario/schema.ts`; si
+    cambia, cambia en los dos. El teléfono acepta dígitos, espacios, guiones,
+    paréntesis y un `+` inicial, con entre 6 y 15 dígitos reales —cubre fijo,
+    celular de 9 dígitos y formato internacional— y se guarda tal como se
+    escribió, sin normalizar. Si el cliente quiere solo celulares peruanos, o
+    un formato único para poder buscar por teléfono, se cambia en
+    `telefonoPerfilSchema`.
