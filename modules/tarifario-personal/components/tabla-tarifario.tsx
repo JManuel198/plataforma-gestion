@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -8,30 +9,23 @@ import {
 import { formatearFecha } from "@/lib/fecha";
 import type { FilaTarifa } from "../queries";
 import { FilaDeTarifa } from "./fila-tarifa";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CABECERA,
+  CLASE_FILA_CABECERA,
+  MarcoTabla,
+} from "@/core/components/tabla-listado";
 
 export function TablaTarifario({
   tarifas,
-  filtrado = false,
+  pie,
 }: {
   tarifas: FilaTarifa[];
-  /**
-   * Si hay filtros puestos (búsqueda o "Ver solo inactivos") — cambia el
-   * mensaje de lista vacía. Sin esto el usuario leería "no hay tarifas
-   * registradas" cuando lo que pasa es que su búsqueda no encontró nada, o que
-   * no hay ninguna inactiva. Llega en la Parte 2, con los filtros.
-   */
-  filtrado?: boolean;
+  /** Lo que va debajo de la tabla, dentro del marco: la paginación. */
+  pie?: ReactNode;
 }) {
-  if (tarifas.length === 0) {
-    return (
-      <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {filtrado
-          ? "Ninguna tarifa coincide con los filtros."
-          : "No hay tarifas registradas todavía."}
-      </p>
-    );
-  }
-
   // El listado no cabe holgado en móvil. El scroll va en este contenedor y no
   // en la página, para que la barra quede pegada a la tabla (misma regla que
   // aplica el resto del proyecto: el body nunca desborda en horizontal).
@@ -40,26 +34,37 @@ export function TablaTarifario({
   // estado de su modal (vista/edición). Esta tabla se queda en el servidor y
   // solo arma la cabecera y el marco.
   return (
-    <div className="overflow-x-auto">
+    <MarcoTabla pie={pie}>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Código</TableHead>
-            <TableHead>Cargo</TableHead>
+          <TableRow className={CLASE_FILA_CABECERA}>
+            <TableHead
+              className={`${CELDA_FIJA_INICIO} ${CLASE_CABECERA} px-3`}
+            >
+              Código
+            </TableHead>
+            <TableHead className={CLASE_CABECERA}>Cargo</TableHead>
             {/* "Unidad" son periodos de tiempo aquí, no unidades físicas. Se
                 deja pegada al Costo a propósito: el costo no significa nada sin
                 saber si es por hora o por mes. */}
-            <TableHead>Unidad</TableHead>
-            <TableHead>Costo</TableHead>
-            <TableHead>Moneda</TableHead>
-            <TableHead>Fecha de creación</TableHead>
-            {/* `sr-only` las dos: la columna existe para un lector de pantalla
-                —que necesita saber a qué encabezado pertenece el chip
-                "Inactivo" y el grupo de botones— pero un título visible sobre
-                una columna casi siempre vacía sería ruido. Mismo criterio que
-                en `TablaMateriales`. */}
-            <TableHead className="sr-only">Situación</TableHead>
-            <TableHead className="sr-only">Acciones</TableHead>
+            <TableHead className={CLASE_CABECERA}>Unidad</TableHead>
+            <TableHead className={`${CLASE_CABECERA} text-right`}>
+              Costo
+            </TableHead>
+            <TableHead className={CLASE_CABECERA}>Moneda</TableHead>
+            <TableHead className={`${CLASE_CABECERA} w-24 whitespace-normal`}>
+              Fecha de creación
+            </TableHead>
+            <TableHead
+              className={`${CELDA_FIJA_ANTES_DEL_FIN} ${CLASE_CABECERA} px-3`}
+            >
+              Situación
+            </TableHead>
+            <TableHead
+              className={`${CELDA_FIJA_FIN} ${CLASE_CABECERA} text-right`}
+            >
+              Acciones
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -78,6 +83,6 @@ export function TablaTarifario({
           ))}
         </TableBody>
       </Table>
-    </div>
+    </MarcoTabla>
   );
 }

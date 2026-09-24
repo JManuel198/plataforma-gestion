@@ -21,10 +21,10 @@ dirección. Ver la decisión 1 de "Catálogos maestros" en
 | `constantes.ts` | El formato del código `PRS.` (y el límite que asumen sus 4 dígitos), el ámbito del correlativo y `PATRON_COSTO`. No importa nada, así que viaja al cliente. |
 | `codigo.ts` | `1` → `"PRS.0001"`. Solo formateo; quién decide el número es `core/correlativo.ts`. |
 | `schema.ts` | Validación Zod, incluidos los dos esquemas de filtro y el del cambio de `activo`. Más estricto que la tabla, nunca al revés. |
-| `filtros.ts` | El tipo `FiltrosTarifario`, `urlListado` y `hayFiltros` — la navegación por URL, sin Drizzle. |
-| `queries.ts` | El listado con sus dos filtros combinados por AND, y la búsqueda de cargos para las sugerencias del modal. |
+| `filtros.ts` | El tipo `FiltrosTarifario` (con `pagina`), `urlListado` y `contarFiltros` — la navegación por URL, sin Drizzle. |
+| `queries.ts` | El listado paginado (`LIMIT`/`OFFSET`) con sus dos filtros combinados por AND, `contarResultados` (el «de N» del pie), `contarTarifas` (el contador de la barra de filtros) y la búsqueda de cargos para las sugerencias del modal. |
 | `actions.ts` | Alta, edición, inactivar/reactivar y el envoltorio de la búsqueda de cargos. La reserva del correlativo va en la misma transacción que el INSERT. |
-| `components/` | Tabla, fila clicable, modal de tres modos, vista de solo lectura, buscador, filtro de inactivos y las dos acciones de fila. La navegación de los filtros NO vive aquí: sale de `useFiltrosListado` (`core/use-filtros-listado.ts`), al que cada control le pasa el `urlListado` de `filtros.ts`. |
+| `components/` | Tabla, fila clicable, modal de tres modos, vista de solo lectura, buscador, filtro de inactivos y las dos acciones de fila. El buscador y el filtro son envoltorios finos de `BuscadorListado` y `FiltroSoloInactivos` (`core/components/`), a los que pasan el `urlListado` de `filtros.ts`; la navegación sale de `useFiltrosListado` (`core/use-filtros-listado.ts`). |
 
 ## Tres cosas que lo distinguen de sus hermanos
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { BadgeSituacion } from "@/core/components/badge-situacion";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   propsFilaClicable,
@@ -13,6 +13,14 @@ import { editarTarifaEnModal } from "../actions";
 import type { FilaTarifa } from "../queries";
 import { AccionesTarifa } from "./acciones-tarifa";
 import { DialogoTarifa } from "./dialogo-tarifa";
+import {
+  CELDA_FIJA_ANTES_DEL_FIN,
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CIFRA,
+  CLASE_CODIGO,
+  CLASE_FILA,
+} from "@/core/components/tabla-listado";
 
 /**
  * Una fila del tarifario, con su modal.
@@ -65,8 +73,10 @@ export function FilaDeTarifa({
   const { moneda } = tarifa;
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium whitespace-nowrap">
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className={`${CELDA_FIJA_INICIO} ${CLASE_CODIGO} px-3`}>
         {oVacio(tarifa.codigo)}
       </TableCell>
       <TableCell className="max-w-72 truncate" title={tarifa.cargo ?? undefined}>
@@ -79,7 +89,7 @@ export function FilaDeTarifa({
           un número suelto se leería como soles por defecto y podría no serlo.
           Va pegado a la columna Unidad a propósito: 500.00 por hora y 500.00
           por mes son la misma columna y no son comparables. */}
-      <TableCell className="whitespace-nowrap tabular-nums">
+      <TableCell className={CLASE_CIFRA}>
         {tarifa.costo !== null && moneda !== null
           ? formatearMonto(tarifa.costo, moneda)
           : "—"}
@@ -88,14 +98,11 @@ export function FilaDeTarifa({
       <TableCell className="whitespace-nowrap tabular-nums">
         {fechaCreacion}
       </TableCell>
-      {/* El chip solo aparece cuando la fila está inactiva: no hace falta
-          marcar lo normal, y una columna con un "Activo" en cada fila sería
-          ruido. La variante `secondary` es la misma que usa `VistaTarifa` para
-          el mismo dato — es el mismo dato y no debe verse de dos maneras. */}
-      <TableCell>
-        {tarifa.activo ? null : <Badge variant="secondary">Inactivo</Badge>}
+      {/* Siempre visible, también en las activas: ver `BadgeSituacion`. */}
+      <TableCell className={`${CELDA_FIJA_ANTES_DEL_FIN} px-3`}>
+        <BadgeSituacion activo={tarifa.activo} />
       </TableCell>
-      <TableCell className="text-right whitespace-nowrap">
+      <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           <AccionesTarifa tarifa={tarifa} control={control} />
           <DialogoTarifa
