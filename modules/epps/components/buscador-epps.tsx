@@ -1,17 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useFiltrosListado } from "@/core/use-filtros-listado";
+import { BuscadorListado } from "@/core/components/buscador-listado";
 import { urlListado, type FiltrosEpps } from "../filtros";
-
-/**
- * Pausa de tecleo antes de navegar. Sin ella cada letra sería una consulta a
- * la base de datos; con mucha más, el listado se sentiría desconectado de lo
- * que se está escribiendo.
- */
-const RETARDO_MS = 400;
 
 /**
  * Buscador del listado. El texto viaja en la URL (`/epps?busqueda=casco`) y la
@@ -38,59 +28,16 @@ const RETARDO_MS = 400;
  * escribe lo que recuerda —el código, la descripción o la unidad— sin saber de
  * antemano en qué columna cae.
  *
- * El texto se guarda además en estado local porque el input tiene que seguir
- * al teclado al instante, mientras la navegación va por detrás en una
- * transición. Leerlo directo de `filtros.busqueda` haría que el cursor se
- * quedara esperando a la respuesta del servidor entre letra y letra.
+ * La mecánica (pausa de tecleo, `replace`, vaciarse al limpiar filtros) vive
+ * en `core/components/buscador-listado.tsx`, común a todos los listados; este
+ * archivo solo le pasa la `urlListado` del módulo y el texto de ejemplo.
  */
 export function BuscadorEpps({ filtros }: { filtros: FiltrosEpps }) {
-  const { navegar } = useFiltrosListado(filtros, urlListado);
-  const [texto, setTexto] = useState(filtros.busqueda ?? "");
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function cancelarPendiente() {
-    if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = null;
-  }
-
-  // Un desmontaje con la navegación aún pendiente no debe dejar el
-  // temporizador vivo.
-  useEffect(() => cancelarPendiente, []);
-
-  function buscar(valor: string) {
-    cancelarPendiente();
-    // Una búsqueda vacía no es una búsqueda por cadena vacía: es no filtrar,
-    // así que el parámetro desaparece de la URL.
-    navegar({ busqueda: valor.trim() || undefined }, { reemplazar: true });
-  }
-
-  function alEscribir(valor: string) {
-    setTexto(valor);
-    cancelarPendiente();
-    temporizador.current = setTimeout(() => buscar(valor), RETARDO_MS);
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <Label htmlFor="busqueda">Buscar</Label>
-      <Input
-        id="busqueda"
-        // `search` para que el navegador ofrezca su botón de limpiar: al
-        // pulsarlo dispara un `change` con la cadena vacía, que es justo lo
-        // que quita el filtro.
-        type="search"
-        className="w-72"
-        placeholder="Código, descripción o unidad"
-        value={texto}
-        onChange={(evento) => alEscribir(evento.target.value)}
-        onKeyDown={(evento) => {
-          // Enter no espera la pausa: quien lo pulsa ya terminó de escribir.
-          if (evento.key === "Enter") {
-            evento.preventDefault();
-            buscar(texto);
-          }
-        }}
-      />
-    </div>
+    <BuscadorListado
+      filtros={filtros}
+      urlListado={urlListado}
+      placeholder="Buscar por código, descripción o unidad"
+    />
   );
 }

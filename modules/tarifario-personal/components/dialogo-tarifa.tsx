@@ -25,6 +25,7 @@ import { CamposTarifa } from "./campos-tarifa";
 import { VistaTarifa } from "./vista-tarifa";
 import type { FilaTarifa } from "../queries";
 import { ChipCodigo } from "@/core/components/chip-codigo";
+import { formatearMonto } from "@/core/dinero";
 
 type Props = {
   /** Server Action que guarda. Devuelve el resultado, nunca redirige. */
@@ -188,7 +189,14 @@ export function DialogoTarifa({
             {tarifa
               ? editando
                 ? `${codigo} · ${nombre}`
-                : tarifa.unidad ? `Costo por ${tarifa.unidad}` : "Sin periodo"
+                : tarifa.costo !== null && tarifa.moneda !== null
+                  ? [
+                      formatearMonto(tarifa.costo, tarifa.moneda),
+                      tarifa.unidad ? `por ${tarifa.unidad}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  : "Sin costo"
               : "Costo por cargo y periodo, para el tarifario de personal."}
           </DialogDescription>
         </DialogHeader>

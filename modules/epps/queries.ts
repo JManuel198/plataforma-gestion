@@ -1,8 +1,9 @@
-import { asc, ilike, or } from "drizzle-orm";
+import { asc, count, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { epps } from "@/db/schema/epps";
 import { patronParcial } from "@/core/busqueda";
 import type { FiltrosEpps } from "./filtros";
+import type { Paginacion } from "@/core/paginacion";
 
 /**
  * Las columnas que muestra el listado.
@@ -28,6 +29,59 @@ const columnasListado = {
 } as const;
 
 /**
+ * La condición del listado, compartida por `listarEpps` y `contarResultados`.
+ * Tiene que ser EXACTAMENTE la misma en las dos: si el conteo filtrara distinto
+ * que la página, el pie diría «1–10 de 14» sobre un resultado de otro tamaño.
+ *
+ * `undefined` sin búsqueda, que en `.where()` es "sin WHERE": EPPs no tiene
+ * columna `activo` (no aplica la baja lógica, ver docs/spec/entidades.md), así
+ * que no hay vista que alternar.
+ */
+function condicionesListado(filtros: FiltrosEpps) {
+  const { busqueda } = filtros;
+  // `patronParcial` se IMPORTA de core/, nunca se copia: escapa los comodines
+  // del `LIKE` (`%`, `_` y el propio `\`) para que un "50%" escrito en la caja
+  // se busque literalmente en vez de actuar como comodín. Es la misma función
+  // que usan los otros seis listados — la deuda técnica de AGENTS.md cuenta
+  // por qué dejó de estar copiada en cada `queries.ts`.
+  const patron = busqueda ? patronParcial(busqueda) : null;
+
+  // Las TRES columnas de texto de la tabla, ninguna fuera — ver el
+  // comentario de `busqueda` en ./filtros.ts para el porqué, que no es el
+  // mismo argumento que en Tarifario. Los números (`precio`) y `moneda`
+  // quedan fuera: una coincidencia parcial sobre ellos no responde nada.
+  //
+  // Las tres son nullable, y eso importa: `ILIKE` sobre NULL da NULL, no
+  // `false` — pero dentro de un `or(...)` eso se comporta como "esta no
+  // casa", que es exactamente lo que se quiere. Un EPP sin unidad no
+  // desaparece de la búsqueda: sigue pudiendo casar por código o por
+  // descripción.
+  //
+  // `.where(undefined)` es "sin WHERE", así que sin búsqueda la consulta
+  // devuelve el catálogo entero.
+  return patron
+    ? or(
+        ilike(epps.codigo, patron),
+        ilike(epps.descripcion, patron),
+        ilike(epps.unidad, patron),
+      )
+    : undefined;
+}
+
+/**
+ * Cuántos EPPs casan con la búsqueda, en todas las páginas: el «de N» del pie
+ * de la tabla. Mismo `FROM` y misma condición que `listarEpps`.
+ */
+export async function contarResultados(filtros: FiltrosEpps): Promise<number> {
+  const [fila] = await db
+    .select({ total: count() })
+    .from(epps)
+    .where(condicionesListado(filtros));
+
+  return fila?.total ?? 0;
+}
+
+/**
  * Lista el catálogo de EPPs aplicando el filtro de búsqueda que venga.
  *
  * UN SOLO FILTRO, así que no hay `and(...)` de varias condiciones como en los
@@ -37,48 +91,28 @@ const columnasListado = {
  *
  * Todo se resuelve aquí, nunca en el navegador (regla 1 de AGENTS.md): la
  * pantalla jamás llega a tener en memoria las filas que no coinciden.
+ *
+ * Paginada con `LIMIT`/`OFFSET`: `pagina` sale de `calcularPaginacion`
+ * (core/), que necesita antes el total de `contarResultados`.
  */
-export async function listarEpps(filtros: FiltrosEpps = {}) {
-  const { busqueda } = filtros;
-  // `patronParcial` se IMPORTA de core/, nunca se copia: escapa los comodines
-  // del `LIKE` (`%`, `_` y el propio `\`) para que un "50%" escrito en la caja
-  // se busque literalmente en vez de actuar como comodín. Es la misma función
-  // que usan los otros seis listados — la deuda técnica de AGENTS.md cuenta
-  // por qué dejó de estar copiada en cada `queries.ts`.
-  const patron = busqueda ? patronParcial(busqueda) : null;
-
+export async function listarEpps(
+  filtros: FiltrosEpps,
+  pagina: Pick<Paginacion, "limite" | "desplazamiento">,
+) {
   return db
     .select(columnasListado)
     .from(epps)
-    // Las TRES columnas de texto de la tabla, ninguna fuera — ver el
-    // comentario de `busqueda` en ./filtros.ts para el porqué, que no es el
-    // mismo argumento que en Tarifario. Los números (`precio`) y `moneda`
-    // quedan fuera: una coincidencia parcial sobre ellos no responde nada.
-    //
-    // Las tres son nullable, y eso importa: `ILIKE` sobre NULL da NULL, no
-    // `false` — pero dentro de un `or(...)` eso se comporta como "esta no
-    // casa", que es exactamente lo que se quiere. Un EPP sin unidad no
-    // desaparece de la búsqueda: sigue pudiendo casar por código o por
-    // descripción.
-    //
-    // `.where(undefined)` es "sin WHERE", así que sin búsqueda la consulta
-    // devuelve el catálogo entero.
-    .where(
-      patron
-        ? or(
-            ilike(epps.codigo, patron),
-            ilike(epps.descripcion, patron),
-            ilike(epps.unidad, patron),
-          )
-        : undefined,
-    )
+    .where(condicionesListado(filtros))
     // Por código, que desde que se autogenera es además el orden de alta:
     // `EPP.000001`, `EPP.000002`… Con 6 dígitos fijos y ceros a la izquierda,
     // el orden alfabético y el numérico coinciden, así que ordenar el texto no
     // hace falsos saltos (que es justo lo que pasaría con un código de ancho
     // variable). Mismo razonamiento que en `listarMateriales` y
     // `listarServicios`.
-    .orderBy(asc(epps.codigo));
+    // Único y obligatorio: basta además como orden estable para paginar.
+    .orderBy(asc(epps.codigo))
+    .limit(pagina.limite)
+    .offset(pagina.desplazamiento);
 }
 
 /** Una fila del listado, con el tipo que de verdad devuelve la consulta. */

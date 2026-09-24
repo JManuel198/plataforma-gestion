@@ -1,7 +1,7 @@
 "use client";
 
 import { PencilIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BotonAccionFila } from "@/core/components/boton-accion-fila";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   propsFilaClicable,
@@ -13,6 +13,13 @@ import { oVacio } from "@/core/vista-detalle";
 import { editarEppEnModal } from "../actions";
 import type { FilaEpp } from "../queries";
 import { DialogoEpp } from "./dialogo-epp";
+import {
+  CELDA_FIJA_FIN,
+  CELDA_FIJA_INICIO,
+  CLASE_CIFRA,
+  CLASE_CODIGO,
+  CLASE_FILA,
+} from "@/core/components/tabla-listado";
 
 /**
  * Una fila del catálogo, con su modal.
@@ -69,8 +76,10 @@ export function FilaDeEpp({
   const nombre = epp.descripcion?.trim() || epp.codigo?.trim() || "EPP";
 
   return (
-    <TableRow {...propsFilaClicable(() => control.cambiar("viendo"))}>
-      <TableCell className="font-medium whitespace-nowrap">
+    <TableRow
+      {...propsFilaClicable(() => control.cambiar("viendo"), CLASE_FILA)}
+    >
+      <TableCell className={`${CELDA_FIJA_INICIO} ${CLASE_CODIGO} px-3`}>
         {oVacio(epp.codigo)}
       </TableCell>
       <TableCell
@@ -84,7 +93,7 @@ export function FilaDeEpp({
           un número suelto se leería como soles por defecto y podría no serlo.
           Igual que en Servicios, este precio SÍ sale de una columna — no se
           calcula (ver ../schema.ts). */}
-      <TableCell className="whitespace-nowrap tabular-nums">
+      <TableCell className={CLASE_CIFRA}>
         {epp.precio !== null && moneda !== null
           ? formatearMonto(epp.precio, moneda)
           : "—"}
@@ -93,7 +102,7 @@ export function FilaDeEpp({
       <TableCell className="whitespace-nowrap tabular-nums">
         {fechaCreacion}
       </TableCell>
-      <TableCell className="text-right whitespace-nowrap">
+      <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           {/* El lápiz es un ATAJO, no la única vía: salta directo a edición sin
               pasar por la vista, que es lo que quiere quien ya sabe a qué viene.
@@ -101,18 +110,16 @@ export function FilaDeEpp({
               que es quien monta el único que hay.
 
               Icono sin texto por el ancho de la tabla, con su nombre en un
-              `sr-only` (lo que anuncia un lector de pantalla) y un `title` para
-              el tooltip nativo. Un icono suelto sin ninguna de las dos cosas
-              sería inaccesible. */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Editar"
+              `sr-only` (lo que anuncia un lector de pantalla) y en un tooltip
+              (los dos los pone `BotonAccionFila`). Un icono suelto sin ninguna
+              de las dos cosas sería inaccesible. */}
+          <BotonAccionFila
+            etiqueta="Editar"
+            etiquetaAccesible={`Editar ${nombre}`}
             onClick={() => control.cambiar("editando")}
           >
             <PencilIcon />
-            <span className="sr-only">Editar {nombre}</span>
-          </Button>
+          </BotonAccionFila>
           <DialogoEpp
             guardarAction={editarEppEnModal}
             control={control}
