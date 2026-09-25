@@ -127,6 +127,13 @@
       "when": 1790270839044,
       "tag": "0017_clammy_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790311345338,
+      "tag": "0018_hot_stardust",
+      "breakpoints": true
     }
   ]
 }

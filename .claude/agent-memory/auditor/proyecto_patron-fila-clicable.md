@@ -78,4 +78,41 @@ Precio y fecha bajan siempre como texto ya formateado desde
 vista — nunca se reformatea en un componente cliente. Coherente con el mismo
 criterio que ya usa `edad` en Personal.
 
+**Empresas / Clientes, Parte 3 del Bloque 2 de CRM (auditado 2026-09-25, sin
+hallazgos de fondo)**: primer listado fuera de los "siete catálogos + OT"
+originales, y primero con el modal a medio construir a propósito —
+`DialogoEmpresa` hoy SOLO tiene el modo "viendo" (el formulario de
+crear/editar llega en la Parte 4) — buen caso para confirmar que el patrón no
+exige los tres modos completos desde el día uno: `ControlDetalle` ya viaja
+listo, y como no existe todavía ningún camino que ponga el modo en
+"editando", el modal simplemente no lo pinta. `fila-empresa.tsx` envuelve
+`AccionesEmpresa` (icono + `AlertDialog` de baja) y `DialogoEmpresa` juntos en
+un único `SinPropagacion` alrededor de los dos componentes completos, no de
+sus disparadores — mismo criterio que Materiales/Personal. Nada nuevo que
+vigilar: los controles de la fila (`BotonAccionFila`) son `<button>` reales,
+no un caso "difícil" como el `SelectorEstadoFila` de OT.
+
+**Empresas / Clientes, Parte 4 (auditado 2026-09-25), sin hallazgos de
+fondo**: llega el caso "difícil" que la Parte 3 anticipaba que faltaba.
+`DialogoEmpresa` ahora monta en modo "editando" un `Select` (Tipo) y un
+`Combobox` de Base UI (`CampoPais`, con 249 opciones portadas a
+`document.body`, instalado en `components/ui/combobox.tsx`). Igual que
+`SelectorEstadoFila` en OT, sus opciones son `role="option"` sobre elementos
+que no están en la lista nativa de `esClicDeLaFila()`. Sigue bien resuelto
+porque `SinPropagacion`, en `fila-empresa.tsx`, envuelve `AccionesEmpresa` +
+`DialogoEmpresa` COMPLETOS (no sus disparadores) — el mismo modal entero,
+con Select y Combobox incluidos, es uno de los dos hijos envueltos. Verificado
+leyendo el árbol de componentes, no solo el comentario: no hay forma de que un
+clic en una opción del combobox o del Select escape del envoltorio.
+Confirmado también en el navegador por quien pidió la auditoría: elegir un
+país en modo "editando" no cierra ni cambia el modo del modal.
+
+Dato nuevo para la próxima vez que aparezca un combobox de Base UI: por
+defecto Enter con la lista abierta ENVÍA el formulario en vez de elegir la
+opción resaltada — hace falta `autoHighlight` en el `Combobox` (ver
+`modules/clientes/components/campo-pais.tsx`) para que Enter elija en vez de enviar.
+Mismo síntoma que tendría cualquier otro combobox/autocomplete que se añada
+dentro de un `<form>` no controlado en este proyecto: probarlo explícitamente,
+no asumir que Enter "simplemente funciona".
+
 Referencia cruzada: [[proyecto-patrones-establecidos]].

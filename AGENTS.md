@@ -41,10 +41,19 @@ trabaje en este código.
   barra lateral, encima de SSOMA, con tres módulos en construcción
   ACTIVA: Clientes (Bloque 2, `/clientes`), Contactos (Bloque 3,
   `/contactos`) y Embudo de oportunidades (Bloque 4, `/oportunidades`).
-  Hoy solo existen la entrada del menú y la ruta protegida con su título;
-  sin tabla, sin código en modules/. No es un "próximamente" indefinido:
-  se llena en los bloques inmediatamente siguientes. Las rutas son planas,
-  como el resto (ver la convención de etiquetas del menú).
+  Estado (2026-09-25): Clientes ya tiene tabla — `empresas`
+  (db/schema/empresas.ts, migración 0018, aplicada en desarrollo) — y
+  modules/clientes/ ya tiene actions, queries, schema (Zod) y la consulta
+  de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY). La
+  pantalla `/clientes` (título "Empresas") ya lista, busca, filtra por
+  tipo, da de baja/reactiva, y crea y edita en el modal con la consulta de
+  RUC; el Bloque 2 está completo. La columna Contactos es un 0 fijo hasta
+  el Bloque 3. Contactos y Embudo siguen siendo solo la
+  entrada del menú y
+  la ruta protegida con su título, sin tabla ni código en modules/. No es
+  un "próximamente" indefinido: se llena en los bloques inmediatamente
+  siguientes. Las rutas son planas, como el resto (ver la convención de
+  etiquetas del menú).
 - config/clientes/ — un .json por cliente con branding, campos extra,
   flujos de aprobación y módulos activos. Toda personalización vive aquí,
   nunca en ramas de git ni en código condicional por cliente.
@@ -105,9 +114,11 @@ trabaje en este código.
    (.env.local, nunca versionado).
 9. Ningún registro se borra en operación normal — se desactiva (columna
    `activo` o equivalente). Viene de Cliente/Contacto de la **plataforma
-   guía** (el sistema que se está replicando; aquí no hay tabla de Clientes
-   todavía, `orden_trabajo.cliente` es texto libre). En este repositorio
-   está aplicado en Personal (`activo`). La OT es la excepción razonada: su
+   guía** (el sistema que se está replicando). En este repositorio está
+   aplicado en Personal, en los catálogos que tienen columna `activo` y en
+   `empresas` (CRM) — cuyo `activo` es independiente de los `estado`/
+   `condicion` que vienen de SUNAT; `orden_trabajo.cliente` sigue siendo
+   texto libre, sin FK a `empresas`. La OT es la excepción razonada: su
    propio `estado` llega a `Cancelada` y cumple ese papel, así que no lleva
    una segunda bandera (ver entidades.md).
 10. Un campo que representa solo fecha, sin hora, se guarda como `date`,
@@ -173,8 +184,8 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
-- Una fila de listado que abre su registro (hoy los siete listados: Órdenes
-  de Trabajo, Personal y los cinco catálogos, y los que vengan) sigue el
+- Una fila de listado que abre su registro (hoy los ocho listados: Órdenes
+  de Trabajo, Personal, los cinco catálogos y Empresas, y los que vengan) sigue el
   patrón compartido de `core/fila-clicable.tsx`: tres modos
   —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
   con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que
@@ -384,10 +395,13 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   y ZONA_HORARIA — esta última hoy en lib/fecha.ts), no solo
   CODIGO_EMPRESA: si no, el archivo de cliente define el formato a
   medias y el resto sigue fijo en el código.
-- No hay .env.example. DATABASE_URL_DIRECT (conexión directa de Neon
-  para migraciones, distinta de la pooled de runtime) solo está
-  documentada en el comentario de drizzle.config.ts, así que alguien
-  que clone el repo no sabe que existe.
+- RESUELTO (2026-09-25): ya existe .env.example (solo nombres, sin valores;
+  .gitignore lo excluye explícitamente de `.env*`). Antes no existía y
+  DATABASE_URL_DIRECT (conexión directa de Neon para migraciones,
+  distinta de la pooled de runtime) solo estaba documentada en el
+  comentario de drizzle.config.ts. Ahí también está DECOLECTA_API_KEY
+  (consulta de RUC del módulo Clientes). Toda variable nueva se añade
+  a .env.example en el mismo cambio que la empieza a leer.
 - RESUELTO (fusión Servicio + OT): la carrera del 23503 al crear una OT
   ya no existe. Nacía de la FK a servicio, que se eliminó junto con la
   tabla: una OT ya no depende de ninguna fila externa, así que no hay

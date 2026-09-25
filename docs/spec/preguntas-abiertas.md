@@ -728,3 +728,46 @@ cada punto.
     escribió, sin normalizar. Si el cliente quiere solo celulares peruanos, o
     un formato único para poder buscar por teléfono, se cambia en
     `telefonoPerfilSchema`.
+
+## CRM — Empresas / Clientes (2026-09-25)
+
+23. **Obligatoriedad y valores por defecto de `empresas`.** Supuestos, sin
+    confirmar. El encargo solo marcó `razon_social` como obligatorio, así que
+    en la base todo lo demás de negocio quedó nullable:
+    - `ruc`: nullable porque una empresa extranjera no lo tiene. ¿Debe ser
+      obligatorio cuando `pais = 'PE'`? Si sí, va en el Zod del módulo (o en
+      un CHECK condicional), no cambiando la columna a `NOT NULL`.
+    - `tipo` — **Resuelto (2026-09-25): `NOT NULL` y sin default.** El
+      usuario lo elige siempre; ningún valor se asume.
+    - `pais` — **Resuelto (2026-09-25): DEFAULT `'PE'`**, columna nullable.
+    - Formato del código: `CLT-0001` arranca en 1 y tiene 4 dígitos, como
+      pidió el encargo; más de 9 999 empresas desordenaría el listado por
+      código (ver la ficha en entidades.md).
+
+24. **Filtro por tipo del listado de empresas — Resuelto (2026-09-25):
+    inclusivo.** `?tipo=cliente` trae `cliente` y `cliente_y_proveedor`;
+    `?tipo=proveedor` trae `proveedor` y `cliente_y_proveedor`;
+    `?tipo=cliente_y_proveedor` trae solo ese valor. Antes era coincidencia
+    exacta (una empresa que era ambas cosas no salía al filtrar «Clientes»).
+    La tabla de equivalencias es `TIPOS_POR_FILTRO` en
+    `modules/clientes/queries.ts`.
+
+25. **Consulta de RUC (Decolecta): lo que la documentación no dice.**
+    En `modules/clientes/decolecta.ts`, probado en parte con una key real
+    (2026-09-25):
+    - **Confirmado:** un RUC de 11 dígitos que SUNAT no conoce (`20999999999`)
+      vuelve como 422 con `{"message": "ruc no valido"}`, y se muestra como
+      «no encontrado». El 404 se trata igual por prudencia, sin haberlo visto.
+    - **Riesgo conocido, sin resolver: el 401 es ambiguo.** Con una key
+      válida, Decolecta devolvió 401 con "Apikey Required / Limit Exceeded":
+      el mismo código significa key inválida o límite de tasa/cuota. Hoy
+      cualquier 401/403 va por la rama de credencial: el usuario ve el
+      mensaje genérico de falla (no el de cuota) y el log pide revisar
+      `DECOLECTA_API_KEY`, aunque pueda ser un límite pasajero. Mejora futura:
+      distinguir por el cuerpo de la respuesta cuando se conozca el texto
+      exacto de cada causa.
+    - 429 como cuota agotada sigue siendo una suposición: no se ha visto.
+    - Decolecta **no devuelve nombre comercial** en ninguna de sus consultas de
+      RUC, así que ese campo nunca se sugiere. `actividad_economica` sí se
+      sugiere como `descripcion_rubro`, y solo la consulta avanzada
+      (`/ruc/full`) trae el tipo de contribuyente — es la que se usa.
