@@ -1,9 +1,27 @@
-import { and, asc, count, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { empresas } from "@/db/schema/empresas";
 import { patronParcial } from "@/core/busqueda";
 import type { Paginacion } from "@/core/paginacion";
+import type { TipoEmpresa } from "./constantes";
 import type { FiltrosEmpresas } from "./filtros";
+
+/**
+ * Qué valores de `empresas.tipo` trae cada opción del filtro. INCLUSIVO
+ * (decidido el 2026-09-25, supuesto 24 de docs/spec/preguntas-abiertas.md):
+ * una empresa que es cliente y proveedor aparece al filtrar por cualquiera de
+ * los dos, porque lo es. Filtrar por `cliente_y_proveedor` sigue siendo
+ * exacto: pide las que son ambas cosas, no las que son una u otra.
+ *
+ * `Record` sobre `TipoEmpresa` a propósito: si se añade un valor al enum,
+ * tsc obliga a decidir aquí qué trae, en vez de que el filtro lo ignore en
+ * silencio.
+ */
+const TIPOS_POR_FILTRO: Record<TipoEmpresa, TipoEmpresa[]> = {
+  cliente: ["cliente", "cliente_y_proveedor"],
+  proveedor: ["proveedor", "cliente_y_proveedor"],
+  cliente_y_proveedor: ["cliente_y_proveedor"],
+};
 
 /**
  * Las columnas que muestra el listado, más `activo` para poder marcar las
@@ -38,7 +56,7 @@ function condicionesListado(filtros: FiltrosEmpresas) {
     // `inactivos ? undefined : eq(activo, true)` — ver la convención de
     // AGENTS.md. Es `activo` (baja lógica propia), NUNCA `estado` de SUNAT.
     eq(empresas.activo, inactivos ? false : true),
-    tipo ? eq(empresas.tipo, tipo) : undefined,
+    tipo ? inArray(empresas.tipo, TIPOS_POR_FILTRO[tipo]) : undefined,
     // `ruc` es nullable: `ILIKE` sobre NULL da NULL, que dentro del `or(...)`
     // se comporta como "esta no casa". Una empresa extranjera sin RUC sigue
     // pudiendo casar por razón social.

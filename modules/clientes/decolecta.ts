@@ -26,14 +26,22 @@ import type { EmpresaDatosInput } from "./schema";
 // Según el plan contratado puede costar más por consulta; si eso importa, pasar
 // a `/ruc` es cambiar la URL y aceptar esos dos campos en `null`.
 //
-// LO QUE LA DOCUMENTACIÓN NO DICE, y aquí se asume:
-// - Cómo responde a un RUC bien formado que no existe. Se tratan 404 y 422
-//   como "no encontrado": el formato ya se validó antes de llamar, así que un
-//   "ruc no valido" sobre 11 dígitos es SUNAT diciendo que no lo conoce (o que
-//   el dígito verificador no cuadra, que para el usuario es lo mismo).
-// - Los códigos de key inválida y cuota agotada. Se tratan 401/403 como
-//   credencial y 429 como cuota, que es lo estándar; cualquier otro código es
-//   falla del servicio. Confirmar con una key real y ajustar aquí si difiere.
+// PROBADO CONTRA LA API REAL (2026-09-25):
+// - RUC bien formado que no existe: CONFIRMADO. `20999999999` devolvió 422 con
+//   `{"message":"ruc no valido"}`, igual que el contrato documentado. Se
+//   muestra como "no encontrado". El 404 se trata igual por prudencia, pero
+//   ese código no se ha visto nunca.
+//
+// RIESGO CONOCIDO, SIN RESOLVER — el 401 es AMBIGUO (supuesto 25 de
+// docs/spec/preguntas-abiertas.md). Una prueba con una key VÁLIDA devolvió 401
+// con el mensaje "Apikey Required / Limit Exceeded": el mismo código cubre dos
+// causas distintas, key inválida y límite de tasa/cuota. Hoy cualquier 401 (y
+// 403) entra por la rama de "credencial": el usuario ve el mensaje genérico
+// de falla (no el de cuota) y el log dice "rechazó la credencial: revisa
+// DECOLECTA_API_KEY", aunque pueda ser un límite pasajero con la key en
+// regla. Mejora futura: distinguir por el cuerpo de la respuesta, una vez se
+// conozca el texto exacto de cada causa. El 429 como cuota sigue siendo una
+// suposición: todavía no se ha visto.
 //
 // NADA DE ESTO NOMBRA NI LOGUEA LA KEY: va solo en la cabecera, nunca en la
 // URL (Decolecta también la acepta como `?token=`, que acabaría en logs de
@@ -192,6 +200,8 @@ export async function consultarRucEnDecolecta(
     // de error entera.
     const cuerpo = (await respuesta.text().catch(() => "")).slice(0, 500);
 
+    // AMBIGUO: un 401 también puede ser límite de tasa con la key en regla.
+    // Ver "RIESGO CONOCIDO" en la cabecera del archivo.
     if (respuesta.status === 401 || respuesta.status === 403) {
       console.error(
         `[Clientes] Decolecta rechazó la credencial (HTTP ${respuesta.status}): revisa DECOLECTA_API_KEY`,

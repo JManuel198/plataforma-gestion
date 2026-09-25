@@ -13,10 +13,9 @@ export type FiltrosEmpresas = {
   /** Texto libre: casa parcialmente con la razón social o el RUC. */
   busqueda?: string;
   /**
-   * Coincidencia EXACTA con `empresas.tipo`: `cliente` no trae las
-   * `cliente_y_proveedor`. Si el filtro «Clientes» debe incluirlas es
-   * pregunta abierta (docs/spec/preguntas-abiertas.md, CRM); cambiarlo es
-   * tocar solo `condicionesListado` en queries.ts.
+   * INCLUSIVO: `cliente` trae también las `cliente_y_proveedor`, y
+   * `proveedor` igual; `cliente_y_proveedor` es exacto. La tabla de
+   * equivalencias es `TIPOS_POR_FILTRO` en queries.ts.
    */
   tipo?: TipoEmpresa;
   /**
