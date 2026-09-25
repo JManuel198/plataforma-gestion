@@ -5,8 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BanknoteIcon,
+  Building2Icon,
   ChevronDownIcon,
   ClipboardListIcon,
+  ContactIcon,
+  FunnelIcon,
   HardHatIcon,
   HomeIcon,
   PackageIcon,
@@ -101,6 +104,20 @@ export const MENU: readonly Seccion[] = [
         etiqueta: "Órdenes de Trabajo",
         Icono: ClipboardListIcon,
       },
+    ],
+  },
+  {
+    // Rutas planas igual que el resto: "CRM" es solo el encabezado del menú,
+    // no un segmento de URL (nada de `/crm/clientes`).
+    encabezado: "CRM",
+    enlaces: [
+      {
+        href: "/oportunidades",
+        etiqueta: "Embudo de oportunidades",
+        Icono: FunnelIcon,
+      },
+      { href: "/clientes", etiqueta: "Clientes", Icono: Building2Icon },
+      { href: "/contactos", etiqueta: "Contactos", Icono: ContactIcon },
     ],
   },
   {

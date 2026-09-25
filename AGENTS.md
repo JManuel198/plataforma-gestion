@@ -37,6 +37,14 @@ trabaje en este código.
   Los módulos originalmente previstos — crm/, cotizaciones/, proyectos/,
   logistica/, asistencias/ — son visión futura, no estructura actual:
   sus carpetas solo contienen un README de marcador.
+  **Excepción en curso — CRM (2026-09-24):** es un grupo nuevo de la
+  barra lateral, encima de SSOMA, con tres módulos en construcción
+  ACTIVA: Clientes (Bloque 2, `/clientes`), Contactos (Bloque 3,
+  `/contactos`) y Embudo de oportunidades (Bloque 4, `/oportunidades`).
+  Hoy solo existen la entrada del menú y la ruta protegida con su título;
+  sin tabla, sin código en modules/. No es un "próximamente" indefinido:
+  se llena en los bloques inmediatamente siguientes. Las rutas son planas,
+  como el resto (ver la convención de etiquetas del menú).
 - config/clientes/ — un .json por cliente con branding, campos extra,
   flujos de aprobación y módulos activos. Toda personalización vive aquí,
   nunca en ramas de git ni en código condicional por cliente.
@@ -126,7 +134,7 @@ trabaje en este código.
   día se mueven.
 - Las etiquetas del menú lateral van DESACOPLADAS de las rutas (decidido en
   el Bloque 11, 2026-09-21). Los encabezados que agrupan enlaces en
-  components/barra-lateral.tsx — hoy "SSOMA" y "Catálogos maestros" — son
+  components/barra-lateral.tsx — hoy "CRM", "SSOMA" y "Catálogos maestros" — son
   solo texto del menú: jamás forman parte de una URL, y ningún href se
   deriva de ellos. Por eso Personal está bajo SSOMA pero sigue en
   /personal, y los cinco catálogos usan rutas planas de nivel superior
