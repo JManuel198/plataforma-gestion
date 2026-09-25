@@ -51,8 +51,11 @@ trabaje en este código.
   contactos reales de cada empresa (activos e inactivos). Contactos tiene
   esquema — `contactos` (db/schema/contactos.ts, FK `empresa_id` →
   `empresas`, migración 0019, aplicada en desarrollo (2026-09-25)) — y
-  modules/contactos/ tiene actions, queries, schema (Zod) y filtros, pero
-  la pantalla `/contactos` sigue vacía (Partes 3 y 4 del bloque). Embudo sigue siendo solo la entrada del menú y la ruta protegida
+  modules/contactos/ tiene actions, queries, schema (Zod) y filtros. La
+  pantalla `/contactos` ya lista, busca, filtra por inactivos, cuenta
+  activos/inactivos, da de baja/reactiva y abre la vista de detalle (Parte 3,
+  2026-09-25); falta solo el formulario de alta/edición (Parte 4), cuyo
+  modal hoy muestra un aviso de "en construcción". Embudo sigue siendo solo la entrada del menú y la ruta protegida
   con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
