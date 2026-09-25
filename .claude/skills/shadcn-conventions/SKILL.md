@@ -329,8 +329,8 @@ comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
 Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
 lo usan varios módulos y ninguno puede importar de otro.
 
-Aplicado ya en los siete listados que existen, y en este orden por dificultad
-(los dos últimos son los fáciles: un solo control en la fila):
+Aplicado ya en los ocho listados que existen, y en este orden por dificultad
+(los tres últimos son los fáciles: un solo control en la fila):
 
 | Listado | Fila | Vista | Modal | Lo interactivo de la fila |
 | --- | --- | --- | --- | --- |
@@ -341,6 +341,7 @@ Aplicado ya en los siete listados que existen, y en este orden por dificultad
 | Órdenes de Trabajo | `fila-orden-trabajo.tsx` | `vista-orden-trabajo.tsx` | `dialogo-orden-trabajo.tsx` | **`SelectorEstadoFila`** (+ su desplegable y su `alert-dialog`) + lápiz |
 | Servicios | `fila-servicio.tsx` | `vista-servicio.tsx` | `dialogo-servicio.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
 | EPPs | `fila-epp.tsx` | `vista-epp.tsx` | `dialogo-epp.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
+| Empresas (Clientes) | `fila-empresa.tsx` | `vista-empresa.tsx` | `dialogo-empresa.tsx` | solo la equis/reactivar (+ su `alert-dialog`), en `AccionesEmpresa` — **temporal**: el lápiz y el modo "editando" llegan con el formulario (Parte 4) |
 
 La máquina de estados se importa, nunca se copia.
 

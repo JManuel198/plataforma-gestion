@@ -21,6 +21,17 @@ export const TIPOS_EMPRESA = [
 export type TipoEmpresa = (typeof TIPOS_EMPRESA)[number];
 
 /**
+ * Cómo se lee cada tipo en pantalla (tabla, vista, filtro). Un `Record` sobre
+ * el enum: si se añade un valor a `TIPOS_EMPRESA`, tsc obliga a darle etiqueta
+ * aquí en vez de pintar el valor crudo con guiones bajos.
+ */
+export const ETIQUETAS_TIPO_EMPRESA: Record<TipoEmpresa, string> = {
+  cliente: "Cliente",
+  proveedor: "Proveedor",
+  cliente_y_proveedor: "Cliente y proveedor",
+};
+
+/**
  * Las piezas del código `CLT-0001`.
  *
  * Mismo mecanismo que los cinco catálogos: correlativo GLOBAL, sin segmento de

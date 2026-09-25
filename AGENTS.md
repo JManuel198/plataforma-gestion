@@ -44,8 +44,12 @@ trabaje en este código.
   Estado (2026-09-25): Clientes ya tiene tabla — `empresas`
   (db/schema/empresas.ts, migración 0018, aplicada en desarrollo) — y
   modules/clientes/ ya tiene actions, queries, schema (Zod) y la consulta
-  de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY); todavía
-  sin pantalla — `/clientes` solo muestra su título. Contactos y Embudo siguen siendo solo la entrada del menú y
+  de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY). La
+  pantalla `/clientes` (título "Empresas") ya lista, busca, filtra por
+  tipo, abre la vista de detalle y da de baja/reactiva; todavía SIN alta,
+  edición ni botón "Consultar RUC" (Parte 4), y la columna Contactos es
+  un 0 fijo hasta el Bloque 3. Contactos y Embudo siguen siendo solo la
+  entrada del menú y
   la ruta protegida con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
@@ -180,8 +184,8 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
-- Una fila de listado que abre su registro (hoy los siete listados: Órdenes
-  de Trabajo, Personal y los cinco catálogos, y los que vengan) sigue el
+- Una fila de listado que abre su registro (hoy los ocho listados: Órdenes
+  de Trabajo, Personal, los cinco catálogos y Empresas, y los que vengan) sigue el
   patrón compartido de `core/fila-clicable.tsx`: tres modos
   —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
   con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que

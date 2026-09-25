@@ -24,20 +24,32 @@ const TIPOS_POR_FILTRO: Record<TipoEmpresa, TipoEmpresa[]> = {
 };
 
 /**
- * Las columnas que muestra el listado, más `activo` para poder marcar las
- * filas dadas de baja. El detalle completo sale de `obtenerEmpresa`.
+ * Las columnas de la tabla MÁS las que solo enseña la vista de detalle.
+ *
+ * Van todas en la misma consulta, como en los demás listados: la fila le pasa
+ * sus datos al modal y la vista se abre sin un segundo viaje al servidor. Son
+ * diez filas por página de columnas de texto cortas, así que traer las de más
+ * no pesa. `createdAt`/`updatedAt` quedan fuera: ni la tabla ni la vista las
+ * pintan.
  */
 const columnasListado = {
   id: empresas.id,
   codigo: empresas.codigo,
   razon_social: empresas.razon_social,
   nombre_comercial: empresas.nombre_comercial,
+  nombre_corto: empresas.nombre_corto,
   ruc: empresas.ruc,
   tipo: empresas.tipo,
+  tipo_contribuyente: empresas.tipo_contribuyente,
+  descripcion_rubro: empresas.descripcion_rubro,
   estado: empresas.estado,
   condicion: empresas.condicion,
+  direccion: empresas.direccion,
+  distrito: empresas.distrito,
+  provincia: empresas.provincia,
+  departamento: empresas.departamento,
+  pais: empresas.pais,
   activo: empresas.activo,
-  createdAt: empresas.createdAt,
 } as const;
 
 /**
