@@ -637,3 +637,9 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   alguna vez urge silenciarlo, es un `overrides` en package.json que
   fuerce ese esbuild anidado a ^0.25, verificando después que
   `npx drizzle-kit generate` y `check` siguen funcionando.
+- El 2026-09-25 se corrigió el formato del código de Empresas (CLT-0001 →
+  CLT.0001, inconsistente con el resto de los módulos) y se recreó el
+  registro real de AZUMA FOODS para que quedara como CLT.0001. El id interno
+  de ese registro cambió respecto al original. El contador de correlativo de
+  empresas se reinició a 0; los contadores de los demás módulos no se
+  tocaron.
