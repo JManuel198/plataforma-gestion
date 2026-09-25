@@ -39,9 +39,10 @@ export const ordenTrabajo = pgTable(
     // `CCM` es constante del proyecto y vive en
     // modules/ordenes-trabajo/constantes.ts, no aquí.
     //
-    // UNIQUE es la red de seguridad del correlativo (ver `otCorrelativo`
-    // abajo): aunque un error futuro se salte el contador, la base de datos
-    // no deja entrar dos OT con el mismo código.
+    // UNIQUE es la red de seguridad del correlativo (ver
+    // `reservarCorrelativoAnual` en core/correlativo.ts): aunque un error
+    // futuro se salte el contador, la base de datos no deja entrar dos OT con
+    // el mismo código.
     codigo_ot: text("codigo_ot").notNull().unique(),
     // Ya no se "copia a mano desde el Servicio": la OT es autónoma, no nace
     // de otra tabla (fusión Servicio + OT, confirmada por el cliente).
@@ -99,9 +100,20 @@ export const ordenTrabajo = pgTable(
 );
 
 /**
+ * SIN USO DESDE LA MIGRACIÓN 0020 (2026-09-25). El correlativo anual de la OT
+ * vive ahora en la tabla compartida `correlativo`, fila
+ * `"ordenes-trabajo:<año>"`, y lo reserva `reservarCorrelativoAnual` de
+ * core/correlativo.ts. La 0020 copió aquí → allí el contador de cada año.
+ *
+ * La definición se queda a propósito mientras la tabla exista: quitarla de
+ * este archivo haría que `drizzle-kit generate` emitiera un DROP TABLE. Borrarla
+ * es un cambio aparte, después de comprobar que ninguna base (desarrollo ni
+ * producción) sigue sin la 0020 aplicada. Lo de abajo describe cómo funcionaba
+ * y sigue valiendo para el mecanismo, que se mudó intacto.
+ *
  * Contador del correlativo anual de la OT (el `NNNN` de OT.CCM.AAAA.NNNN).
  *
- * POR QUÉ EXISTE ESTA TABLA — no la quites al refactorizar.
+ * POR QUÉ EXISTÍA ESTA TABLA.
  *
  * El correlativo reinicia cada año empezando en 0001. La forma obvia de
  * calcularlo —`SELECT MAX(...) + 1 FROM orden_trabajo`— tiene una condición

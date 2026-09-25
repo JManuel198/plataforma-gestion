@@ -1,10 +1,13 @@
 import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 /**
- * Contador genérico de correlativos GLOBALES, sin segmento de año.
+ * Contador genérico de correlativos. Nació para los GLOBALES, sin segmento
+ * de año; desde el 2026-09-25 lleva también los ANUALES, con una clave por
+ * año (`"ordenes-trabajo:2026"`): ver `reservarCorrelativoAnual` en
+ * core/correlativo.ts. Con eso reemplazó a `otCorrelativo`
+ * (`db/schema/orden-trabajo.ts`), que quedó sin uso.
  *
- * Hermano de `otCorrelativo` (`db/schema/orden-trabajo.ts`), no su
- * reemplazo. Nace en el Bloque 12, Parte 3 (2026-09-22) porque Materiales
+ * Nace en el Bloque 12, Parte 3 (2026-09-22) porque Materiales
  * necesita autogenerar `codigo_interno` con el formato `MAT.0000001` —
  * correlativo de 7 dígitos, global, que nunca reinicia — y ese "nunca
  * reinicia" es justo lo que `ot_correlativo` NO modela: su PK es
@@ -45,12 +48,8 @@ import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
  * el propio `set` si se quiere que refleje la última reserva (ver
  * `core/correlativo.ts`, que ya lo hace).
  *
- * `ot_correlativo` NO se toca ni se migra a esta tabla: funciona, ya tiene
- * datos reales, y consolidarla aquí sería una migración de datos que nadie
- * ha pedido. Si algún día se decide unificar, el camino es mover ese
- * contador a una fila de esta tabla con una clave como
- * `"orden-trabajo:2026"` (o una por año, `"orden-trabajo:2027"`, etc.) —
- * hasta entonces las dos tablas conviven a propósito, no por descuido.
+ * `ot_correlativo` se consolidó aquí el 2026-09-25: la migración de datos
+ * 0020 copió su contador de cada año a la fila `"ordenes-trabajo:<año>"`.
  */
 export const correlativo = pgTable("correlativo", {
   // El ÁMBITO del contador, no un año: "materiales" hoy, y cualquier otro

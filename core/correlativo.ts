@@ -41,12 +41,8 @@ export type Transaccion = Parameters<Parameters<typeof db.transaction>[0]>[0];
  * el número se revierte con él y no quedan huecos — que es justamente lo que
  * una `sequence` de PostgreSQL no daría (las secuencias no revierten).
  *
- * EN QUÉ SE DIFERENCIA DE `reservarCorrelativoAnual` (OT), que se quedó donde
- * estaba: aquel cuenta POR AÑO y reinicia cada enero, así que su tabla está
- * indexada por `anio`. Este es global y no reinicia nunca, así que su tabla se
- * indexa por un ámbito de texto (`clave`). El mecanismo de reserva es idéntico;
- * lo que no generaliza es la clave. Forzar un año falso en la tabla de OT para
- * reusarla habría ensuciado lo que allí ya funciona.
+ * Su hermano anual, `reservarCorrelativoAnual` (abajo), usa esta misma
+ * función: un contador por año es solo una `clave` que incluye el año.
  *
  * El `UNIQUE` de la columna de código que se formatea con este número queda
  * como red de seguridad por si algún cambio futuro se saltara este camino.
@@ -71,4 +67,45 @@ export async function reservarCorrelativo(
     .returning({ ultimo: correlativo.ultimo });
 
   return fila.ultimo;
+}
+
+/**
+ * Reserva el siguiente número de un correlativo que REINICIA CADA AÑO y lo
+ * devuelve: el primero de cada año es `inicial`, y ningún año hereda el
+ * conteo de otro.
+ *
+ * No es un mecanismo aparte: es `reservarCorrelativo` con una clave por año,
+ * `"<clave>:<anio>"` (ej. `"ordenes-trabajo:2026"`), en la misma tabla
+ * `correlativo`. El año nuevo no tiene fila todavía, así que su primera reserva
+ * entra por el INSERT del upsert y devuelve `inicial`; las siguientes
+ * incrementan. La reserva atómica, el lock de la fila y la reversión con la
+ * transacción son exactamente los de arriba.
+ *
+ * El AÑO LO DECIDE QUIEN LLAMA, no esta función, y a propósito: el mismo año
+ * tiene que numerar el contador y escribirse en el código visible (si se
+ * calculara dos veces, un alta en el borde de fin de año podría salir como
+ * `…2027.0001` contando sobre 2026), y tiene que calcularse en la zona horaria
+ * del negocio, no en la del servidor. Ver `anioVigente` en
+ * modules/ordenes-trabajo/codigo.ts.
+ *
+ * `clave` no puede contener `:`, que separa el año: así la fila de un
+ * correlativo anual nunca coincide con la de uno global ni con la de otro
+ * anual.
+ *
+ * Lo usan Órdenes de Trabajo (`"ordenes-trabajo"`) y, cuando exista, el Embudo
+ * de oportunidades. Hasta el 2026-09-25 OT tenía su propia tabla,
+ * `ot_correlativo` (PK `anio`); la migración 0020 copió su contador aquí y
+ * esa tabla quedó sin uso.
+ */
+export async function reservarCorrelativoAnual(
+  tx: Transaccion,
+  clave: string,
+  anio: number,
+  inicial = 1,
+): Promise<number> {
+  if (clave.includes(":")) {
+    throw new Error(`Clave de correlativo anual inválida: "${clave}"`);
+  }
+
+  return reservarCorrelativo(tx, `${clave}:${anio}`, inicial);
 }

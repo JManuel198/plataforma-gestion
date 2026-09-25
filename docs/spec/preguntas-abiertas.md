@@ -72,13 +72,14 @@ equivalente y vigente es el **supuesto 9**: una OT no se elimina, se marca
 Listado como pendiente de confirmar en la sección 6 de
 `alcance-v2-servicios-ot.md`. El formato es `OT.CCM.AAAA.NNNN`.
 
-**Asumido:** cada año inicia en `0001`. La primera OT del año hace
-`INSERT INTO ot_correlativo (anio, ultimo) VALUES ($anio, 1)`, y el número se
-formatea con `padStart(4, "0")`.
-**Si se confirma `0000`:** es un ajuste de una línea en
-`modules/ordenes-trabajo/` — la primera inserción del año pasa a `VALUES
-($anio, 0)` y el `ON CONFLICT ... DO UPDATE SET ultimo = ultimo + 1` se queda
-igual. **No requiere migración**: la tabla `ot_correlativo` no cambia. Ojo:
+**Asumido:** cada año inicia en `0001`. La primera OT del año inserta la fila
+`"ordenes-trabajo:<año>"` de la tabla `correlativo` con `ultimo =
+CORRELATIVO_INICIAL` (1), y el número se formatea con `padStart(4, "0")`.
+(Hasta el 2026-09-25 la fila era de `ot_correlativo`; ver entidades.md.)
+**Si se confirma `0000`:** es un ajuste de una línea —
+`CORRELATIVO_INICIAL = 0` en `modules/ordenes-trabajo/constantes.ts`— y el
+`ON CONFLICT ... DO UPDATE SET ultimo = ultimo + 1` se queda igual. **No
+requiere migración**: la tabla `correlativo` no cambia. Ojo:
 solo aplica a años que todavía no tengan fila; si ya se emitieron OT de ese
 año, cambiarlo retroactivamente rompería la numeración existente.
 
@@ -455,6 +456,9 @@ cada punto.
       `core/`.
     - `ot_correlativo` **no se migró** a la tabla nueva: tiene datos y funciona.
       Podrían consolidarse algún día con una clave tipo `"orden-trabajo:2026"`.
+      *(Actualización 2026-09-25: se consolidaron, con claves
+      `"ordenes-trabajo:<año>"` y la migración de datos 0020 — ver
+      "Correlativo anual" en entidades.md.)*
     - El formato se arma en `modules/materiales/codigo.ts`; sus constantes
       (`PREFIJO_MATERIAL`, `DIGITOS_CORRELATIVO`, `CORRELATIVO_INICIAL`,
       `CLAVE_CORRELATIVO`) están en `modules/materiales/constantes.ts`.

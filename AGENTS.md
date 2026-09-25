@@ -61,10 +61,11 @@ trabaje en este código.
   docs/diseno/embudo-oportunidades.html, orden de trabajo en
   docs/diseno/plan-embudo-oportunidades.md), pero **todavía sin tabla ni
   código**: sigue siendo solo la entrada del menú y la ruta protegida con su
-  título. Dos cambios previstos fuera del módulo: (1) la Parte 3 del plan
-  moverá a core/ la lógica de correlativo anual de Órdenes de Trabajo
-  (Oportunidades es su segundo consumidor), **sin cambiar en nada la
-  numeración de las OT**, en un commit propio; (2) el componente compartido
+  título. Dos cambios fuera del módulo: (1) la Parte 3 del plan movió
+  (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
+  (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades será su
+  segundo consumidor), **sin cambiar en nada la numeración de las OT**, en
+  un commit propio (ver la deuda técnica del correlativo, abajo); (2) el componente compartido
   de migas de pan (components/migas-de-pan.tsx) se ampliará para aceptar un
   tercer nivel dinámico — hoy solo lo usará la página de detalle
   `/oportunidades/[id]`, el primer módulo con detalle en ruta propia; los
@@ -160,7 +161,9 @@ trabaje en este código.
 5. Interfaz: solo shadcn/ui + Tailwind. Sin CSS custom salvo justificación
    explícita en el propio archivo.
 6. Toda migración pasa por Drizzle (npx drizzle-kit generate). Nunca SQL
-   manual suelto.
+   manual suelto. Única excepción, aprobada explícitamente: la migración de
+   datos 0020 (correlativo anual de OT a `correlativo`, ver la deuda
+   técnica), escrita sobre un archivo de `drizzle-kit generate --custom`.
 7. Antes de tocar una regla de negocio, se consulta docs/spec/. Si no está
    documentada, se registra la duda en docs/spec/preguntas-abiertas.md en
    vez de asumir.
@@ -547,18 +550,31 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   core/dinero.ts. `PRECIO_MAXIMO_CENTIMOS` NO viajó con él: es un límite de
   negocio de cada entidad, no una conversión compartida, así que cada módulo
   declara el suyo.
-- Hay DOS implementaciones del mismo upsert de correlativo, y es
-  temporal a sabiendas: `core/correlativo.ts` (tabla `correlativo`, clave de
-  texto, sin año — la usan Materiales y Lista de precios) y
-  `modules/ordenes-trabajo/correlativo.ts` (tabla `ot_correlativo`, PK `anio`,
-  reinicia cada enero). El mecanismo es idéntico; lo único que difiere es la
-  forma de la clave.
-  Lo que frena la unificación NO es un desacuerdo de diseño: plegar
-  `ot_correlativo` en `correlativo` con claves tipo `"orden-trabajo:2026"`
-  exige mover FILAS existentes, y `drizzle-kit generate` solo produce DDL
-  (regla invariable 6). Es una migración de datos, que es un cambio aparte.
-  Mientras tanto vale la lección de `esUniqueViolado`: si aparece un TERCER
-  correlativo, usa `core/correlativo.ts` — no escribas una copia nueva.
+- RESUELTO (2026-09-25): había DOS implementaciones del mismo upsert de
+  correlativo — `core/correlativo.ts` (tabla `correlativo`, clave de texto,
+  sin año) y `modules/ordenes-trabajo/correlativo.ts` (tabla
+  `ot_correlativo`, PK `anio`, reinicia cada enero). Al llegar Oportunidades,
+  segundo consumidor de un correlativo anual, se unificaron:
+  `reservarCorrelativoAnual(tx, clave, anio, inicial)` vive en
+  core/correlativo.ts y reserva sobre la misma tabla `correlativo` con la
+  clave `"<clave>:<año>"` (OT: `"ordenes-trabajo:2026"`). Sin cambio de
+  estructura.
+  Lo que frenaba la unificación era mover FILAS existentes, que
+  `drizzle-kit generate` no hace (solo DDL). Se resolvió con la migración
+  0020, una migración de **datos** escrita sobre el archivo vacío de
+  `drizzle-kit generate --custom` — **única excepción a la regla invariable
+  6 hasta hoy, aprobada explícitamente**; no es precedente para escribir SQL
+  a mano sin esa aprobación. Copia el `ultimo` de cada año de
+  `ot_correlativo` y no retrocede nunca un contador (`GREATEST`).
+  `ot_correlativo` quedó sin uso pero sigue en la base y en
+  db/schema/orden-trabajo.ts (quitar la definición emitiría un DROP): se
+  borra en un cambio aparte, cuando se confirme que ninguna base sigue sin la
+  0020. **Orden al desplegar:** aplicar la 0020 en cada base inmediatamente
+  al desplegar este código. Si se crea una OT con el código nuevo antes de
+  la 0020, o con el viejo después, el contador queda atrasado y la creación
+  de OT falla por el UNIQUE de `codigo_ot` (no emite un código repetido);
+  se arregla resincronizando la fila al mayor correlativo del año.
+  `CLAVE_CORRELATIVO_OT` no se renombra nunca (ver su comentario).
 - La suite de tests está apenas empezada, pero existe y corre: no es una
   carpeta vacía. `npm test` ejecuta @playwright/test contra
   playwright.config.ts y hoy son DOS pruebas de humo reales, las dos en

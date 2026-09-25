@@ -107,14 +107,25 @@ solo podría desincronizarse.
 listado. El índice `orden_trabajo_servicio_id_idx` se eliminó junto con la
 columna que indexaba.
 
-**Consume:** `ot_correlativo`. **Consumida por:** `modules/ordenes-trabajo/`.
+**Consume:** la tabla `correlativo`, fila `"ordenes-trabajo:<año>"`, vía
+`reservarCorrelativoAnual` de `core/correlativo.ts` (desde la migración 0020,
+2026-09-25; antes, `ot_correlativo`). **Consumida por:** `modules/ordenes-trabajo/`.
 
 ---
 
-## Correlativo de OT (tabla de apoyo)
+## Correlativo de OT (tabla de apoyo) — SIN USO desde 2026-09-25
+
+> **Sin uso desde la migración 0020 (2026-09-25).** El contador anual de OT
+> se mudó a la tabla compartida `correlativo` (fila `"ordenes-trabajo:<año>"`)
+> y lo reserva `reservarCorrelativoAnual` de `core/correlativo.ts`: ver
+> "Correlativo anual" en la ficha de la tabla genérica, más abajo. La 0020
+> copió el último número de cada año tal cual, así que la numeración de las
+> OT sigue sin cambios. La tabla sigue existiendo (y su definición en
+> `db/schema/orden-trabajo.ts`) hasta que se borre en un cambio aparte. Lo que
+> sigue describe cómo funcionaba; el mecanismo se mudó intacto.
 
 Tabla `ot_correlativo`, en `db/schema/orden-trabajo.ts`. No es una entidad de
-negocio: es el contador que hace que el `NNNN` de `OT.CCM.AAAA.NNNN` sea
+negocio: era el contador que hace que el `NNNN` de `OT.CCM.AAAA.NNNN` sea
 único incluso con dos OT creadas a la vez.
 
 | Columna | Tipo en la BD | Obligatorio | Cómo se llena |
@@ -159,8 +170,9 @@ se borraron después.
 Tabla `correlativo`, en `db/schema/correlativo.ts`. Creada en el Bloque 12,
 Parte 3 (2026-09-22) para que `materiales.codigo_interno` se autogenere con
 el formato `MAT.0000001`. No es una entidad de negocio, igual que
-`ot_correlativo` — es el hermano genérico de esa misma tabla, no su
-reemplazo (ver más abajo).
+`ot_correlativo`. Desde el 2026-09-25 también lleva los correlativos
+**anuales** (ver "Correlativo anual", más abajo), así que reemplazó a
+`ot_correlativo`.
 
 | Columna | Tipo en la BD | Obligatorio | Cómo se llena |
 |---|---|---|---|
@@ -185,21 +197,11 @@ número no se consume y no quedan huecos. Por el mismo motivo que
 `ot_correlativo` tampoco es una `sequence` de PostgreSQL: las secuencias no
 revierten con la transacción y dejarían huecos permanentes.
 
-**En qué se diferencia de `ot_correlativo`, y por qué no la reemplaza.** El
-correlativo de OT reinicia cada año, así que su PK es literalmente el año
-(`anio integer`). Este correlativo es global y **nunca reinicia**, así que
-generalizar exigía cambiar la PK por el ÁMBITO del contador (`clave text`) en
-vez de un año — forzar un año falso en `ot_correlativo` para reusarla habría
-ensuciado lo que ya funciona ahí. `ot_correlativo` ya tiene datos reales de
-producción y sigue funcionando: no se toca ni se migra. Si algún día se
-decide consolidar los dos, el camino es mover el contador de OT a una fila de
-esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
-entonces conviven a propósito.
-
-**Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **seis
-ámbitos en uso**, y que cada uno entrara sin tocar ni la tabla ni la
-migración es la prueba de que la generalización era la correcta:
+**Consumida por:** `core/correlativo.ts` — `reservarCorrelativo` (global) y
+`reservarCorrelativoAnual` (por año, ver abajo) —, que cualquier módulo puede
+llamar pasándole su propia `clave`. Hoy hay **seis ámbitos globales** en uso,
+más el anual de OT, y que cada uno entrara sin cambiar la estructura de la
+tabla es la prueba de que la generalización era la correcta:
 
 | `clave` | Formato | Quién lo usa |
 |---|---|---|
@@ -210,7 +212,7 @@ migración es la prueba de que la generalización era la correcta:
 | `"epps"` | `EPP.000001` — prefijo `EPP.`, **6 dígitos** (ni 7 ni 4) | `epps.codigo` (Bloque 16, Parte 1) |
 | `"empresas"` | `CLT.0001` — prefijo `CLT.`, 4 dígitos | `empresas.codigo` (CRM, Bloque 2) |
 
-Los seis son globales y sin año. Cada módulo declara sus propias
+Esos seis son globales y sin año. Cada módulo declara sus propias
 constantes (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
 `modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts`,
 `modules/servicios/constantes.ts`, `modules/tarifario-personal/constantes.ts`,
@@ -220,6 +222,39 @@ se reserva. El número de dígitos es una constante por ámbito, no un valor
 fijo de la tabla: `tarifario_personal` fue el primero en usar 4 en vez de 7,
 `epps` usa 6, y no hay nada en `correlativo` que impida un cuarto ancho
 distinto si hiciera falta.
+
+### Correlativo anual (desde 2026-09-25)
+
+Un correlativo que **reinicia cada año** es la misma tabla con una clave por
+año: `"<clave>:<año>"`. Lo reserva `reservarCorrelativoAnual(tx, clave, anio,
+inicial)` de `core/correlativo.ts`, que llama a `reservarCorrelativo` con esa
+clave compuesta: mismo upsert atómico, mismo lock de fila, misma reversión
+con la transacción. La primera reserva de un año nuevo no encuentra fila,
+entra por el `INSERT` y devuelve `inicial`; ningún año hereda el conteo de
+otro. La `clave` no puede contener `:` (la función lo rechaza), así que una
+fila anual nunca coincide con una global.
+
+El **año lo decide quien llama**, en la zona horaria del negocio
+(`anioVigente` en `modules/ordenes-trabajo/codigo.ts`), y se usa el mismo
+valor para el contador y para el código visible.
+
+| `clave` | Filas | Formato | Quién lo usa |
+|---|---|---|---|
+| `"ordenes-trabajo"` | `"ordenes-trabajo:2026"`, … | `OT.CCM.AAAA.NNNN` — 4 dígitos, arranca en `0001` | `orden_trabajo.codigo_ot` |
+| `"oportunidades"` (próximamente) | `"oportunidades:2026"`, … | `OPT.CCM.AAAA.NNNNN` — 5 dígitos | Embudo de oportunidades (`oportunidades.md`), sin tabla todavía |
+
+**Cómo llegó aquí el contador de OT.** Hasta el 2026-09-25 vivía en su propia
+tabla, `ot_correlativo` (PK `anio`), con una copia del mismo upsert en
+`modules/ordenes-trabajo/correlativo.ts`. Al llegar Oportunidades, segundo
+consumidor de un correlativo anual, se movió a `core/`. Las filas existentes
+no se podían mover con `drizzle-kit generate`, que solo produce DDL: la
+migración 0020 es una migración de **datos** escrita sobre un archivo de
+`drizzle-kit generate --custom` (excepción a la regla invariable 6, aprobada
+explícitamente). Copia el `ultimo` de cada año de `ot_correlativo` a la fila
+`"ordenes-trabajo:<año>"` y nunca retrocede un contador que ya existiera
+(`GREATEST`). La constante `CLAVE_CORRELATIVO_OT` no se puede renombrar: el
+año en curso arrancaría de nuevo en `0001` y chocaría con el `UNIQUE` de
+`codigo_ot`.
 
 ---
 
@@ -410,8 +445,8 @@ diferencia del correlativo anual de OT). Se reserva con la tabla `correlativo`
 columna **sigue existiendo** pero cambia de papel: ya no es la validación de
 una interacción esperada del usuario (que podía escribir dos veces el mismo
 código), sino la red de seguridad del generador — exactamente el mismo papel
-que cumple el `UNIQUE` de `orden_trabajo.codigo_ot` frente a
-`ot_correlativo`. Sigue sin ser `NOT NULL`: el generador lo llena siempre,
+que cumple el `UNIQUE` de `orden_trabajo.codigo_ot` frente a su
+correlativo anual. Sigue sin ser `NOT NULL`: el generador lo llena siempre,
 pero la columna en sí no lo exige. `codigo_fabrica` sigue SIN `UNIQUE` — no
 está confirmado que sea un identificador único, podría haber duplicados
 mientras se depura el catálogo.
@@ -545,7 +580,7 @@ sugerencias reducen ese trabajo futuro, no lo eliminan.
 
 **`codigo_oferta` usa un correlativo global, sin año, distinto del de la
 OT.** Formato `OFFT.0000001` (7 dígitos), reservado atómicamente con la
-misma técnica que `ot_correlativo` pero desde la tabla genérica
+misma técnica que el correlativo de OT pero desde la tabla genérica
 `correlativo` (ver su ficha, más arriba), con la clave `"lista_precios"` —
 la segunda de esa tabla, después de la de Materiales. `NOT NULL` porque lo
 pone siempre el backend; `UNIQUE` como red de seguridad del contador — mismo

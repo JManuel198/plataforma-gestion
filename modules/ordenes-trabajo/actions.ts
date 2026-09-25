@@ -4,12 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { reservarCorrelativoAnual } from "@/core/correlativo";
 import { exigirSesion } from "@/core/sesion";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
 import { anioVigente, formatearCodigoOt } from "./codigo";
-import type { EstadoOt } from "./constantes";
-import { reservarCorrelativoAnual } from "./correlativo";
+import {
+  CLAVE_CORRELATIVO_OT,
+  CORRELATIVO_INICIAL,
+  type EstadoOt,
+} from "./constantes";
 import type { EstadoFormulario } from "@/core/estado-formulario";
 import { esUniqueViolado } from "@/core/errores-postgres";
 import type { ResultadoAccion } from "@/core/resultado-accion";
@@ -74,9 +78,14 @@ async function guardarOtNueva(
   try {
     // La reserva del correlativo y el INSERT van en la misma transacción: si
     // la OT falla, el número se revierte con ella y no quedan huecos.
-    // El porqué completo está en correlativo.ts.
+    // El porqué completo está en core/correlativo.ts.
     await db.transaction(async (tx) => {
-      const correlativo = await reservarCorrelativoAnual(tx, anio);
+      const correlativo = await reservarCorrelativoAnual(
+        tx,
+        CLAVE_CORRELATIVO_OT,
+        anio,
+        CORRELATIVO_INICIAL,
+      );
 
       // `fecha_creacion` no se envía: la pone la base de datos
       // (DEFAULT now()) al insertar.
@@ -94,8 +103,9 @@ async function guardarOtNueva(
       //
       // Si alguien piensa en agregar aquí un botón de "reintentar" o un
       // reintento automático: no lo hagas, solo repetirá el error. Lo que hay
-      // que arreglar es el descuadre entre `ot_correlativo` y las OT ya
-      // emitidas — resincronizar el contador al mayor correlativo del año.
+      // que arreglar es el descuadre entre el contador del año (fila
+      // `ordenes-trabajo:<año>` de `correlativo`) y las OT ya emitidas —
+      // resincronizarlo al mayor correlativo del año.
       return {
         mensaje:
           "No se pudo generar el número de OT. Si el problema persiste, contacta soporte.",

@@ -7,7 +7,7 @@ import { CODIGO_EMPRESA, DIGITOS_CORRELATIVO, PREFIJO_OT } from "./constantes";
  *
  * Es solo el formateo. Quién decide ese número —y cómo evita que dos OT
  * creadas a la vez reciban el mismo— vive en `reservarCorrelativoAnual`
- * (modules/ordenes-trabajo/correlativo.ts). Están separados a propósito: esta
+ * (core/correlativo.ts). Están separados a propósito: esta
  * función es pura y se lee de un vistazo; la otra toca la base de datos.
  */
 export function formatearCodigoOt(anio: number, correlativo: number): string {

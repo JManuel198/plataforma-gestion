@@ -79,6 +79,18 @@ export const DIGITOS_CORRELATIVO = 4;
 export const CORRELATIVO_INICIAL = 1;
 
 /**
+ * Ámbito del correlativo anual de OT en la tabla compartida `correlativo`
+ * (core/correlativo.ts, `reservarCorrelativoAnual`): la fila de cada año es
+ * `"ordenes-trabajo:<año>"`.
+ *
+ * NO SE RENOMBRA: la migración 0020 copió el contador que ya existía
+ * (`ot_correlativo`) a filas con este mismo texto. Cambiarlo haría que el año
+ * en curso arrancara de nuevo en `CORRELATIVO_INICIAL` y chocara con el
+ * UNIQUE de `codigo_ot`.
+ */
+export const CLAVE_CORRELATIVO_OT = "ordenes-trabajo";
+
+/**
  * Avisos que una Server Action deja en la URL al redirigir, para que el
  * listado pueda mostrar el toast de confirmación después de la navegación.
  */
