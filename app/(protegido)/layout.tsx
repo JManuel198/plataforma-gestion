@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { crmOcultoPara } from "@/core/visibilidad-crm";
 import { BarraLateral } from "@/components/barra-lateral";
 import { MigasDePan } from "@/components/migas-de-pan";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +31,10 @@ export default async function LayoutProtegido({
   const cookieStore = await cookies();
   const barraAbierta = cookieStore.get("sidebar_state")?.value !== "false";
 
+  // TEMPORAL (2026-09-25): el grupo CRM se oculta a los correos de
+  // `CRM_OCULTO_PARA` mientras está en construcción. Ver core/visibilidad-crm.ts.
+  const ocultarCrm = crmOcultoPara(sesion.user.email);
+
   return (
     // `flex-1` porque el <body> del layout raíz es `flex flex-col`: sin esto
     // el contenedor de la barra no estira hasta el alto completo.
@@ -37,6 +42,7 @@ export default async function LayoutProtegido({
       <BarraLateral
         nombreUsuario={sesion.user.nombre_completo}
         correoUsuario={sesion.user.email}
+        ocultarCrm={ocultarCrm}
       />
       <SidebarInset>
         {/* Cabecera: el disparador de la barra y las migas de pan. En móvil
@@ -49,7 +55,7 @@ export default async function LayoutProtegido({
             orientation="vertical"
             className="data-vertical:h-4 data-vertical:self-center"
           />
-          <MigasDePan />
+          <MigasDePan ocultarCrm={ocultarCrm} />
         </header>
         {/* `div` y no `main`: `SidebarInset` ya renderiza un <main>. */}
         <div className="flex-1 p-6">{children}</div>

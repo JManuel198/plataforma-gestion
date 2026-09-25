@@ -55,6 +55,12 @@ export type Seccion = {
    */
   encabezado?: string;
   enlaces: readonly Enlace[];
+  /**
+   * TEMPORAL (2026-09-25): la sección se quita del menú a los usuarios de
+   * `CRM_OCULTO_PARA` (ver core/visibilidad-crm.ts). Hoy solo la lleva CRM, y
+   * este campo desaparece junto con `menuVisible` cuando se retire.
+   */
+  ocultableTemporalmente?: true;
 };
 
 /**
@@ -110,6 +116,7 @@ export const MENU: readonly Seccion[] = [
     // Rutas planas igual que el resto: "CRM" es solo el encabezado del menú,
     // no un segmento de URL (nada de `/crm/clientes`).
     encabezado: "CRM",
+    ocultableTemporalmente: true,
     enlaces: [
       {
         href: "/oportunidades",
@@ -286,12 +293,26 @@ function SeccionBarra({
  * Con grupos, lo que se desvanece es solo el encabezado y los iconos siguen
  * siendo accesibles.
  */
+/**
+ * `MENU` sin las secciones ocultas a este usuario. La barra y las migas de pan
+ * lo usan igual, para que ninguna de las dos nombre algo que la otra esconde.
+ * TEMPORAL: ver `ocultableTemporalmente`.
+ */
+export function menuVisible(ocultarCrm: boolean): readonly Seccion[] {
+  return ocultarCrm
+    ? MENU.filter((seccion) => !seccion.ocultableTemporalmente)
+    : MENU;
+}
+
 export function BarraLateral({
   nombreUsuario,
   correoUsuario,
+  ocultarCrm,
 }: {
   nombreUsuario: string;
   correoUsuario: string;
+  /** TEMPORAL: ver core/visibilidad-crm.ts. Lo calcula el layout (servidor). */
+  ocultarCrm: boolean;
 }) {
   const pathname = usePathname();
 
@@ -326,7 +347,7 @@ export function BarraLateral({
         </SidebarHeader>
 
         <SidebarContent>
-          {MENU.map((seccion) => (
+          {menuVisible(ocultarCrm).map((seccion) => (
             // Sin `encabezado` la clave es la del primer enlace: las secciones
             // son una constante, no una lista que se reordene en runtime. La
             // clave tiene que ser estable: es lo que conserva el estado

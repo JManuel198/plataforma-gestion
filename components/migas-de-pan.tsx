@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRightIcon } from "lucide-react";
-import { MENU, esEnlaceActivo } from "@/components/barra-lateral";
+import { esEnlaceActivo, menuVisible } from "@/components/barra-lateral";
 
 /**
  * Migas de pan de la cabecera: "Catálogos maestros › Lista de precios".
@@ -31,10 +31,18 @@ import { MENU, esEnlaceActivo } from "@/components/barra-lateral";
  * en que se construyó esto). Es una lista ordenada con separadores y nada más;
  * si se instala `breadcrumb`, este es el sitio a cambiar.
  */
-export function MigasDePan() {
+export function MigasDePan({
+  ocultarCrm,
+}: {
+  /**
+   * TEMPORAL: ver core/visibilidad-crm.ts. Sin esto, el 404 de /clientes
+   * mostraría encima «CRM › Clientes» a quien no debe ver el grupo.
+   */
+  ocultarCrm: boolean;
+}) {
   const pathname = usePathname();
 
-  for (const seccion of MENU) {
+  for (const seccion of menuVisible(ocultarCrm)) {
     const enlace = seccion.enlaces.find(({ href }) =>
       esEnlaceActivo(pathname, href),
     );
