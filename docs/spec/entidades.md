@@ -1199,4 +1199,14 @@ conteo de contactos por empresa de la columna Contactos del listado de
 Empresas — mismo papel que `lista_precios_material_id_idx`).
 
 **Consume:** `empresas` (FK `empresa_id`). **Consumida por:** el módulo
-Contactos (en construcción).
+Contactos (`modules/contactos/`, pantalla en construcción) y el listado de
+Empresas, que cuenta los contactos de cada empresa en su columna Contactos.
+Ese conteo incluye **activos e inactivos** (decidido en el encargo del
+Bloque 3, 2026-09-25) y se hace en `modules/clientes/queries.ts` leyendo la
+tabla directamente, sin importar código de `modules/contactos/`.
+
+**Una FK violada se traduce, no se muestra cruda.** Si `empresa_id` no
+corresponde a ninguna empresa, la acción reconoce el choque con
+`esFkViolada(error, "contactos_empresa_id_empresas_id_fk")`
+(`core/errores-postgres.ts`) y lo cuelga del campo `empresa_id` con un
+mensaje legible. No hay SELECT previo: la FK es la garantía.

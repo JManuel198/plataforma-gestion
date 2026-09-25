@@ -47,11 +47,12 @@ trabaje en este código.
   de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY). La
   pantalla `/clientes` (título "Empresas") ya lista, busca, filtra por
   tipo, da de baja/reactiva, y crea y edita en el modal con la consulta de
-  RUC; el Bloque 2 está completo. La columna Contactos es un 0 fijo hasta
-  el Bloque 3. Contactos ya tiene esquema — `contactos`
-  (db/schema/contactos.ts, FK `empresa_id` → `empresas`, migración 0019,
-  aplicada en desarrollo (2026-09-25)) — pero aún no tiene código en
-  modules/. Embudo sigue siendo solo la entrada del menú y la ruta protegida
+  RUC; el Bloque 2 está completo. La columna Contactos cuenta ya los
+  contactos reales de cada empresa (activos e inactivos). Contactos tiene
+  esquema — `contactos` (db/schema/contactos.ts, FK `empresa_id` →
+  `empresas`, migración 0019, aplicada en desarrollo (2026-09-25)) — y
+  modules/contactos/ tiene actions, queries, schema (Zod) y filtros, pero
+  la pantalla `/contactos` sigue vacía (Partes 3 y 4 del bloque). Embudo sigue siendo solo la entrada del menú y la ruta protegida
   con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
