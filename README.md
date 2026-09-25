@@ -206,8 +206,12 @@ La pantalla de Inicio sigue siendo solo un título. No se le añaden funciones
 nuevas (atajos, resúmenes) hasta que el cliente las pida expresamente
 (decidido el 2026-09-24).
 
-Diferido a versiones futuras: generación de PDF, clientes/empresas con
-pantalla propia, CRM, proyectos, logística y asistencias.
+En construcción activa: el grupo CRM del menú — Clientes (Bloque 2),
+Contactos (Bloque 3) y Embudo de oportunidades (Bloque 4). Hoy solo existen
+sus rutas protegidas con un título.
+
+Diferido a versiones futuras: generación de PDF, proyectos, logística y
+asistencias.
 
 Ver `docs/spec/` para el alcance detallado y las preguntas de negocio todavía
 abiertas.
