@@ -1199,7 +1199,7 @@ conteo de contactos por empresa de la columna Contactos del listado de
 Empresas — mismo papel que `lista_precios_material_id_idx`).
 
 **Consume:** `empresas` (FK `empresa_id`). **Consumida por:** el módulo
-Contactos (`modules/contactos/`, pantalla en construcción) y el listado de
+Contactos (`modules/contactos/`, pantalla `/contactos` completa) y el listado de
 Empresas, que cuenta los contactos de cada empresa en su columna Contactos.
 Ese conteo incluye **activos e inactivos** (decidido en el encargo del
 Bloque 3, 2026-09-25) y se hace en `modules/clientes/queries.ts` leyendo la

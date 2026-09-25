@@ -14,6 +14,8 @@ import {
   useControlDetalle,
 } from "@/core/fila-clicable";
 import { oVacio } from "@/core/vista-detalle";
+import { cn } from "cn";
+import { actualizarContacto } from "../actions";
 import type { FilaContacto } from "../queries";
 import { AccionesContacto } from "./acciones-contacto";
 import { DialogoContacto } from "./dialogo-contacto";
@@ -58,9 +60,24 @@ export function FilaDeContacto({ contacto }: { contacto: FilaContacto }) {
             className="mt-0.5 size-4 shrink-0 text-muted-foreground"
           />
           <div className="min-w-0">
-            <p className="truncate" title={contacto.empresa_razon_social}>
-              {contacto.empresa_razon_social}
-            </p>
+            {/* Empresa dada de baja: atenuada y con el badge «Inactiva», el
+                mismo criterio que su selector en el formulario. El contacto
+                sigue asociado a ella a propósito (ver entidades.md); esto solo
+                lo hace visible. */}
+            <div className="flex min-w-0 items-center gap-2">
+              <p
+                className={cn(
+                  "truncate",
+                  !contacto.empresa_activo && "text-muted-foreground",
+                )}
+                title={contacto.empresa_razon_social}
+              >
+                {contacto.empresa_razon_social}
+              </p>
+              {contacto.empresa_activo ? null : (
+                <BadgeSituacion activo={false} etiquetaInactivo="Inactiva" />
+              )}
+            </div>
             {/* Una empresa extranjera no tiene RUC: el guion de "no tiene",
                 igual que en el listado de Empresas. */}
             <p className="font-mono text-xs text-muted-foreground tabular-nums">
@@ -84,7 +101,14 @@ export function FilaDeContacto({ contacto }: { contacto: FilaContacto }) {
       <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           <AccionesContacto contacto={contacto} control={control} />
-          <DialogoContacto control={control} contacto={contacto} />
+          {/* `actualizarContacto` recibe el `id` como primer argumento; `.bind`
+              lo fija aquí para que el modal vea la misma firma
+              `(formData) => …` que en el alta. */}
+          <DialogoContacto
+            guardarAction={actualizarContacto.bind(null, contacto.id)}
+            control={control}
+            contacto={contacto}
+          />
         </SinPropagacion>
       </TableCell>
     </TableRow>

@@ -331,7 +331,7 @@ comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
 Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
 lo usan varios módulos y ninguno puede importar de otro.
 
-Aplicado ya en los ocho listados que existen (los dos de Servicios y EPPs
+Aplicado ya en los nueve listados que existen (los dos de Servicios y EPPs
 son los fáciles: un solo control en la fila):
 
 | Listado | Fila | Vista | Modal | Lo interactivo de la fila |
@@ -344,6 +344,7 @@ son los fáciles: un solo control en la fila):
 | Servicios | `fila-servicio.tsx` | `vista-servicio.tsx` | `dialogo-servicio.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
 | EPPs | `fila-epp.tsx` | `vista-epp.tsx` | `dialogo-epp.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
 | Empresas (Clientes) | `fila-empresa.tsx` | `vista-empresa.tsx` | `dialogo-empresa.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesEmpresa`; el modal lleva además un `Select` y un combobox (portales) — ver `CampoPais` |
+| Contactos | `fila-contacto.tsx` | `vista-contacto.tsx` | `dialogo-contacto.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesContacto`; el modal lleva un `BuscadorSeleccion` de empresa (en el flujo, sin portal) |
 
 La máquina de estados se importa, nunca se copia.
 
@@ -472,10 +473,23 @@ qué muestra (`principalDe` / `secundarioDe`). No sabe qué es un material.
   Client Component.
 - **La consulta pone un `LIMIT`**, porque la lista se pinta entera.
   `buscarMaterialesParaSeleccion` usa 10.
-- **Solo ofrece registros activos.** Es regla de negocio, no comodidad: un
-  material inactivo está fuera del catálogo vigente y no puede ser el de una
-  oferta nueva. Lo ya creado sobre un material que luego se inactiva no se
-  toca.
+- **Qué registros ofrece lo decide la regla de negocio de cada caso, y la
+  consulta la aplica.** Material: solo activos — un material inactivo está
+  fuera del catálogo vigente y no puede ser el de una oferta nueva (lo ya
+  creado sobre uno que luego se inactiva no se toca). Empresa en Contactos
+  (2026-09-25): TODAS, activas e inactivas, por decisión confirmada — un
+  contacto puede pertenecer a una empresa dada de baja y al editarlo la suya
+  tiene que seguir elegible. Para ese segundo caso el componente acepta
+  `inactivoDe` (+ `etiquetaInactivo`): el resultado se pinta atenuado y con el
+  `BadgeSituacion` gris, en la lista y en la tarjeta del elegido, para que
+  asociar un registro de baja sea siempre una decisión a la vista. Si la
+  consulta ya filtra por `activo`, no se pasa.
+- **Si el módulo es dueño de la consulta, la acción se importa directa.** El
+  selector de empresa de Contactos lee la tabla `empresas` desde su propio
+  `queries.ts` (no código de `modules/clientes/`), así que
+  `listarEmpresasParaSelectorAction` se importa en `campos-contacto.tsx`, igual
+  que `buscarProveedoresAction`. El rodeo por prop de la página (abajo) es solo
+  para cuando la búsqueda vive en OTRO módulo.
 - **Cómo lo recibe un módulo que no es dueño de esos datos** — el caso
   importante: `modules/lista-precios/` NO importa de `modules/materiales/`. La
   acción llega como **prop desde la página**

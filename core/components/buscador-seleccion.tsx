@@ -4,6 +4,8 @@ import { SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "cn";
+import { BadgeSituacion } from "./badge-situacion";
 import { useBusquedaRemota } from "./busqueda-remota";
 
 /**
@@ -59,6 +61,17 @@ type Props<T> = {
   principalDe: (item: T) => string;
   /** Línea de contexto debajo, para distinguir dos resultados parecidos. */
   secundarioDe?: (item: T) => string;
+  /**
+   * Para las búsquedas que ofrecen también registros dados de baja (las
+   * empresas del formulario de Contactos): los que devuelvan `true` se pintan
+   * atenuados y con el `BadgeSituacion` gris, en la lista y en la tarjeta del
+   * elegido, para que no se asocie uno sin darse cuenta. Si se omite, todos se
+   * pintan igual — es lo normal cuando la consulta ya filtra por `activo`
+   * (Materiales).
+   */
+  inactivoDe?: (item: T) => boolean;
+  /** El texto del badge de inactivo: «Inactiva» para una empresa. */
+  etiquetaInactivo?: string;
   seleccionado: T | null;
   onSeleccionar: (item: T | null) => void;
   /**
@@ -79,6 +92,8 @@ export function BuscadorSeleccion<T>({
   claveDe,
   principalDe,
   secundarioDe,
+  inactivoDe,
+  etiquetaInactivo,
   seleccionado,
   onSeleccionar,
   name,
@@ -95,6 +110,25 @@ export function BuscadorSeleccion<T>({
     onSeleccionar(item);
   }
 
+  // La línea principal con la marca de inactivo, igual en la lista y en la
+  // tarjeta del elegido: es el mismo dato en los dos sitios.
+  function principal(item: T, clase: string) {
+    const inactivo = inactivoDe?.(item) ?? false;
+
+    return (
+      <span className="flex min-w-0 items-center gap-2">
+        <span
+          className={cn(clase, "truncate", inactivo && "text-muted-foreground")}
+        >
+          {principalDe(item)}
+        </span>
+        {inactivo ? (
+          <BadgeSituacion activo={false} etiquetaInactivo={etiquetaInactivo} />
+        ) : null}
+      </span>
+    );
+  }
+
   // Con algo ya elegido, el buscador desaparece y deja una tarjeta con lo
   // seleccionado: seguir mostrando la caja de búsqueda invitaría a teclear sin
   // que quede claro si eso cambia la elección o la pierde.
@@ -107,9 +141,7 @@ export function BuscadorSeleccion<T>({
           className="flex items-start justify-between gap-3 rounded-lg border bg-accent/40 px-3 py-2"
         >
           <div className="min-w-0 space-y-0.5">
-            <p className="truncate text-sm font-medium">
-              {principalDe(seleccionado)}
-            </p>
+            {principal(seleccionado, "text-sm font-medium")}
             {secundarioDe ? (
               <p className="truncate text-xs text-muted-foreground">
                 {secundarioDe(seleccionado)}
@@ -173,9 +205,7 @@ export function BuscadorSeleccion<T>({
                 className="w-full px-3 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                 onClick={() => elegir(item)}
               >
-                <span className="block truncate text-sm">
-                  {principalDe(item)}
-                </span>
+                {principal(item, "text-sm")}
                 {secundarioDe ? (
                   <span className="block truncate text-xs text-muted-foreground">
                     {secundarioDe(item)}

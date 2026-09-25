@@ -53,9 +53,10 @@ trabaje en este código.
   `empresas`, migración 0019, aplicada en desarrollo (2026-09-25)) — y
   modules/contactos/ tiene actions, queries, schema (Zod) y filtros. La
   pantalla `/contactos` ya lista, busca, filtra por inactivos, cuenta
-  activos/inactivos, da de baja/reactiva y abre la vista de detalle (Parte 3,
-  2026-09-25); falta solo el formulario de alta/edición (Parte 4), cuyo
-  modal hoy muestra un aviso de "en construcción". Embudo sigue siendo solo la entrada del menú y la ruta protegida
+  activos/inactivos, da de baja/reactiva, abre la vista de detalle y crea y
+  edita en el modal, con la empresa elegida por búsqueda en servidor (que
+  ofrece también las inactivas, marcadas); el Bloque 3 está completo
+  (2026-09-25). Embudo sigue siendo solo la entrada del menú y la ruta protegida
   con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
@@ -190,8 +191,8 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
-- Una fila de listado que abre su registro (hoy los ocho listados: Órdenes
-  de Trabajo, Personal, los cinco catálogos y Empresas, y los que vengan) sigue el
+- Una fila de listado que abre su registro (hoy los nueve listados: Órdenes
+  de Trabajo, Personal, los cinco catálogos, Empresas y Contactos, y los que vengan) sigue el
   patrón compartido de `core/fila-clicable.tsx`: tres modos
   —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
   con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que

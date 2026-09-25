@@ -69,6 +69,37 @@ práctica por qué la instrucción del propio auditor prohíbe citar AGENTS.md d
 memoria o de lo inyectado por el sistema: hay que releerlo con `Read` cada vez,
 incluso si el texto parece "ya visto" en el mismo turno.
 
+Checkpoint 4 (2026-09-25, rama `feature/crm-contactos`, diff sin commitear:
+`modules/contactos/components/campos-contacto.tsx` nuevo +
+`dialogo-contacto.tsx`/`fila-contacto.tsx`/`vista-contacto.tsx` +
+`app/(protegido)/contactos/page.tsx` + `core/components/buscador-seleccion.tsx`
++ docs — Parte 4, el formulario de alta/edición): APROBADO, sin hallazgos de
+ninguna severidad. `tsc --noEmit`, `npm run lint` y `npx playwright test` (los
+2 smoke tests preexistentes, que no cubren Contactos) en verde. El aviso "en
+construcción" del checkpoint 3 ya no existe en ningún modo. Verificado punto
+por punto: `exigirSesion()` fuera del `try` en las 3 acciones que ahora se
+llaman desde UI (`crearContacto`, `actualizarContacto`,
+`listarEmpresasParaSelectorAction`); Zod (`contactoDatosSchema`) sin
+`type="email"` ni `pattern` que lo dupliquen del lado del cliente (`correo`
+sin `type`, `celular` con `type="tel"` que no aplica ningún patrón); FK
+traducida con `esFkViolada(error, "contactos_empresa_id_empresas_id_fk")`
+colgada del campo `empresa_id`; `SinPropagacion` en `fila-contacto.tsx` sigue
+envolviendo `AccionesContacto` + `DialogoContacto` completos, ahora con un
+`BuscadorSeleccion` dentro del modal — sus resultados son `<button>` normales
+en un `<ul>`, sin portal, así que ni siquiera dependen de la red de
+`esClicDeLaFila`. `inactivoDe`/`etiquetaInactivo`, la prop nueva de
+`core/components/buscador-seleccion.tsx`, es opcional y no cambia el
+comportamiento de Lista de precios (que no la pasa): con `inactivoDe`
+`undefined`, `inactivo` es siempre `false`. El helper `Campo` local queda
+duplicado en `campos-empresa.tsx` y `campos-contacto.tsx` (dos copias, texto
+idéntico) — NO es un hallazgo: es la segunda copia, y la convención ya
+registrada en AGENTS.md/deuda técnica (regla de las tres copias) dice que se
+mueve a core/ recién a la tercera, no antes. Documentación
+(AGENTS.md, entidades.md, alcance-v2-servicios-ot.md, SKILL.md) actualizada
+en el mismo diff, coherente entre sí y con el código — cierra los dos MEDIO de
+staleness que había dejado el checkpoint 3. Con este checkpoint el Bloque 3
+(Contactos) queda completo.
+
 Ver también [[proyecto_core-antes-del-segundo-consumidor]] (paises.ts sigue
 sin moverse: `contactos` no tiene columna `pais`) y
 [[proyecto_crm-arranque-sin-actualizar-spec]].

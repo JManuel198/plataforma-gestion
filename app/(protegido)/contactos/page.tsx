@@ -6,6 +6,7 @@ import { EstadoVacio } from "@/core/components/estado-vacio";
 import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
 import { PaginacionListado } from "@/core/components/paginacion-listado";
 import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
+import { crearContacto } from "@/modules/contactos/actions";
 import { BuscadorContactos } from "@/modules/contactos/components/buscador-contactos";
 import { DialogoContacto } from "@/modules/contactos/components/dialogo-contacto";
 import { FiltroInactivos } from "@/modules/contactos/components/filtro-inactivos";
@@ -57,6 +58,7 @@ export default async function PaginaContactos({
   // independientes, no uno compartido.
   const nuevoContacto = (
     <DialogoContacto
+      guardarAction={crearContacto}
       disparador={
         <Button>
           <PlusIcon />
