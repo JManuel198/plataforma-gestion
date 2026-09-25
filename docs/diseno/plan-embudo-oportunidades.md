@@ -75,7 +75,7 @@ Estado: **aprobado**. Las decisiones marcadas como **[por defecto]** fueron toma
   - Búsqueda por oportunidad (título o código) o por cliente (razón social o nombre comercial).
   - Opciones rápidas, de selección única: Todas · Sin mover ≥7d · >$50k.
   - Desplegable Cliente: empresas con oportunidades. Por defecto, todos.
-  - Desplegable Valor: Todos · menos de $10k · $10k–$50k · $50k–$200k · más de $200k.
+  - Desplegable Valor: Todos · menos de $10k · de $10k a menos de $50k · de $50k a menos de $200k · $200k o más (límite inferior incluido, superior excluido). El botón ">$50k" filtra valores de $50k o más.
   - Los filtros de valor solo consideran oportunidades en dólares.
 - **Columnas:**
   - Arriba: número de la etapa, nombre y cantidad de tarjetas (ej. "02 Cotización 14").
@@ -226,3 +226,29 @@ Página completa, no modal. Sin título de módulo.
 - Flujos automáticos al cambiar de etapa (crear cotización, alertas, etc.). Dependen del módulo de Cotizaciones.
 - Roles y permisos sobre las acciones críticas.
 - Origen automático del valor y la probabilidad.
+
+---
+
+# Decisiones posteriores
+
+Tomadas después de aprobar el plan, al revisar el mockup.
+
+- **Búsqueda:** encuentra por título o código de la oportunidad, y por razón social o nombre comercial de la empresa.
+- **Tabla, columna Acciones:** es un menú "…" con Abrir, Marcar perdida y Anular. Si la oportunidad está perdida o anulada, muestra Abrir y Reabrir.
+- **Etiqueta de estado:** una oportunidad abierta muestra su etapa (incluido Finalizado); una cerrada muestra "Perdida" o "Anulada".
+- **Aviso de cierre:** el detalle de una oportunidad perdida o anulada muestra un aviso con fecha, etapa en la que estaba y motivo.
+- **Finalizado no se puede marcar perdida** (convertiría un negocio ganado en perdido y alteraría la tasa de cierre), pero sí anular. Aplica en el detalle, en el menú "…" de la Tabla y en el diálogo de la papelera del kanban, donde solo aparece Anular.
+- **Reloj de días:** marcar perdida, anular y reabrir no lo reinician; solo lo reinicia un cambio de etapa.
+- **Orden de la Tabla:** por etapa y luego por fecha estimada de cierre.
+- **Días en las tarjetas:** se muestran en rojo desde 7.
+- **Historial del detalle:** muestra un contador "N registros".
+- **Actividad:** el campo de texto se llama "Descripción".
+- **Nombres:** el menú lateral y las migas de pan siguen como hoy (grupo "CRM", ítem "Embudo de oportunidades"). "CRM Comercial" es solo el título de la cabecera de la página. Hay precedente: el ítem "Clientes" abre la página "Empresas".
+
+## Resoluciones tras comparar el mockup (2026-09-25)
+
+- **Migas de pan del detalle:** en `/oportunidades/[id]` muestran un tercer nivel con el código de la oportunidad (`CRM › Embudo de oportunidades › OPT.CCM.2026.00006`), y el segundo nivel es un enlace de vuelta al embudo. "CRM" **no** es enlace: no hay página de aterrizaje para el grupo, y enlazarlo a uno de sus tres módulos sería arbitrario y confuso. Es el primer módulo con página de detalle en ruta propia, así que el componente compartido de migas de pan se amplía para aceptar un tercer nivel dinámico; los demás módulos (que usan modal) no se ven afectados.
+- **Etiqueta en la Tabla:** la columna Etapa muestra la etapa en su color y, al lado, "Perdida" o "Anulada" cuando corresponda. La cabecera del detalle (sección 6) sigue con una sola etiqueta: la etapa si está abierta, o "Perdida"/"Anulada" si está cerrada.
+- **"Días sin mover" en la Tabla:** muestra "—" para Finalizadas, Perdidas y Anuladas, porque esa métrica solo tiene sentido mientras la oportunidad sigue en movimiento.
+- **Filtro "Sin mover ≥7d":** en la Tabla queda deshabilitado (no seleccionable) cuando el filtro de estado es distinto de "Activas". Si estaba seleccionado al cambiar de estado, vuelve a "Todas".
+- **Aviso de cierre del detalle:** incluye fecha y hora, además de la etapa y el motivo.

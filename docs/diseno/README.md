@@ -27,3 +27,25 @@ Los datos (materiales, proveedor, usuario «Ana Ramírez») son ficticios.
 
 Lo que el mockup no cubre (login, Inicio, Órdenes de Trabajo, el resto de
 catálogos) se diseña extendiendo estos mismos patrones.
+
+## `embudo-oportunidades.html`
+
+Mockup del módulo **Embudo de oportunidades** (CRM), escrito a mano: HTML,
+CSS y JavaScript legibles, sin backend (datos de ejemplo e interacción
+simulada). A diferencia de `mockups.html`, carga las fuentes Geist desde
+Google Fonts. Las pantallas se recorren con el botón «Pantallas del mockup» o
+las rutas `#/embudo`, `#/tabla` y `#/oportunidad/6`: kanban, arrastre con la
+papelera, confirmación de cambio de etapa, diálogo de perdida/anulada, modal
+«Nueva oportunidad», detalle abierto y perdido, y vista Tabla.
+
+La especificación del módulo es `docs/spec/oportunidades.md`. Una diferencia
+conocida: en la Tabla, el mockup deja «Sin mover ≥7d» seleccionable con
+cualquier estado, pero la especificación lo deshabilita fuera de «Activas»
+y, si estaba seleccionado, lo reinicia a «Todas».
+
+## `plan-embudo-oportunidades.md`
+
+Plan aprobado del módulo: la Parte A (qué se construye) con sus decisiones
+posteriores, recogida ya en `docs/spec/oportunidades.md`, y la Parte B, el
+orden de trabajo por partes. Ante una diferencia en reglas, manda la
+especificación.

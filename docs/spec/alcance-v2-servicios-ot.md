@@ -131,7 +131,7 @@ Se proponen distintos a los de Servicio a propósito: los de Servicio son admini
 - Cotización formal con PDF y revisiones
 - Numeración oficial de Cotización y Revisión (hoy son campos de texto manual)
 - Dentro de cada OT: planteamiento, requerimientos de materiales, cotización asociada, archivos adjuntos — explícitamente mencionados por el cliente como próximos pasos
-- Embudo de oportunidades (kanban) y flujo de aprobación. **Se decidió avanzar con el embudo (2026-09-24):** Bloque 4 del grupo CRM; hoy solo existe la ruta vacía `/oportunidades`. El flujo de aprobación no forma parte de esa decisión.
+- Embudo de oportunidades (kanban) y flujo de aprobación. **Se decidió avanzar con el embudo (2026-09-24):** Bloque 4 del grupo CRM; estado al 2026-09-25: especificado en `oportunidades.md`, todavía sin tabla ni código (solo existe la ruta `/oportunidades` con su título). El flujo de aprobación no forma parte de esa decisión.
 
 ---
 

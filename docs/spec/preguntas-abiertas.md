@@ -772,3 +772,57 @@ cada punto.
       RUC, así que ese campo nunca se sugiere. `actividad_economica` sí se
       sugiere como `descripcion_rubro`, y solo la consulta avanzada
       (`/ruc/full`) trae el tipo de contribuyente — es la que se usa.
+
+## Embudo de oportunidades (CRM, especificado el 2026-09-25)
+
+Especificación en `oportunidades.md`. El módulo todavía no tiene tabla ni
+código.
+
+26. **¿De dónde saldrán el valor estimado y la probabilidad cuando exista el
+    módulo de Cotizaciones?** Hoy se fijan al crear la oportunidad (valor por
+    defecto 0, probabilidad por defecto 0) y **no se editan después**. La
+    hipótesis del plan es que el valor pase a ser la suma de las cotizaciones
+    vinculadas, pero no está confirmada, y de la probabilidad no hay ninguna.
+    Mientras tanto no se construye ninguna edición de esos dos campos: si
+    se añadiera ahora, habría que retirarla o reconciliarla con el origen
+    automático.
+
+27. **Flujos automáticos por etapa (Cotización y otras, a definir).** No se
+    construyen hasta que exista el módulo de Cotizaciones. Hoy el cambio de
+    etapa pasa por una única acción del backend, sin efectos secundarios, con
+    un punto de enganche comentado para ellos. El único definido es el de
+    Cotización: al mover una oportunidad a Cotización **sin ninguna
+    cotización vinculada**, aparecerá una alerta con este contenido:
+    - Mensaje: "Para mover esta oportunidad a Cotización debe existir al
+      menos una cotización vinculada al cliente *CLIENTE*" (el nombre del
+      cliente en cursiva).
+    - Debajo: "Oportunidad OPT.CCM.AAAA.NNNNN · Título".
+    - Debajo: el contacto.
+    - Botones: Cancelar · Vincular existente · Crear.
+
+    Qué otras etapas tendrán flujo, y cuál, está sin definir.
+
+28. **¿Qué pasa si una oportunidad se crea directamente en una etapa que
+    tendrá flujo automático?** Hoy se puede crear en cualquiera de las seis
+    etapas. Un flujo que se dispara al *mover* a una etapa no se dispara al
+    *crear* en ella, porque no hay transición. Hay que decidir, antes de
+    construir el primer flujo, si la creación en esa etapa lo dispara
+    también, se prohíbe o se permite sin él.
+
+29. **Acciones críticas pendientes de permisos.** Hoy cualquier usuario con
+    sesión puede hacerlas todas. Cuando existan los roles, hay que decidir
+    quién puede: **mover de etapa, marcar perdida, anular, reabrir y
+    editar** (título, contacto y fecha estimada de cierre). La etiqueta
+    "Solo lo mío" no cambia con los roles: es fija y nunca filtra.
+
+30. **Decisiones tomadas por defecto** (marcadas **[por defecto]** en
+    `oportunidades.md`), sin indicación explícita del cliente:
+    - La fecha estimada de cierre es opcional; las oportunidades sin fecha
+      van al final de su columna del kanban y de su etapa en la Tabla.
+    - Las actividades no se editan ni se borran (se revisa con los roles).
+    - La cantidad y los totales de la cabecera cambian con los filtros; la
+      tasa de cierre es global e histórica, sin filtros.
+    - En la línea de etapas del detalle, las etapas futuras se pintan solo
+      con contorno.
+    - Al guardar una oportunidad nueva, el modal se cierra, aparece un aviso
+      y la tarjeta se muestra en su columna sin recargar.

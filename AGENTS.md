@@ -56,8 +56,19 @@ trabaje en este código.
   activos/inactivos, da de baja/reactiva, abre la vista de detalle y crea y
   edita en el modal, con la empresa elegida por búsqueda en servidor (que
   ofrece también las inactivas, marcadas); el Bloque 3 está completo
-  (2026-09-25). Embudo sigue siendo solo la entrada del menú y la ruta protegida
-  con su título, sin tabla ni código en modules/. No es
+  (2026-09-25). Embudo de oportunidades está **especificado** en
+  docs/spec/oportunidades.md (2026-09-25; guía visual en
+  docs/diseno/embudo-oportunidades.html, orden de trabajo en
+  docs/diseno/plan-embudo-oportunidades.md), pero **todavía sin tabla ni
+  código**: sigue siendo solo la entrada del menú y la ruta protegida con su
+  título. Dos cambios previstos fuera del módulo: (1) la Parte 3 del plan
+  moverá a core/ la lógica de correlativo anual de Órdenes de Trabajo
+  (Oportunidades es su segundo consumidor), **sin cambiar en nada la
+  numeración de las OT**, en un commit propio; (2) el componente compartido
+  de migas de pan (components/migas-de-pan.tsx) se ampliará para aceptar un
+  tercer nivel dinámico — hoy solo lo usará la página de detalle
+  `/oportunidades/[id]`, el primer módulo con detalle en ruta propia; los
+  demás siguen con modal y no se ven afectados. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
   etiquetas del menú).
@@ -125,9 +136,9 @@ trabaje en este código.
 - docs/spec/ — especificación de negocio capturada de la plataforma guía.
   Fuente de verdad antes que el código: ante cualquier duda sobre una
   regla de negocio, se consulta aquí primero, nunca se asume.
-- docs/diseno/ — mockups de interfaz (hoy, Lista de precios), como guía
-  visual de los listados. Nunca es spec: en datos y reglas manda
-  docs/spec/.
+- docs/diseno/ — mockups de interfaz (hoy, Lista de precios y Embudo de
+  oportunidades), como guía visual de los listados, más el plan del Embudo.
+  Nunca es spec: en datos y reglas manda docs/spec/.
 - db/schema/ — definiciones de tablas en Drizzle.
 - db/migrations/ — migraciones generadas por Drizzle. Nunca se editan a mano.
 
