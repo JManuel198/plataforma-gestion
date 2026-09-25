@@ -38,7 +38,7 @@ export const empresas = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    // Formato `CLT-0001`, autogenerado por el correlativo genérico de
+    // Formato `CLT.0001`, autogenerado por el correlativo genérico de
     // `core/correlativo.ts` (ámbito `"empresas"` en la tabla compartida
     // `correlativo`) — el usuario nunca lo escribe. `NOT NULL` porque lo pone
     // siempre el backend; `UNIQUE` como red de seguridad del contador, mismo
