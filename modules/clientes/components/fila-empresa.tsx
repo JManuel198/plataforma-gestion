@@ -59,10 +59,10 @@ export function FilaDeEmpresa({ empresa }: { empresa: FilaEmpresa }) {
         <BadgeTipo tipo={empresa.tipo} />
       </TableCell>
       <TableCell>{oVacio(empresa.distrito)}</TableCell>
-      {/* FIJO EN 0 hasta el Bloque 3: el módulo Contactos no existe todavía y
-          no hay tabla que contar. Cuando exista, el número llega de la
-          consulta del listado (un conteo agrupado), nunca calculado aquí. */}
-      <TableCell className={CLASE_CIFRA}>0</TableCell>
+      {/* Contactos activos e inactivos de la empresa. El número llega ya
+          contado de la consulta del listado (`columnasListado` en
+          queries.ts), nunca calculado aquí. */}
+      <TableCell className={CLASE_CIFRA}>{empresa.contactos}</TableCell>
       <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
           <AccionesEmpresa empresa={empresa} control={control} />

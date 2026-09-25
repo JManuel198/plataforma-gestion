@@ -47,10 +47,17 @@ trabaje en este código.
   de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY). La
   pantalla `/clientes` (título "Empresas") ya lista, busca, filtra por
   tipo, da de baja/reactiva, y crea y edita en el modal con la consulta de
-  RUC; el Bloque 2 está completo. La columna Contactos es un 0 fijo hasta
-  el Bloque 3. Contactos y Embudo siguen siendo solo la
-  entrada del menú y
-  la ruta protegida con su título, sin tabla ni código en modules/. No es
+  RUC; el Bloque 2 está completo. La columna Contactos cuenta ya los
+  contactos reales de cada empresa (activos e inactivos). Contactos tiene
+  esquema — `contactos` (db/schema/contactos.ts, FK `empresa_id` →
+  `empresas`, migración 0019, aplicada en desarrollo (2026-09-25)) — y
+  modules/contactos/ tiene actions, queries, schema (Zod) y filtros. La
+  pantalla `/contactos` ya lista, busca, filtra por inactivos, cuenta
+  activos/inactivos, da de baja/reactiva, abre la vista de detalle y crea y
+  edita en el modal, con la empresa elegida por búsqueda en servidor (que
+  ofrece también las inactivas, marcadas); el Bloque 3 está completo
+  (2026-09-25). Embudo sigue siendo solo la entrada del menú y la ruta protegida
+  con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
   etiquetas del menú).
@@ -220,8 +227,8 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
-- Una fila de listado que abre su registro (hoy los ocho listados: Órdenes
-  de Trabajo, Personal, los cinco catálogos y Empresas, y los que vengan) sigue el
+- Una fila de listado que abre su registro (hoy los nueve listados: Órdenes
+  de Trabajo, Personal, los cinco catálogos, Empresas y Contactos, y los que vengan) sigue el
   patrón compartido de `core/fila-clicable.tsx`: tres modos
   —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
   con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que

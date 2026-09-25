@@ -134,6 +134,13 @@
       "when": 1790311345338,
       "tag": "0018_hot_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790347182931,
+      "tag": "0019_peaceful_maximus",
+      "breakpoints": true
     }
   ]
 }
