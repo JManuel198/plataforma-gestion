@@ -102,6 +102,12 @@ larga) y `BETTER_AUTH_URL` (la URL base, `http://localhost:3000` en local).
 `lib/auth.ts` no los pasa de forma explícita: Better Auth los lee del
 entorno por su nombre.
 
+Opcional y temporal: `CRM_OCULTO_PARA`, una lista de correos separados por
+comas a los que no se les muestran los módulos del CRM aún en construcción
+(hoy Contactos y Embudo de oportunidades; Clientes lo ven todos). Sin ella,
+todos lo ven todo. Se retira cuando esos módulos se aprueben (ver
+`AGENTS.md`, "Excepción en curso — CRM").
+
 3. Verificar que la conexión a la base de datos funciona:
 
 ```

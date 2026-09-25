@@ -6,6 +6,7 @@ import { EstadoVacio } from "@/core/components/estado-vacio";
 import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
 import { PaginacionListado } from "@/core/components/paginacion-listado";
 import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
+import { exigirCrmVisible } from "@/core/visibilidad-crm";
 import { crearContacto } from "@/modules/contactos/actions";
 import { BuscadorContactos } from "@/modules/contactos/components/buscador-contactos";
 import { DialogoContacto } from "@/modules/contactos/components/dialogo-contacto";
@@ -34,6 +35,10 @@ export const metadata = { title: "Contactos" };
 export default async function PaginaContactos({
   searchParams,
 }: PageProps<"/contactos">) {
+  // TEMPORAL: esta pantalla da 404 a los correos de CRM_OCULTO_PARA mientras
+  // el módulo esté en construcción (core/visibilidad-crm.ts).
+  await exigirCrmVisible();
+
   const { busqueda, inactivos, pagina } = await searchParams;
 
   // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro

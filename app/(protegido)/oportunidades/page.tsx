@@ -1,4 +1,5 @@
 import { CabeceraListado } from "@/core/components/cabecera-listado";
+import { exigirCrmVisible } from "@/core/visibilidad-crm";
 
 // Ruta plana a propósito: el encabezado "CRM" bajo el que aparece este enlace
 // es solo una etiqueta del menú y nunca entra en la URL. El porqué está en
@@ -11,6 +12,10 @@ export const metadata = { title: "Embudo de oportunidades" };
  * "próximamente" indefinido — ese patrón se retiró del resto del menú — sino
  * la ruta ya protegida por el layout, lista para llenarse.
  */
-export default function PaginaOportunidades() {
+export default async function PaginaOportunidades() {
+  // TEMPORAL: esta pantalla da 404 a los correos de CRM_OCULTO_PARA mientras
+  // el módulo esté en construcción (core/visibilidad-crm.ts).
+  await exigirCrmVisible();
+
   return <CabeceraListado titulo="Embudo de oportunidades" />;
 }
