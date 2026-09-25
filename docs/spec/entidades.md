@@ -3,6 +3,12 @@
 Refleja lo que existe de verdad en `db/schema/`. Si el esquema cambia, este
 documento cambia con él.
 
+Fuera de alcance, a propósito: las tablas internas de Better Auth
+(`session`, `account`, `verification`, en `db/schema/auth.ts`). Las gestiona
+la librería, ninguna regla de negocio las toca y ningún módulo las lee ni las
+escribe. De Better Auth solo se describe `user` (sección Usuario), que sí
+tiene columnas propias del proyecto.
+
 ---
 
 ## Servicio — fusionada en Orden de Trabajo (2026-09-19)

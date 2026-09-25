@@ -32,7 +32,9 @@ export function FiltroSoloInactivos<F extends { inactivos?: boolean }>({
 
   return (
     // El `<label>` envuelve al interruptor: es lo que le da nombre accesible
-    // (ver components/ui/switch.tsx) y hace clicable también el texto.
+    // (el `Switch` de Base UI renderiza un `<span role="switch">` más un
+    // `<input type="checkbox">` oculto, y resuelve su `aria-labelledby` a partir
+    // del `<label>` que los envuelve) y hace clicable también el texto.
     <label className="flex cursor-pointer items-center gap-2 text-sm whitespace-nowrap">
       <Switch
         checked={Boolean(filtros.inactivos)}
