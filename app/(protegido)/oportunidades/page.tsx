@@ -13,7 +13,8 @@ export const metadata = { title: "Embudo de oportunidades" };
  * la ruta ya protegida por el layout, lista para llenarse.
  */
 export default async function PaginaOportunidades() {
-  // TEMPORAL: 404 para quien tiene el CRM oculto (core/visibilidad-crm.ts).
+  // TEMPORAL: esta pantalla da 404 a los correos de CRM_OCULTO_PARA mientras
+  // el módulo esté en construcción (core/visibilidad-crm.ts).
   await exigirCrmVisible();
 
   return <CabeceraListado titulo="Embudo de oportunidades" />;

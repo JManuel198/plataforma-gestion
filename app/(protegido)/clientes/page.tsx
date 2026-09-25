@@ -6,7 +6,6 @@ import { EstadoVacio } from "@/core/components/estado-vacio";
 import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
 import { PaginacionListado } from "@/core/components/paginacion-listado";
 import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
-import { exigirCrmVisible } from "@/core/visibilidad-crm";
 import { crearEmpresa } from "@/modules/clientes/actions";
 import { BuscadorEmpresas } from "@/modules/clientes/components/buscador-empresas";
 import { DialogoEmpresa } from "@/modules/clientes/components/dialogo-empresa";
@@ -41,9 +40,6 @@ export const metadata = { title: "Empresas" };
 export default async function PaginaEmpresas({
   searchParams,
 }: PageProps<"/clientes">) {
-  // TEMPORAL: 404 para quien tiene el CRM oculto (core/visibilidad-crm.ts).
-  await exigirCrmVisible();
-
   const { busqueda, tipo, inactivos, pagina } = await searchParams;
 
   // Todo lo que viene de la URL pasa por Zod antes de usarse: un parámetro
