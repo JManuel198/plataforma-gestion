@@ -1,12 +1,8 @@
-import {
-  DIGITOS_CORRELATIVO_EMPRESA,
-  PREFIJO_EMPRESA,
-  SEPARADOR_CODIGO_EMPRESA,
-} from "./constantes";
+import { DIGITOS_CORRELATIVO_EMPRESA, PREFIJO_EMPRESA } from "./constantes";
 
 /**
  * Arma el código visible de una empresa a partir del correlativo ya reservado:
- * `1` → `"CLT-0001"`.
+ * `1` → `"CLT.0001"`.
  *
  * Es solo el formateo. Quién decide ese número —y cómo evita que dos empresas
  * creadas a la vez reciban el mismo— vive en `reservarCorrelativo`
@@ -15,5 +11,8 @@ import {
  */
 export function formatearCodigoEmpresa(correlativo: number): string {
   const numero = String(correlativo).padStart(DIGITOS_CORRELATIVO_EMPRESA, "0");
-  return `${PREFIJO_EMPRESA}${SEPARADOR_CODIGO_EMPRESA}${numero}`;
+  // El punto va en la plantilla, igual que `formatearCodigoMaterial` y el
+  // resto de catálogos: el separador es el mismo en todo el sistema, no una
+  // pieza configurable de cada módulo.
+  return `${PREFIJO_EMPRESA}.${numero}`;
 }

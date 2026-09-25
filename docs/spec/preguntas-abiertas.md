@@ -740,7 +740,8 @@ cada punto.
     - `tipo` — **Resuelto (2026-09-25): `NOT NULL` y sin default.** El
       usuario lo elige siempre; ningún valor se asume.
     - `pais` — **Resuelto (2026-09-25): DEFAULT `'PE'`**, columna nullable.
-    - Formato del código: `CLT-0001` arranca en 1 y tiene 4 dígitos, como
+    - Formato del código: `CLT.0001` (con punto desde la corrección del
+      2026-09-25; nació con guion por error) arranca en 1 y tiene 4 dígitos, como
       pidió el encargo; más de 9 999 empresas desordenaría el listado por
       código (ver la ficha en entidades.md).
 

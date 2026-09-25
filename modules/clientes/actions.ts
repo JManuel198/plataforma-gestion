@@ -85,7 +85,7 @@ function erroresDeValidacion(error: z.ZodError): EstadoFormulario {
  * Alta de una empresa.
  *
  * `codigo` no viene del formulario: lo emite aquí el correlativo global
- * (`CLT-0001`). `activo` no se escribe: la columna tiene `DEFAULT true`. `pais`
+ * (`CLT.0001`). `activo` no se escribe: la columna tiene `DEFAULT true`. `pais`
  * en blanco ya llega como `'PE'` desde `empresaDatosSchema`.
  */
 export async function crearEmpresa(

@@ -145,7 +145,7 @@ export async function listarEmpresas(
       .where(condicionesListado(filtros))
       // Por código, que es además el orden de alta. Con ancho fijo de 4
       // dígitos el orden alfabético coincide con el numérico hasta
-      // `CLT-9999` (ver constantes.ts). Único y obligatorio: orden estable
+      // `CLT.9999` (ver constantes.ts). Único y obligatorio: orden estable
       // para paginar.
       .orderBy(asc(empresas.codigo))
       .limit(pagina.limite)

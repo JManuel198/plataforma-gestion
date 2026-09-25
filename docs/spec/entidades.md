@@ -208,7 +208,7 @@ migración es la prueba de que la generalización era la correcta:
 | `"servicios"` | `SRV.0000001` — prefijo `SRV.`, 7 dígitos | `servicios.codigo` (Bloque 14, Parte 1) |
 | `"tarifario_personal"` | `PRS.0001` — prefijo `PRS.`, **4 dígitos** (no 7) | `tarifario_personal.codigo` (Bloque 15, Parte 1) |
 | `"epps"` | `EPP.000001` — prefijo `EPP.`, **6 dígitos** (ni 7 ni 4) | `epps.codigo` (Bloque 16, Parte 1) |
-| `"empresas"` | `CLT-0001` — prefijo `CLT`, separador **`-`** (no `.`), 4 dígitos | `empresas.codigo` (CRM, Bloque 2) |
+| `"empresas"` | `CLT.0001` — prefijo `CLT.`, 4 dígitos | `empresas.codigo` (CRM, Bloque 2) |
 
 Los seis son globales y sin año. Cada módulo declara sus propias
 constantes (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
@@ -1063,7 +1063,7 @@ misma fila puede ser cliente, proveedor o las dos cosas (`tipo`).
 | Columna | Tipo en la BD | Obligatorio | Cómo se llena |
 |---|---|---|---|
 | `id` | `text` (PK, UUID) | sí | automático |
-| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `CLT-0001`, correlativo global (ámbito `"empresas"`) |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `CLT.0001`, correlativo global (ámbito `"empresas"`) |
 | `razon_social` | `text` | **sí** | manual o SUNAT (Decolecta) |
 | `nombre_comercial` | `text` | no | manual o SUNAT |
 | `nombre_corto` | `text` | no | manual |
@@ -1094,13 +1094,25 @@ Son tres campos independientes y ninguno se deriva de otro.**
   nunca `estado`.
 
 **`codigo` usa el correlativo genérico, ámbito `"empresas"`.** Formato
-`CLT-0001`: prefijo `CLT`, separador `-` (el único ámbito que no usa `.`) y 4
+`CLT.0001`: prefijo `CLT`, separador `.` como todos los demás ámbitos, y 4
 dígitos, reservado atómicamente por `reservarCorrelativo`
 (`core/correlativo.ts`) en la misma transacción que el `INSERT`. `NOT NULL`
 porque lo pone siempre el backend; `UNIQUE` (`empresas_codigo_unique`) como
 red de seguridad. Constantes en `modules/clientes/constantes.ts`. Mismo límite
 asumido de 4 dígitos que `PRS.`: el orden alfabético coincide con el numérico
-solo hasta `CLT-9999`.
+solo hasta `CLT.9999`.
+
+**Corrección de formato (2026-09-25), no una convención nueva.** El código
+nació como `CLT-0001`, con guion: era el único ámbito del correlativo que no
+usaba punto, y eso era un error, no una decisión. Se corrigió a `CLT.0001`
+(`modules/clientes/codigo.ts`, que ahora escribe el punto en la plantilla igual
+que `formatearCodigoMaterial`; la constante `SEPARADOR_CODIGO_EMPRESA`
+desapareció). No hizo falta migración: `empresas.codigo` no tiene CHECK de
+formato y el Zod no lo valida, porque lo genera el backend. En la base de
+desarrollo, la única empresa real (AZUMA FOODS, entonces `CLT-0002`) se borró y
+se volvió a crear con `crearEmpresa` y los mismos datos tras reiniciar a 0 el
+contador de la clave `"empresas"`, así que hoy es `CLT.0001`. Las empresas de
+prueba `PRB-` y sus contactos se borraron en el mismo paso.
 
 **`ruc`: `text`, UNIQUE (`empresas_ruc_unique`) y CHECK de 11 dígitos
 (`empresas_ruc_formato_check`).** `text` y no numérico por lo mismo que
@@ -1162,7 +1174,7 @@ Migración `0019_peaceful_maximus.sql`, aplicada en desarrollo (2026-09-25).
 | `activo` | `boolean` DEFAULT `true` | sí | **propio del módulo** — baja lógica |
 | `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
 
-**Sin código autogenerado.** A diferencia de `empresas.codigo` (`CLT-0001`) o
+**Sin código autogenerado.** A diferencia de `empresas.codigo` (`CLT.0001`) o
 de los catálogos, Contactos no tiene correlativo: el módulo no lo necesita y
 no consume la tabla `correlativo`.
 
