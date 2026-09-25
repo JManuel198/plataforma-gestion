@@ -1,11 +1,14 @@
-import { Building2Icon, SearchXIcon } from "lucide-react";
+import { Building2Icon, PlusIcon, SearchXIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CabeceraListado } from "@/core/components/cabecera-listado";
 import { ContadorRegistros } from "@/core/components/contador-registros";
 import { EstadoVacio } from "@/core/components/estado-vacio";
 import { LimpiarFiltros } from "@/core/components/limpiar-filtros";
 import { PaginacionListado } from "@/core/components/paginacion-listado";
 import { calcularPaginacion, paginaSchema } from "@/core/paginacion";
+import { crearEmpresa } from "@/modules/clientes/actions";
 import { BuscadorEmpresas } from "@/modules/clientes/components/buscador-empresas";
+import { DialogoEmpresa } from "@/modules/clientes/components/dialogo-empresa";
 import { FiltroInactivos } from "@/modules/clientes/components/filtro-inactivos";
 import { FiltroTipo } from "@/modules/clientes/components/filtro-tipo";
 import { TablaEmpresas } from "@/modules/clientes/components/tabla-empresas";
@@ -65,18 +68,30 @@ export default async function PaginaEmpresas({
       ? (await contarEmpresas(true)) > 0
       : false;
 
+  // El mismo disparador para la cabecera y el estado vacío: dos modales
+  // independientes, no uno compartido.
+  const nuevaEmpresa = (
+    <DialogoEmpresa
+      guardarAction={crearEmpresa}
+      disparador={
+        <Button>
+          <PlusIcon />
+          Nueva empresa
+        </Button>
+      }
+    />
+  );
+
   const limpiar = (
     <LimpiarFiltros href={urlListado()} cantidad={filtrosPuestos} />
   );
 
   return (
     <div className="space-y-6">
-      {/* Sin botón de alta todavía: el formulario de creación llega en la
-          Parte 4. Cuando llegue, va como `accion` aquí y en el estado vacío,
-          igual que "Nuevo material". */}
       <CabeceraListado
         titulo="Empresas"
         descripcion="Directorio unificado de clientes y proveedores"
+        accion={nuevaEmpresa}
       />
 
       {/* Cada control recibe los filtros completos, no solo el suyo: así el
@@ -130,12 +145,14 @@ export default async function PaginaEmpresas({
           Icono={Building2Icon}
           titulo="No hay empresas activas"
           descripcion="Todas las empresas están dadas de baja. Puedes verlas y reactivarlas con «Ver solo inactivas»."
+          accion={nuevaEmpresa}
         />
       ) : (
         <EstadoVacio
           Icono={Building2Icon}
           titulo="Aún no hay empresas registradas"
           descripcion="Cuando registres la primera empresa, aparecerá aquí."
+          accion={nuevaEmpresa}
         />
       )}
     </div>

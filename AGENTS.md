@@ -46,9 +46,9 @@ trabaje en este código.
   modules/clientes/ ya tiene actions, queries, schema (Zod) y la consulta
   de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY). La
   pantalla `/clientes` (título "Empresas") ya lista, busca, filtra por
-  tipo, abre la vista de detalle y da de baja/reactiva; todavía SIN alta,
-  edición ni botón "Consultar RUC" (Parte 4), y la columna Contactos es
-  un 0 fijo hasta el Bloque 3. Contactos y Embudo siguen siendo solo la
+  tipo, da de baja/reactiva, y crea y edita en el modal con la consulta de
+  RUC; el Bloque 2 está completo. La columna Contactos es un 0 fijo hasta
+  el Bloque 3. Contactos y Embudo siguen siendo solo la
   entrada del menú y
   la ruta protegida con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente

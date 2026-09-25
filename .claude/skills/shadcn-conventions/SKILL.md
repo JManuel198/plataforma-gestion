@@ -16,10 +16,12 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   construyas a mano, y nunca escribas CSS custom sin justificarlo en el propio
   archivo (regla 5 de AGENTS.md).
 - Instalados hoy: `alert-dialog`, `avatar`, `badge`, `button`, `card`, `collapsible`,
-  `dialog`, `input`, `label`, `select`, `separator`, `sheet`, `sidebar`,
-  `skeleton`, `sonner`, `table`, `textarea`, `tooltip`. Cualquier otro hay que
-  agregarlo. `collapsible` entró en el Bloque 11, para plegar las secciones de
-  la barra lateral.
+  `combobox`, `dialog`, `input`, `input-group`, `label`, `select`, `separator`,
+  `sheet`, `sidebar`, `skeleton`, `sonner`, `switch`, `table`, `textarea`,
+  `tooltip`. Cualquier otro hay que agregarlo. `collapsible` entró en el Bloque
+  11, para plegar las secciones de la barra lateral. `combobox` (con su
+  dependencia `input-group`) entró con el formulario de Empresas (2026-09-25),
+  para el país: se usa SOLO a través de `CampoPais` (ver "El cuarto" más abajo).
   `avatar` entró con los ajustes de usuario (2026-09-24) y se usa SOLO a través
   de `AvatarIniciales` (`core/components/avatar-iniciales.tsx`): iniciales,
   sin `AvatarImage` — no hay subida de fotos ni storage.
@@ -329,8 +331,8 @@ comportamiento) y `core/vista-detalle.tsx` (cómo se pinta en solo lectura).
 Está por la misma regla que `core/busqueda.ts` y `core/errores-postgres.ts` —
 lo usan varios módulos y ninguno puede importar de otro.
 
-Aplicado ya en los ocho listados que existen, y en este orden por dificultad
-(los tres últimos son los fáciles: un solo control en la fila):
+Aplicado ya en los ocho listados que existen (los dos de Servicios y EPPs
+son los fáciles: un solo control en la fila):
 
 | Listado | Fila | Vista | Modal | Lo interactivo de la fila |
 | --- | --- | --- | --- | --- |
@@ -341,7 +343,7 @@ Aplicado ya en los ocho listados que existen, y en este orden por dificultad
 | Órdenes de Trabajo | `fila-orden-trabajo.tsx` | `vista-orden-trabajo.tsx` | `dialogo-orden-trabajo.tsx` | **`SelectorEstadoFila`** (+ su desplegable y su `alert-dialog`) + lápiz |
 | Servicios | `fila-servicio.tsx` | `vista-servicio.tsx` | `dialogo-servicio.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
 | EPPs | `fila-epp.tsx` | `vista-epp.tsx` | `dialogo-epp.tsx` | solo el lápiz — sin columna `activo`, ver más abajo |
-| Empresas (Clientes) | `fila-empresa.tsx` | `vista-empresa.tsx` | `dialogo-empresa.tsx` | solo la equis/reactivar (+ su `alert-dialog`), en `AccionesEmpresa` — **temporal**: el lápiz y el modo "editando" llegan con el formulario (Parte 4) |
+| Empresas (Clientes) | `fila-empresa.tsx` | `vista-empresa.tsx` | `dialogo-empresa.tsx` | lápiz + equis (+ su `alert-dialog`), en `AccionesEmpresa`; el modal lleva además un `Select` y un combobox (portales) — ver `CampoPais` |
 
 La máquina de estados se importa, nunca se copia.
 
@@ -578,6 +580,40 @@ decide el componente, no su aspecto.**
 - El valor TIENE que existir como registro → `BuscadorSeleccion`.
 - El catálogo vive en el servidor y cambia solo → `CampoConSugerencias`.
 - El catálogo vive en el código y cambia con un commit → `CampoListaSugerida`.
+- El catálogo vive en el código Y el valor tiene que ser uno de la lista →
+  `CampoPais` (el cuarto, abajo).
+
+### El cuarto: `CampoPais` (lista fija, valor cerrado)
+
+`modules/clientes/components/campo-pais.tsx`, sobre `modules/clientes/paises.ts` (249 códigos ISO
+3166-1 alfa-2 con nombre en español). Es el combobox de Base UI instalado con
+shadcn (`components/ui/combobox.tsx`). Se distingue de `CampoListaSugerida`
+por lo que se GUARDA: allí el texto tecleado; aquí el código del país elegido,
+en un input oculto que el propio combobox publica (`itemToStringValue`). El
+Zod del módulo valida el código contra `CODIGOS_PAIS`.
+
+- **La lista va en un portal**, al revés que `CampoListaSugerida`: 249 países
+  no caben empujando el formulario. Dentro de una fila clicable eso significa
+  que el modal tiene que ir, como siempre, dentro del `SinPropagacion`
+  (verificado: elegir un país desde el modo "editando" de una fila no cambia el
+  modo del modal).
+- **`autoHighlight` es obligatorio.** Sin él, teclear "chi" + Enter no
+  resaltaba ningún país y Enter enviaba el formulario entero (visto en el
+  navegador). Con él, Enter elige la primera coincidencia — la misma regla que
+  `CampoListaSugerida`: Enter con la lista abierta no envía.
+- El filtro ignora tildes: "peru" encuentra "Perú".
+
+### Rellenar un formulario no controlado desde el servidor (consulta de RUC)
+
+`modules/clientes/components/campos-empresa.tsx`. La consulta de RUC tiene que
+escribir en campos no controlados sin convertirlos en controlados. La salida:
+al volver la respuesta, leer lo que el formulario tiene EN ESE MOMENTO
+(`new FormData(form)`), aplicarle los datos del servidor y volver a montar los
+campos con esos valores como `defaultValue` (cambiando su `key`). Se conserva
+lo que el usuario escribió en los campos que la consulta no toca, los campos
+siguen editables, y `Select`/combobox arrancan limpios en vez de avisar de un
+`defaultValue` que cambia bajo un componente montado. Una respuesta que llega
+cuando el valor consultado ya cambió se descarta.
 
 Detalles suyos que parecen de más y no lo son:
 

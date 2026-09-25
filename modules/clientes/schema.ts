@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PATRON_RUC, TIPOS_EMPRESA } from "./constantes";
+import { CODIGOS_PAIS, PAIS_POR_DEFECTO } from "./paises";
 
 // Nada que venga del formulario toca la base sin pasar por aquí (regla 1 de
 // AGENTS.md: la validación vive en el backend).
@@ -76,10 +77,10 @@ export const tipoEmpresaSchema = z.enum(TIPOS_EMPRESA, {
  * Se pasa a mayúsculas antes de validar: "pe" es inequívocamente `PE`, y
  * rechazarlo solo por la caja sería un error sin utilidad.
  *
- * SOLO SE VALIDA LA FORMA (dos letras), igual que el CHECK
- * `empresas_pais_iso_check`. La ficha de entidades.md prevé que el Zod valide
- * además que el código exista en la lista del combobox; esa lista todavía no
- * existe (llega con la pantalla), así que cuando exista, el sitio es aquí.
+ * Se valida que el código EXISTA en la lista fija de `./paises.ts` (la del
+ * combobox), no solo su forma: `XX` tiene dos mayúsculas y pasaría el CHECK
+ * `empresas_pais_iso_check`, pero no es un país. Es lo que la ficha de
+ * entidades.md dejó previsto para cuando existiera la lista.
  */
 const paisSchema = z.preprocess(
   (valor) => {
@@ -87,11 +88,10 @@ const paisSchema = z.preprocess(
     return typeof limpio === "string" ? limpio.trim().toUpperCase() : limpio;
   },
   z
-    .string()
-    .regex(/^[A-Z]{2}$/, "El país debe ser un código de 2 letras (ej. PE).")
+    .enum(CODIGOS_PAIS, { error: "Elige un país de la lista." })
     .nullable()
     .default(null)
-    .transform((pais) => pais ?? "PE"),
+    .transform((pais) => pais ?? PAIS_POR_DEFECTO),
 );
 
 /** Campos que el formulario de empresa manda al crear o editar. */

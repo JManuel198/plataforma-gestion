@@ -1111,7 +1111,8 @@ ser obligatorio para empresas peruanas es pregunta abierta (supuesto 23 de
 `esUniqueViolado(error, "empresas_ruc_unique")`.
 
 **`pais` guarda el código ISO 3166-1 alfa-2 (`PE`, `CL`…), no el nombre.** La
-lista con nombres para el combobox vive en la aplicación; así renombrar o
+lista con nombres para el combobox vive en la aplicación (`modules/clientes/paises.ts`, 249
+códigos); así renombrar o
 traducir un país no toca filas, y no conviven «Perú», «Peru» y «PERÚ». El
 CHECK `empresas_pais_iso_check` solo garantiza la forma; que el código exista
 en la lista lo valida el Zod del módulo. **DEFAULT `'PE'`** (decidido el

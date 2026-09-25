@@ -14,6 +14,7 @@ import {
   useControlDetalle,
 } from "@/core/fila-clicable";
 import { oVacio } from "@/core/vista-detalle";
+import { actualizarEmpresa } from "../actions";
 import type { FilaEmpresa } from "../queries";
 import { AccionesEmpresa } from "./acciones-empresa";
 import { BadgeTipo } from "./badge-tipo";
@@ -64,8 +65,16 @@ export function FilaDeEmpresa({ empresa }: { empresa: FilaEmpresa }) {
       <TableCell className={CLASE_CIFRA}>0</TableCell>
       <TableCell className={`${CELDA_FIJA_FIN} text-right`}>
         <SinPropagacion className="flex items-center justify-end gap-1">
-          <AccionesEmpresa empresa={empresa} />
-          <DialogoEmpresa control={control} empresa={empresa} />
+          <AccionesEmpresa empresa={empresa} control={control} />
+          {/* `actualizarEmpresa` recibe el `id` como primer argumento; `.bind`
+              lo fija aquí para que el modal vea la misma firma
+              `(formData) => …` que en el alta (Next documenta este uso en
+              dist/docs/01-app/02-guides/forms.md). */}
+          <DialogoEmpresa
+            guardarAction={actualizarEmpresa.bind(null, empresa.id)}
+            control={control}
+            empresa={empresa}
+          />
         </SinPropagacion>
       </TableCell>
     </TableRow>

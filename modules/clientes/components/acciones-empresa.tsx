@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { RotateCcwIcon, XIcon } from "lucide-react";
+import { PencilIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { esRedireccionDeNext } from "@/lib/redireccion";
 import {
   AlertDialog,
@@ -16,16 +16,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BotonAccionFila } from "@/core/components/boton-accion-fila";
+import type { ControlDetalle } from "@/core/fila-clicable";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { alternarActivoEmpresa } from "../actions";
 import type { FilaEmpresa } from "../queries";
 
 /**
- * Las acciones de una fila de empresas. Mismo patrón que `AccionesMaterial`
- * (iconos con `BotonAccionFila`, dar de baja confirmado, reactivar directo),
- * con UNA diferencia temporal: todavía no hay lápiz, porque el formulario de
- * edición llega en la Parte 4. Cuando llegue, el lápiz va delante de la equis
- * y mueve el `ControlDetalle` de la fila a "editando", como en Materiales.
+ * Las acciones de una fila de empresas. Mismo patrón que `AccionesMaterial`:
+ * lápiz (atajo directo a edición, sin pasar por la vista) y equis para dar de
+ * baja, o la flecha de reactivar en la vista de inactivas. Ninguno monta su
+ * propio modal: el lápiz mueve el `ControlDetalle` de la fila.
  *
  * ESTE COMPONENTE NO SE MONTA SUELTO: va dentro del `SinPropagacion` de la
  * fila, `alert-dialog` incluido — un clic en "Cancelar" del diálogo, portado a
@@ -37,7 +37,13 @@ import type { FilaEmpresa } from "../queries";
  * es un borrado: `alternarActivoEmpresa` solo escribe `activo` (regla
  * invariable 9), nunca el `estado` de SUNAT.
  */
-export function AccionesEmpresa({ empresa }: { empresa: FilaEmpresa }) {
+export function AccionesEmpresa({
+  empresa,
+  control,
+}: {
+  empresa: FilaEmpresa;
+  control: ControlDetalle;
+}) {
   const router = useRouter();
   const [confirmando, setConfirmando] = useState(false);
   const [guardando, iniciarGuardado] = useTransition();
@@ -74,21 +80,35 @@ export function AccionesEmpresa({ empresa }: { empresa: FilaEmpresa }) {
     });
   }
 
+  const lapiz = (
+    <BotonAccionFila
+      etiqueta="Editar"
+      etiquetaAccesible={`Editar ${nombre}`}
+      onClick={() => control.cambiar("editando")}
+    >
+      <PencilIcon />
+    </BotonAccionFila>
+  );
+
   if (!empresa.activo) {
     return (
-      <BotonAccionFila
-        etiqueta="Reactivar"
-        etiquetaAccesible={`Reactivar ${nombre}`}
-        disabled={guardando}
-        onClick={() => aplicar(true)}
-      >
-        <RotateCcwIcon />
-      </BotonAccionFila>
+      <>
+        {lapiz}
+        <BotonAccionFila
+          etiqueta="Reactivar"
+          etiquetaAccesible={`Reactivar ${nombre}`}
+          disabled={guardando}
+          onClick={() => aplicar(true)}
+        >
+          <RotateCcwIcon />
+        </BotonAccionFila>
+      </>
     );
   }
 
   return (
     <>
+      {lapiz}
       <BotonAccionFila
         etiqueta="Dar de baja"
         etiquetaAccesible={`Dar de baja ${nombre}`}
