@@ -41,10 +41,14 @@ trabaje en este código.
   barra lateral, encima de SSOMA, con tres módulos en construcción
   ACTIVA: Clientes (Bloque 2, `/clientes`), Contactos (Bloque 3,
   `/contactos`) y Embudo de oportunidades (Bloque 4, `/oportunidades`).
-  Hoy solo existen la entrada del menú y la ruta protegida con su título;
-  sin tabla, sin código en modules/. No es un "próximamente" indefinido:
-  se llena en los bloques inmediatamente siguientes. Las rutas son planas,
-  como el resto (ver la convención de etiquetas del menú).
+  Estado (2026-09-25): Clientes ya tiene tabla — `empresas`
+  (db/schema/empresas.ts, migración 0018, aplicada en desarrollo) — y
+  modules/clientes/ con solo constantes.ts; todavía sin actions, queries
+  ni pantalla. Contactos y Embudo siguen siendo solo la entrada del menú y
+  la ruta protegida con su título, sin tabla ni código en modules/. No es
+  un "próximamente" indefinido: se llena en los bloques inmediatamente
+  siguientes. Las rutas son planas, como el resto (ver la convención de
+  etiquetas del menú).
 - config/clientes/ — un .json por cliente con branding, campos extra,
   flujos de aprobación y módulos activos. Toda personalización vive aquí,
   nunca en ramas de git ni en código condicional por cliente.
@@ -105,9 +109,11 @@ trabaje en este código.
    (.env.local, nunca versionado).
 9. Ningún registro se borra en operación normal — se desactiva (columna
    `activo` o equivalente). Viene de Cliente/Contacto de la **plataforma
-   guía** (el sistema que se está replicando; aquí no hay tabla de Clientes
-   todavía, `orden_trabajo.cliente` es texto libre). En este repositorio
-   está aplicado en Personal (`activo`). La OT es la excepción razonada: su
+   guía** (el sistema que se está replicando). En este repositorio está
+   aplicado en Personal, en los catálogos que tienen columna `activo` y en
+   `empresas` (CRM) — cuyo `activo` es independiente de los `estado`/
+   `condicion` que vienen de SUNAT; `orden_trabajo.cliente` sigue siendo
+   texto libre, sin FK a `empresas`. La OT es la excepción razonada: su
    propio `estado` llega a `Cancelada` y cumple ese papel, así que no lleva
    una segunda bandera (ver entidades.md).
 10. Un campo que representa solo fecha, sin hora, se guarda como `date`,

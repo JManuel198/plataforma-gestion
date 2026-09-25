@@ -50,7 +50,7 @@ campos absorbidos de Servicio, Fase 2.
 | `codigo_revision` | `text` | **no** | manual — ex `servicio.codigo_revision` (ahí era obligatorio; aquí queda opcional, mismo criterio que `codigo_oc`) |
 | `servicio` | `text` | sí | manual — ex `asunto`, renombrada a pedido del cliente (2026-09-20), misma naturaleza |
 | `codigo_oc` | `text` | **no** | manual — formato libre por cliente, suele llegar después |
-| `cliente` | `text` | sí | manual — texto libre, sin tabla de Clientes todavía |
+| `cliente` | `text` | sí | manual — texto libre; la tabla `empresas` ya existe (ver CRM) pero esta columna NO la referencia todavía |
 | `precio` | `bigint` (`mode: "number"` en Drizzle) | sí | manual — ex `servicio.precio`, **céntimos**, nunca decimal |
 | `moneda` | `moneda` (enum) | sí | manual — ex `servicio.moneda`, `PEN` o `USD`, una sola por registro |
 | `estado` | `ot_estado` (enum) | sí | manual — 7 valores, por defecto `Pendiente` |
@@ -197,7 +197,7 @@ esta tabla con una clave como `"orden-trabajo:2026"` (una por año) — hasta
 entonces conviven a propósito.
 
 **Consumida por:** `core/correlativo.ts` (`reservarCorrelativo`), que
-cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **cinco
+cualquier módulo puede llamar pasándole su propia `clave`. Hoy hay **seis
 ámbitos en uso**, y que cada uno entrara sin tocar ni la tabla ni la
 migración es la prueba de que la generalización era la correcta:
 
@@ -208,13 +208,14 @@ migración es la prueba de que la generalización era la correcta:
 | `"servicios"` | `SRV.0000001` — prefijo `SRV.`, 7 dígitos | `servicios.codigo` (Bloque 14, Parte 1) |
 | `"tarifario_personal"` | `PRS.0001` — prefijo `PRS.`, **4 dígitos** (no 7) | `tarifario_personal.codigo` (Bloque 15, Parte 1) |
 | `"epps"` | `EPP.000001` — prefijo `EPP.`, **6 dígitos** (ni 7 ni 4) | `epps.codigo` (Bloque 16, Parte 1) |
+| `"empresas"` | `CLT-0001` — prefijo `CLT`, separador **`-`** (no `.`), 4 dígitos | `empresas.codigo` (CRM, Bloque 2) |
 
-Los cinco son globales y sin año. Cada módulo declara sus propias
+Los seis son globales y sin año. Cada módulo declara sus propias
 constantes (prefijo, dígitos, inicial y clave) junto a su `codigo.ts` — ver
 `modules/materiales/constantes.ts`, `modules/lista-precios/constantes.ts`,
-`modules/servicios/constantes.ts`, `modules/tarifario-personal/constantes.ts`
-y `modules/epps/constantes.ts`. Añadir un ámbito nuevo **no exige
-migración**: es una fila más, creada por el propio upsert la primera vez que
+`modules/servicios/constantes.ts`, `modules/tarifario-personal/constantes.ts`,
+`modules/epps/constantes.ts` y `modules/clientes/constantes.ts`. Añadir un
+ámbito nuevo **no exige migración**: es una fila más, creada por el propio upsert la primera vez que
 se reserva. El número de dígitos es una constante por ámbito, no un valor
 fijo de la tabla: `tarifario_personal` fue el primero en usar 4 en vez de 7,
 `epps` usa 6, y no hay nada en `correlativo` que impida un cuarto ancho
@@ -1048,3 +1049,97 @@ Con esta tabla, los cinco catálogos maestros del menú del Bloque 11
 tienen ya tabla real en `db/schema/`. Ninguno queda pendiente de esquema;
 lo que sigue pendiente en cada uno son las preguntas de negocio concretas
 ya registradas en `preguntas-abiertas.md`, no la existencia de la tabla.
+
+---
+
+# CRM
+
+## Empresas (Clientes — CRM, Bloque 2)
+
+Tabla `empresas`, en `db/schema/empresas.ts`. Creada el 2026-09-25 para el
+módulo Clientes (`/clientes`). Se llama `empresas` y no `clientes` porque una
+misma fila puede ser cliente, proveedor o las dos cosas (`tipo`).
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático** — formato `CLT-0001`, correlativo global (ámbito `"empresas"`) |
+| `razon_social` | `text` | **sí** | manual o SUNAT (Decolecta) |
+| `nombre_comercial` | `text` | no | manual o SUNAT |
+| `nombre_corto` | `text` | no | manual |
+| `ruc` | `text` (**UNIQUE**, CHECK 11 dígitos) | no | manual o SUNAT |
+| `tipo` | `empresa_tipo` (enum: `cliente`, `proveedor`, `cliente_y_proveedor`) | **sí**, sin default | manual — el usuario lo elige siempre |
+| `tipo_contribuyente` | `text` | no | SUNAT — texto libre |
+| `descripcion_rubro` | `text` | no | manual o SUNAT |
+| `estado` | `text` | no | **externo — SUNAT vía Decolecta** (ej. `ACTIVO`, `BAJA DE OFICIO`) |
+| `condicion` | `text` | no | **externo — SUNAT vía Decolecta** (ej. `HABIDO`, `NO HABIDO`) |
+| `direccion`, `distrito`, `provincia`, `departamento` | `text` | no | manual o SUNAT |
+| `pais` | `text` (CHECK `^[A-Z]{2}$`), DEFAULT `'PE'` | no | manual — combobox con lista fija; se guarda el **código ISO 3166-1 alfa-2** |
+| `activo` | `boolean` DEFAULT `true` | sí | **propio del módulo** — baja lógica |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
+
+**`estado` y `condicion` son datos EXTERNOS; `activo` es PROPIO del módulo.
+Son tres campos independientes y ninguno se deriva de otro.**
+- `estado` y `condicion` los devuelve SUNAT (a través de la API de
+  Decolecta) al consultar un RUC. Se copian tal cual, son **informativos** y
+  el sistema no toma ninguna decisión con ellos. Son `text`, no `pgEnum`, a
+  propósito: los valores los define SUNAT y uno nuevo no debe romper un
+  `INSERT`.
+- `activo` es la **baja lógica** del módulo (regla invariable 9), mismo patrón
+  exacto que `materiales.activo`, `lista_precios.activo` y `personal.activo`:
+  la fila nunca se borra, se inactiva/reactiva desde la interfaz. Una empresa
+  con `estado = 'BAJA DE OFICIO'` en SUNAT puede seguir `activo = true` aquí
+  (hay historial con ella), y una `ACTIVO` en SUNAT puede estar dada de baja
+  en el sistema. El filtro «Ver solo inactivos» del listado usará `activo`,
+  nunca `estado`.
+
+**`codigo` usa el correlativo genérico, ámbito `"empresas"`.** Formato
+`CLT-0001`: prefijo `CLT`, separador `-` (el único ámbito que no usa `.`) y 4
+dígitos, reservado atómicamente por `reservarCorrelativo`
+(`core/correlativo.ts`) en la misma transacción que el `INSERT`. `NOT NULL`
+porque lo pone siempre el backend; `UNIQUE` (`empresas_codigo_unique`) como
+red de seguridad. Constantes en `modules/clientes/constantes.ts`. Mismo límite
+asumido de 4 dígitos que `PRS.`: el orden alfabético coincide con el numérico
+solo hasta `CLT-9999`.
+
+**`ruc`: `text`, UNIQUE (`empresas_ruc_unique`) y CHECK de 11 dígitos
+(`empresas_ruc_formato_check`).** `text` y no numérico por lo mismo que
+`personal.dni`. Nullable a propósito: una empresa extranjera no tiene RUC, y
+varias filas con `NULL` no chocan bajo un UNIQUE en Postgres. Si el RUC debe
+ser obligatorio para empresas peruanas es pregunta abierta (supuesto 23 de
+`preguntas-abiertas.md`). Para traducir el choque del UNIQUE, usar
+`esUniqueViolado(error, "empresas_ruc_unique")`.
+
+**`pais` guarda el código ISO 3166-1 alfa-2 (`PE`, `CL`…), no el nombre.** La
+lista con nombres para el combobox vive en la aplicación; así renombrar o
+traducir un país no toca filas, y no conviven «Perú», «Peru» y «PERÚ». El
+CHECK `empresas_pais_iso_check` solo garantiza la forma; que el código exista
+en la lista lo valida el Zod del módulo. **DEFAULT `'PE'`** (decidido el
+2026-09-25, ver abajo); la columna sigue siendo nullable.
+
+**`tipo`: `pgEnum` `empresa_tipo`, construido desde `TIPOS_EMPRESA`**
+(`modules/clientes/constantes.ts`), mismo patrón que `ot_estado`/`ESTADOS_OT`.
+A diferencia de las listas en borrador de los catálogos (unidades,
+categorías), estos tres valores vienen dados por el encargo y describen todas
+las combinaciones posibles, así que un enum en la base es correcto.
+**`NOT NULL` y sin default** (decidido el 2026-09-25, ver abajo).
+
+**Ajuste previo a aplicar (2026-09-25).** La primera versión de la tabla
+dejaba `tipo` nullable y `pais` sin default (supuesto 23 de
+`preguntas-abiertas.md`). Antes de aplicarla se decidió:
+- `tipo` pasa a **obligatorio y sin default**: toda empresa se declara
+  cliente, proveedor o ambas, y ningún valor se asume por omisión — el
+  formulario obliga a elegirlo.
+- `pais` recibe **DEFAULT `'PE'`**: casi todas las empresas son peruanas.
+  Sigue nullable; el default solo actúa en un `INSERT` que no menciona la
+  columna.
+Como la migración original no se había aplicado en ningún entorno, se
+descartó y se regeneró una sola migración limpia (`0018_hot_stardust.sql`)
+en vez de apilar un `ALTER` encima.
+
+**Índices:** `empresas_activo_idx` (el listado filtra por `activo` por
+defecto). El `ruc` y el `codigo` ya quedan indexados por sus UNIQUE.
+
+**Consume:** `correlativo` (clave `"empresas"`). **Consumida por:** el módulo
+Clientes (en construcción). Contactos (Bloque 3) previsiblemente la
+referenciará con una FK `empresa_id`.

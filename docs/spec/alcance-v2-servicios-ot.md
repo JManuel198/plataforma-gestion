@@ -125,7 +125,7 @@ Se proponen distintos a los de Servicio a propósito: los de Servicio son admini
 
 ## 5. Diferido a versiones futuras (no perdido, solo no ahora)
 
-- Pantalla de Clientes y Contactos — hoy es texto libre dentro de Servicio/OT. **Se decidió avanzar (2026-09-24):** grupo CRM del menú, Clientes en el Bloque 2 y Contactos en el Bloque 3; hoy solo existen las rutas vacías `/clientes` y `/contactos`. Sus reglas de negocio no están especificadas todavía: lo que no esté aquí va a preguntas-abiertas.md antes de construirse.
+- Pantalla de Clientes y Contactos — hoy es texto libre dentro de Servicio/OT. **Se decidió avanzar (2026-09-24):** grupo CRM del menú, Clientes en el Bloque 2 y Contactos en el Bloque 3; estado al 2026-09-25: Clientes ya tiene esquema (tabla `empresas`, ver su ficha en entidades.md) pero todavía no pantalla — `/clientes` sigue mostrando solo su título —, y `/contactos` sigue siendo una ruta vacía, sin tabla. `orden_trabajo.cliente` sigue siendo texto libre: enlazarlo a `empresas` es un cambio aparte, no decidido. Sus reglas de negocio no están especificadas todavía: lo que no esté aquí va a preguntas-abiertas.md antes de construirse.
 - Personal con acceso real al sistema — hoy "responsable" es texto libre
 - Catálogo de servicios con precios fijos reutilizables
 - Cotización formal con PDF y revisiones
