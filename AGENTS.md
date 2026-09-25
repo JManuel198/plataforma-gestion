@@ -55,29 +55,35 @@ trabaje en este código.
   siguientes. Las rutas son planas, como el resto (ver la convención de
   etiquetas del menú).
   **CRM OCULTO A USUARIOS CONCRETOS — TEMPORAL, A RETIRAR (2026-09-25):**
-  mientras los tres módulos están en construcción, el grupo CRM no se
-  muestra a los correos listados en la variable de entorno
-  `CRM_OCULTO_PARA` (separados por comas; hoy, un usuario del cliente que
-  lo verá cuando se presente). A esos usuarios se les quita la sección
-  del menú y de las migas de pan, y `/clientes`, `/contactos` y
-  `/oportunidades` les responden 404. Sin la variable, todos lo ven. El
-  correo vive solo en Vercel y en .env.local, nunca en el repositorio.
-  Es ocultar, no un permiso: las Server Actions de modules/clientes/ no
-  se restringen (solo se llega a ellas desde esas pantallas). No es la
-  semilla de un sistema de roles, que sigue fuera de alcance.
-  **Se retira cuando los tres módulos estén terminados, presentados en la
-  reunión y aprobados.** Los pasos son dos, en este orden:
+  los módulos del CRM que siguen en construcción no se muestran a los
+  correos listados en la variable de entorno `CRM_OCULTO_PARA` (separados
+  por comas; hoy, un usuario del cliente que los verá cuando se
+  presenten). Desde el 2026-09-25 son solo **Contactos y Embudo de
+  oportunidades**: Clientes se dejó visible para todos, así que esos
+  usuarios ven el grupo CRM con Clientes dentro. A ellos se les quitan
+  los enlaces de Contactos y Embudo del menú y de las migas de pan, y
+  `/contactos` y `/oportunidades` les responden 404. Qué enlace se oculta
+  lo marca `ocultableTemporalmente` en cada enlace de MENU, y qué
+  pantalla, que llame a `exigirCrmVisible()`: para liberar otro módulo
+  antes que el resto, se le quitan las dos cosas. Sin la variable, todos
+  lo ven todo. El correo vive solo en Vercel y en .env.local, nunca en el
+  repositorio. Es ocultar, no un permiso. No es la semilla de un sistema
+  de roles, que sigue fuera de alcance.
+  **Se retira cuando Contactos y Embudo estén terminados, presentados en
+  la reunión y aprobados.** Los pasos son dos, en este orden:
   1. Para mostrarlo ya: borrar `CRM_OCULTO_PARA` en Vercel y redesplegar.
      No hace falta tocar código.
   2. Para limpiar el código (después, en su propio commit):
      - borrar core/visibilidad-crm.ts;
-     - quitar de las tres páginas el `await exigirCrmVisible()`, su import
-       y el comentario `// TEMPORAL` que lo acompaña;
+     - quitar de las páginas que aún lo tengan (hoy /contactos y
+       /oportunidades) el `await exigirCrmVisible()`, su import y el
+       comentario `// TEMPORAL` que lo acompaña;
      - quitar del layout protegido el import de `crmOcultoPara`, la
        constante `ocultarCrm` y su comentario, y la prop `ocultarCrm` de
        `BarraLateral` y de `MigasDePan`;
-     - quitar `menuVisible` y el campo `ocultableTemporalmente` de
-       components/barra-lateral.tsx (las dos vuelven a usar `MENU`);
+     - quitar `menuVisible` y el campo `ocultableTemporalmente` (del tipo
+       Enlace y de los enlaces de MENU que lo lleven) de
+       components/barra-lateral.tsx (barra y migas vuelven a usar `MENU`);
      - borrar este párrafo y `CRM_OCULTO_PARA` del README y de
        .env.example.
 

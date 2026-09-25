@@ -31,8 +31,8 @@ export default async function LayoutProtegido({
   const cookieStore = await cookies();
   const barraAbierta = cookieStore.get("sidebar_state")?.value !== "false";
 
-  // TEMPORAL (2026-09-25): el grupo CRM se oculta a los correos de
-  // `CRM_OCULTO_PARA` mientras está en construcción. Ver core/visibilidad-crm.ts.
+  // TEMPORAL (2026-09-25): los módulos del CRM aún en construcción se ocultan a
+  // los correos de `CRM_OCULTO_PARA`. Ver core/visibilidad-crm.ts.
   const ocultarCrm = crmOcultoPara(sesion.user.email);
 
   return (

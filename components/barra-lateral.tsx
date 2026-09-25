@@ -45,6 +45,13 @@ type Enlace = {
   href: string;
   etiqueta: string;
   Icono: LucideIcon;
+  /**
+   * TEMPORAL (2026-09-25): el enlace se quita del menú a los usuarios de
+   * `CRM_OCULTO_PARA` (ver core/visibilidad-crm.ts). Hoy lo llevan Embudo y
+   * Contactos —Clientes ya es visible para todos—, y este campo desaparece
+   * junto con `menuVisible` cuando se retire.
+   */
+  ocultableTemporalmente?: true;
 };
 
 export type Seccion = {
@@ -55,12 +62,6 @@ export type Seccion = {
    */
   encabezado?: string;
   enlaces: readonly Enlace[];
-  /**
-   * TEMPORAL (2026-09-25): la sección se quita del menú a los usuarios de
-   * `CRM_OCULTO_PARA` (ver core/visibilidad-crm.ts). Hoy solo la lleva CRM, y
-   * este campo desaparece junto con `menuVisible` cuando se retire.
-   */
-  ocultableTemporalmente?: true;
 };
 
 /**
@@ -116,15 +117,20 @@ export const MENU: readonly Seccion[] = [
     // Rutas planas igual que el resto: "CRM" es solo el encabezado del menú,
     // no un segmento de URL (nada de `/crm/clientes`).
     encabezado: "CRM",
-    ocultableTemporalmente: true,
     enlaces: [
       {
         href: "/oportunidades",
         etiqueta: "Embudo de oportunidades",
         Icono: FunnelIcon,
+        ocultableTemporalmente: true,
       },
       { href: "/clientes", etiqueta: "Clientes", Icono: Building2Icon },
-      { href: "/contactos", etiqueta: "Contactos", Icono: ContactIcon },
+      {
+        href: "/contactos",
+        etiqueta: "Contactos",
+        Icono: ContactIcon,
+        ocultableTemporalmente: true,
+      },
     ],
   },
   {
@@ -299,9 +305,15 @@ function SeccionBarra({
  * TEMPORAL: ver `ocultableTemporalmente`.
  */
 export function menuVisible(ocultarCrm: boolean): readonly Seccion[] {
-  return ocultarCrm
-    ? MENU.filter((seccion) => !seccion.ocultableTemporalmente)
-    : MENU;
+  if (!ocultarCrm) return MENU;
+
+  // Se filtra enlace por enlace, y una sección solo desaparece si se queda
+  // sin ninguno: así, con Embudo y Contactos ocultos, CRM sigue en el menú
+  // con Clientes dentro.
+  return MENU.map((seccion) => ({
+    ...seccion,
+    enlaces: seccion.enlaces.filter((enlace) => !enlace.ocultableTemporalmente),
+  })).filter((seccion) => seccion.enlaces.length > 0);
 }
 
 export function BarraLateral({

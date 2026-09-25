@@ -35,8 +35,8 @@ export function MigasDePan({
   ocultarCrm,
 }: {
   /**
-   * TEMPORAL: ver core/visibilidad-crm.ts. Sin esto, el 404 de /clientes
-   * mostraría encima «CRM › Clientes» a quien no debe ver el grupo.
+   * TEMPORAL: ver core/visibilidad-crm.ts. Sin esto, el 404 de /contactos
+   * mostraría encima «CRM › Contactos» a quien no debe ver ese módulo.
    */
   ocultarCrm: boolean;
 }) {
