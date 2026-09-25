@@ -54,6 +54,36 @@ trabaje en este código.
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
   etiquetas del menú).
+  **CRM OCULTO A USUARIOS CONCRETOS — TEMPORAL, A RETIRAR (2026-09-25):**
+  mientras los tres módulos están en construcción, el grupo CRM no se
+  muestra a los correos listados en la variable de entorno
+  `CRM_OCULTO_PARA` (separados por comas; hoy, un usuario del cliente que
+  lo verá cuando se presente). A esos usuarios se les quita la sección
+  del menú y de las migas de pan, y `/clientes`, `/contactos` y
+  `/oportunidades` les responden 404. Sin la variable, todos lo ven. El
+  correo vive solo en Vercel y en .env.local, nunca en el repositorio.
+  Es ocultar, no un permiso: las Server Actions de modules/clientes/ no
+  se restringen (solo se llega a ellas desde esas pantallas). No es la
+  semilla de un sistema de roles, que sigue fuera de alcance.
+  **Se retira cuando los tres módulos estén terminados, presentados en la
+  reunión y aprobados.** Los pasos son dos, en este orden:
+  1. Para mostrarlo ya: borrar `CRM_OCULTO_PARA` en Vercel y redesplegar.
+     No hace falta tocar código.
+  2. Para limpiar el código (después, en su propio commit):
+     - borrar core/visibilidad-crm.ts;
+     - quitar de las tres páginas el `await exigirCrmVisible()`, su import
+       y el comentario `// TEMPORAL` que lo acompaña;
+     - quitar del layout protegido el import de `crmOcultoPara`, la
+       constante `ocultarCrm` y su comentario, y la prop `ocultarCrm` de
+       `BarraLateral` y de `MigasDePan`;
+     - quitar `menuVisible` y el campo `ocultableTemporalmente` de
+       components/barra-lateral.tsx (las dos vuelven a usar `MENU`);
+     - borrar este párrafo y `CRM_OCULTO_PARA` del README y de
+       .env.example.
+
+     Está terminado cuando `tsc` pasa y este grep sale vacío:
+     `grep -rn "CRM_OCULTO_PARA\|visibilidad-crm\|crmOcultoPara\|ocultarCrm\|exigirCrmVisible\|ocultableTemporalmente\|menuVisible" --exclude-dir=node_modules --exclude-dir=.next .`
+     (todos los comentarios temporales nombran `visibilidad-crm`).
 - config/clientes/ — un .json por cliente con branding, campos extra,
   flujos de aprobación y módulos activos. Toda personalización vive aquí,
   nunca en ramas de git ni en código condicional por cliente.
