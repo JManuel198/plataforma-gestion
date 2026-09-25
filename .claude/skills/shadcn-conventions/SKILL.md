@@ -15,11 +15,14 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   primitivo, instálalo con `npx shadcn@latest add <componente>` — nunca lo
   construyas a mano, y nunca escribas CSS custom sin justificarlo en el propio
   archivo (regla 5 de AGENTS.md).
-- Instalados hoy: `alert-dialog`, `badge`, `button`, `card`, `collapsible`,
+- Instalados hoy: `alert-dialog`, `avatar`, `badge`, `button`, `card`, `collapsible`,
   `dialog`, `input`, `label`, `select`, `separator`, `sheet`, `sidebar`,
   `skeleton`, `sonner`, `table`, `textarea`, `tooltip`. Cualquier otro hay que
   agregarlo. `collapsible` entró en el Bloque 11, para plegar las secciones de
   la barra lateral.
+  `avatar` entró con los ajustes de usuario (2026-09-24) y se usa SOLO a través
+  de `AvatarIniciales` (`core/components/avatar-iniciales.tsx`): iniciales,
+  sin `AvatarImage` — no hay subida de fotos ni storage.
   Los cinco últimos en llegar (`sidebar` y sus dependencias `separator`,
   `sheet`, `skeleton`, `tooltip`, más el hook `hooks/use-mobile.ts`) entraron
   de una sola vez con `npx shadcn@latest add sidebar`, para la barra lateral
@@ -143,7 +146,11 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   (`components/pantalla-proximamente.tsx`) — así el enlace no lleva a un 404.
   Al implementarla de verdad, ese `page.tsx` deja de importarla.
 - El nombre del usuario y `BotonCerrarSesion` van en el **pie de la barra**
-  (`SidebarFooter`). La sesión se lee en el Server Component del layout y
+  (`SidebarFooter`). El bloque del usuario (avatar de iniciales, nombre y
+  correo) es un `SidebarMenuButton size="lg"` que enlaza a `/ajustes` —la
+  página de ajustes de usuario—, no un menú desplegable: hay un solo destino.
+  `/ajustes` no está en `MENU` (no es un módulo del negocio), así que las migas
+  de pan no muestran nada en esa pantalla. La sesión se lee en el Server Component del layout y
   llega a la barra por prop — la barra es cliente solo por `usePathname()`.
 - `hooks/use-mobile.ts` está **modificado respecto al catálogo**: la versión
   original hace `setState` dentro de un `useEffect` y el lint del proyecto lo
@@ -197,7 +204,8 @@ servidor.** La referencia a copiar es
   exportar un objeto ahí rompe el build.
 - Toda Server Action **re-verifica la sesión dentro de la función**, no solo
   confía en que el layout protegió la ruta: una action es invocable con un POST
-  directo. Ver `exigirSesion()` en `modules/ordenes-trabajo/actions.ts`.
+  directo. Se hace importando `exigirSesion()` de `core/sesion.ts`, nunca con
+  una copia local.
 - Mientras el envío está en curso, el botón de submit se deshabilita con el
   tercer valor de `useActionState` (`disabled={enviando}`) — sin spinner
   custom.

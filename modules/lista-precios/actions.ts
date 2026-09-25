@@ -1,11 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { exigirSesion } from "@/core/sesion";
 import { db } from "@/db";
 import { listaPrecios } from "@/db/schema/lista-precios";
 import { reservarCorrelativo } from "@/core/correlativo";
@@ -25,20 +23,6 @@ import {
   precioCrearSchema,
   precioEditarSchema,
 } from "./schema";
-
-/**
- * Una Server Action se puede invocar con un POST directo, sin pasar por la
- * pantalla — así que la sesión se verifica aquí dentro, no solo en el layout.
- */
-async function exigirSesion() {
-  const sesion = await auth.api.getSession({ headers: await headers() });
-
-  if (!sesion) {
-    redirect("/login");
-  }
-
-  return sesion;
-}
 
 /**
  * El UNIQUE de `codigo_oferta`.

@@ -235,6 +235,25 @@ trabaje en este código.
   Nunca fallar en silencio: un catch que se traga el redirect deja el
   formulario colgado sin navegar y sin avisar.
 
+## Módulo de ajustes de usuario
+Se construye de forma INCREMENTAL, y el alcance de cada etapa está decidido
+(2026-09-24), no pendiente de decidir:
+- **Ahora: solo perfil** — nombre, dni y telefono de la propia cuenta. Las
+  columnas `dni` y `telefono` de `user` ya existen (migración 0017); su
+  detalle, incluido por qué llevan `input: false` y que "" debe guardarse
+  como null, está en docs/spec/entidades.md, sección Usuario. Al guardar el
+  nombre, la Server Action escribe el MISMO valor en `nombre_completo`
+  (fuente de verdad) y en `name` (el de Better Auth), en el mismo UPDATE.
+- **Pendiente: cambio de contraseña.** Espera a que el login/registro
+  completo esté construido. Hoy `disableSignUp: true` y no hay flujo de
+  recuperación; montar el cambio de contraseña antes dejaría una pieza
+  suelta que habría que rehacer cuando ese flujo exista.
+- **Fuera de alcance, por decisión explícita: gestión de roles y
+  permisos.** No es "lo siguiente" ni una tarea olvidada. `user.role` sigue
+  existiendo con default `'admin'` e `input: false`, y no se construye
+  ninguna pantalla que lo edite hasta que alguien lo pida expresamente.
+No adelantes etapas por iniciativa propia aunque parezcan pequeñas.
+
 ## Subagentes del proyecto
 En `.claude/agents/` viven dos agentes especializados. No son opcionales
 por capricho: cada uno concentra reglas que no están en ningún otro sitio.
