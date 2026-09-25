@@ -743,3 +743,23 @@ cada punto.
     - Formato del código: `CLT-0001` arranca en 1 y tiene 4 dígitos, como
       pidió el encargo; más de 9 999 empresas desordenaría el listado por
       código (ver la ficha en entidades.md).
+
+24. **¿El filtro por tipo del listado de empresas es exacto o inclusivo?**
+    Supuesto, sin confirmar (2026-09-25). Hoy `?tipo=cliente` trae SOLO las
+    filas con `tipo = 'cliente'`; las `cliente_y_proveedor` no aparecen. Se
+    eligió la coincidencia exacta porque es la que no interpreta nada, pero lo
+    más probable es que «Clientes» deba incluir también a las que son ambas
+    cosas (y lo mismo con «Proveedores»). Si se confirma, se cambia en
+    `condicionesListado` de `modules/clientes/queries.ts`, sin tocar la URL.
+
+25. **Consulta de RUC (Decolecta): lo que la documentación no dice.**
+    Supuestos, sin confirmar con una key real (2026-09-25), en
+    `modules/clientes/decolecta.ts`:
+    - Un RUC de 11 dígitos que SUNAT no conoce se asume que vuelve como 404 o
+      422 (`{"message": "ruc no valido"}`); ambos se muestran como «no
+      encontrado».
+    - Key inválida se asume 401/403 y cuota agotada 429.
+    - Decolecta **no devuelve nombre comercial** en ninguna de sus consultas de
+      RUC, así que ese campo nunca se sugiere. `actividad_economica` sí se
+      sugiere como `descripcion_rubro`, y solo la consulta avanzada
+      (`/ruc/full`) trae el tipo de contribuyente — es la que se usa.

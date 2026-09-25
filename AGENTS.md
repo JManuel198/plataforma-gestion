@@ -43,8 +43,9 @@ trabaje en este código.
   `/contactos`) y Embudo de oportunidades (Bloque 4, `/oportunidades`).
   Estado (2026-09-25): Clientes ya tiene tabla — `empresas`
   (db/schema/empresas.ts, migración 0018, aplicada en desarrollo) — y
-  modules/clientes/ con solo constantes.ts; todavía sin actions, queries
-  ni pantalla. Contactos y Embudo siguen siendo solo la entrada del menú y
+  modules/clientes/ ya tiene actions, queries, schema (Zod) y la consulta
+  de RUC por Decolecta (decolecta.ts, key en DECOLECTA_API_KEY); todavía
+  sin pantalla — `/clientes` solo muestra su título. Contactos y Embudo siguen siendo solo la entrada del menú y
   la ruta protegida con su título, sin tabla ni código en modules/. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente
   siguientes. Las rutas son planas, como el resto (ver la convención de
@@ -390,10 +391,13 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   y ZONA_HORARIA — esta última hoy en lib/fecha.ts), no solo
   CODIGO_EMPRESA: si no, el archivo de cliente define el formato a
   medias y el resto sigue fijo en el código.
-- No hay .env.example. DATABASE_URL_DIRECT (conexión directa de Neon
-  para migraciones, distinta de la pooled de runtime) solo está
-  documentada en el comentario de drizzle.config.ts, así que alguien
-  que clone el repo no sabe que existe.
+- RESUELTO (2026-09-25): ya existe .env.example (solo nombres, sin valores;
+  .gitignore lo excluye explícitamente de `.env*`). Antes no existía y
+  DATABASE_URL_DIRECT (conexión directa de Neon para migraciones,
+  distinta de la pooled de runtime) solo estaba documentada en el
+  comentario de drizzle.config.ts. Ahí también está DECOLECTA_API_KEY
+  (consulta de RUC del módulo Clientes). Toda variable nueva se añade
+  a .env.example en el mismo cambio que la empieza a leer.
 - RESUELTO (fusión Servicio + OT): la carrera del 23503 al crear una OT
   ya no existe. Nacía de la FK a servicio, que se eliminó junto con la
   tabla: una OT ya no depende de ninguna fila externa, así que no hay

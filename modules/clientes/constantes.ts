@@ -54,3 +54,13 @@ export const CORRELATIVO_EMPRESA_INICIAL = 1;
  * rechazaría los códigos repetidos.
  */
 export const CLAVE_CORRELATIVO_EMPRESA = "empresas";
+
+export const RUTA_LISTADO = "/clientes";
+
+/**
+ * Formato de RUC que se exige ANTES de gastar una consulta a Decolecta y antes
+ * de tocar la base: 11 dígitos exactos. Es el mismo patrón que el CHECK
+ * `empresas_ruc_formato_check` de db/schema/empresas.ts — la base lo garantiza
+ * igual, esto solo da un error legible antes de llegar allí.
+ */
+export const PATRON_RUC = /^\d{11}$/;
