@@ -33,7 +33,7 @@
 /** Violación de restricción UNIQUE. */
 export const CODIGO_UNIQUE_VIOLADO = "23505";
 
-/** Violación de clave foránea, por si algún módulo la necesita más adelante. */
+/** Violación de clave foránea. La usa `esFkViolada`. */
 export const CODIGO_FK_VIOLADA = "23503";
 
 type ErrorPostgres = { code?: unknown; constraint?: unknown };
@@ -74,6 +74,22 @@ export function esUniqueViolado(error: unknown, constraint?: string): boolean {
   const postgres = errorPostgresDe(error);
 
   if (postgres?.code !== CODIGO_UNIQUE_VIOLADO) return false;
+
+  return constraint === undefined || postgres.constraint === constraint;
+}
+
+/**
+ * ¿Este error es la violación de una clave foránea?
+ *
+ * Mismo criterio que `esUniqueViolado`: se pasa el nombre del constraint
+ * (`<tabla>_<columna>_<tabla-referida>_<columna-referida>_fk`, el que genera
+ * Drizzle) para no traducir como "esa empresa no existe" el choque de otra FK
+ * de la misma tabla. La estrenó Contactos (`contactos_empresa_id_empresas_id_fk`).
+ */
+export function esFkViolada(error: unknown, constraint?: string): boolean {
+  const postgres = errorPostgresDe(error);
+
+  if (postgres?.code !== CODIGO_FK_VIOLADA) return false;
 
   return constraint === undefined || postgres.constraint === constraint;
 }

@@ -1154,5 +1154,71 @@ en vez de apilar un `ALTER` encima.
 defecto). El `ruc` y el `codigo` ya quedan indexados por sus UNIQUE.
 
 **Consume:** `correlativo` (clave `"empresas"`). **Consumida por:** el módulo
-Clientes (en construcción). Contactos (Bloque 3) previsiblemente la
-referenciará con una FK `empresa_id`.
+Clientes, y `contactos` la referencia con la FK `empresa_id` (ver la sección
+siguiente).
+
+## Contactos (CRM, Bloque 3)
+
+Tabla `contactos`, en `db/schema/contactos.ts`. Creada el 2026-09-25 para el
+módulo Contactos (`/contactos`). Todo contacto es una persona de una empresa.
+Migración `0019_peaceful_maximus.sql`, aplicada en desarrollo (2026-09-25).
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `empresa_id` | `text` (FK → `empresas.id`) | **sí** | manual — selección contra Empresas |
+| `nombre` | `text` | **sí** | manual |
+| `cargo` | `text` | no | manual |
+| `correo` | `text` (**sin UNIQUE**, a propósito) | no | manual |
+| `celular` | `text` (sin CHECK de formato) | no | manual |
+| `activo` | `boolean` DEFAULT `true` | sí | **propio del módulo** — baja lógica |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
+
+**Sin código autogenerado.** A diferencia de `empresas.codigo` (`CLT.0001`) o
+de los catálogos, Contactos no tiene correlativo: el módulo no lo necesita y
+no consume la tabla `correlativo`.
+
+**`empresa_id`: FK real, `NOT NULL`, `ON DELETE NO ACTION`**
+(`contactos_empresa_id_empresas_id_fk`). Mismo patrón que
+`lista_precios.material_id` → `materiales`: `NO ACTION` protege porque
+`empresas` nunca se borra de verdad (regla invariable 9).
+
+**La FK NO impone que la empresa esté activa — decisión confirmada, no
+pendiente (2026-09-25).** Un contacto puede seguir asociado a una empresa con
+`activo = false`: dar de baja una empresa es un `UPDATE`, que no dispara la
+FK, y la base no tiene (ni debe tener) ningún CHECK ni trigger que mire
+`empresas.activo`. Que la interfaz muestre esa empresa marcada como inactiva
+es responsabilidad de la capa de UI (Parte 4 del bloque), no de la base.
+
+**`correo` NO es único — decisión confirmada, no pendiente (2026-09-25).** El
+mismo correo puede repetirse entre contactos, por ejemplo un buzón genérico
+(`ventas@…`) que comparten varias personas de la misma empresa. No lleva
+UNIQUE ni en la base ni en el Zod del módulo; no es un olvido que haya que
+«corregir» después.
+
+**`celular` sin validación de formato en la base.** `+51 000 000 000` es solo
+la sugerencia visual del formulario (placeholder), no una regla: la columna
+no tiene CHECK.
+
+**`activo`** es la baja lógica (regla invariable 9), mismo patrón exacto que
+`empresas.activo`, `materiales.activo` y `personal.activo`. El filtro «Ver
+solo inactivos» alterna: `eq(contactos.activo, inactivos ? false : true)`.
+
+**Índices:** `contactos_activo_idx` (el listado filtra por `activo` por
+defecto) y `contactos_empresa_id_idx` (Postgres no indexa por sí solo el lado
+que referencia de una FK; sirve al JOIN del listado contra `empresas` y al
+conteo de contactos por empresa de la columna Contactos del listado de
+Empresas — mismo papel que `lista_precios_material_id_idx`).
+
+**Consume:** `empresas` (FK `empresa_id`). **Consumida por:** el módulo
+Contactos (`modules/contactos/`, pantalla `/contactos` completa) y el listado de
+Empresas, que cuenta los contactos de cada empresa en su columna Contactos.
+Ese conteo incluye **activos e inactivos** (decidido en el encargo del
+Bloque 3, 2026-09-25) y se hace en `modules/clientes/queries.ts` leyendo la
+tabla directamente, sin importar código de `modules/contactos/`.
+
+**Una FK violada se traduce, no se muestra cruda.** Si `empresa_id` no
+corresponde a ninguna empresa, la acción reconoce el choque con
+`esFkViolada(error, "contactos_empresa_id_empresas_id_fk")`
+(`core/errores-postgres.ts`) y lo cuelga del campo `empresa_id` con un
+mensaje legible. No hay SELECT previo: la FK es la garantía.

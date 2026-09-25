@@ -46,3 +46,9 @@ estado) que queda desactualizada por trabajar en ramas paralelas.
 `main`), grepear `CLT-0001` / `CLT-` en `docs/spec/entidades.md` — si sigue
 ahí tras la fusión, es un hallazgo MEDIO de coherencia de documentación
 heredado de esta corrección, no un error nuevo de esa rama.
+
+**Actualización (2026-09-25, al fusionar main en fix/formato-codigo-empresas):**
+el riesgo se materializó tal como se anticipó —la sección de Contactos de
+entidades.md llegó citando `CLT-0001`— y se corrigió en ese mismo merge. Las
+menciones con guion que siguen en el repo (constantes.ts, AGENTS.md,
+entidades.md) son la historia de la corrección, no residuos.

@@ -1,5 +1,6 @@
 import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
+import { contactos } from "@/db/schema/contactos";
 import { empresas } from "@/db/schema/empresas";
 import { patronParcial } from "@/core/busqueda";
 import type { Paginacion } from "@/core/paginacion";
@@ -50,6 +51,23 @@ const columnasListado = {
   departamento: empresas.departamento,
   pais: empresas.pais,
   activo: empresas.activo,
+  // Columna Contactos del listado: cuántos contactos tiene la empresa,
+  // ACTIVOS E INACTIVOS (decidido en el encargo del Bloque 3, 2026-09-25). Se
+  // lee la tabla `contactos` directamente, nunca a través de
+  // modules/contactos/ (un módulo no importa de otro).
+  //
+  // Subconsulta correlacionada y no `LEFT JOIN … GROUP BY`: el listado ya
+  // pagina de a diez, así que son diez conteos que resuelve el índice
+  // `contactos_empresa_id_idx`, y el `GROUP BY` obligaría a agrupar por las
+  // diecisiete columnas de arriba. Vive aquí y no en core/: hoy solo la usa
+  // este listado (se mueve cuando aparezca un segundo consumidor real).
+  //
+  // `db.$count` y NO la subconsulta escrita a mano con la plantilla `sql`:
+  // dentro de un `sql` en el SELECT, Drizzle escribe las columnas SIN tabla
+  // (`"empresa_id" = "id"`), y Postgres resuelve las dos contra `contactos` —
+  // el conteo sale 0 siempre, sin ningún error.
+  // `$count` sí las califica. Verificado contra la base el 2026-09-25.
+  contactos: db.$count(contactos, eq(contactos.empresa_id, empresas.id)),
 } as const;
 
 /**
