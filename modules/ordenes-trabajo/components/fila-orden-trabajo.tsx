@@ -133,7 +133,7 @@ export function FilaDeOrdenTrabajo({
         <SinPropagacion className="flex items-center justify-end gap-1">
           <BotonAccionFila
             etiqueta="Editar"
-            etiquetaAccesible={`Editar {orden.codigo_ot}`}
+            etiquetaAccesible={`Editar ${orden.codigo_ot}`}
             onClick={() => control.cambiar("editando")}
           >
             <PencilIcon />

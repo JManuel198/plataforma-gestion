@@ -28,8 +28,12 @@ trabaje en este código.
 - core/ — auth, roles, catálogos maestros, motor de precios, generación de
   PDF, auditoría. Nunca se bifurca por cliente.
 - modules/ — módulos de negocio independientes. Hoy existen de verdad
-  dos: ordenes-trabajo/ y personal/. Cada uno consume core/ pero no
-  depende de otro módulo directamente.
+  ocho: ordenes-trabajo/, personal/, los cinco catálogos maestros
+  (materiales/, lista-precios/, servicios/, tarifario-personal/, epps/),
+  que comparten forma —fila clicable, correlativo, buscador y, donde hay
+  columna `activo`, baja lógica— con materiales/ como referencia, y
+  ajustes-usuario/ (perfil de la propia cuenta, sin tabla propia). Cada
+  uno consume core/ pero no depende de otro módulo directamente.
   Los módulos originalmente previstos — crm/, cotizaciones/, proyectos/,
   logistica/, asistencias/ — son visión futura, no estructura actual:
   sus carpetas solo contienen un README de marcador.
@@ -54,18 +58,28 @@ trabaje en este código.
   aparte, no generalizar este. Lo de arriba sigue describiendo cómo está
   pensado el mecanismo, no un objetivo en curso: por eso config/clientes/
   no tiene todavía ningún .json y varias cosas que "deberían" vivir ahí
-  (el correlativo de OT, el array MENU de la barra lateral) siguen en el
-  código a sabiendas. No inviertas esfuerzo en generalizar por cliente sin
+  (el correlativo de OT, el array MENU de la barra lateral y el nombre
+  "CCM" de la cabecera de la barra, en components/barra-lateral.tsx)
+  siguen en el código a sabiendas. No inviertas esfuerzo en generalizar por cliente sin
   que alguien lo pida explícitamente.
 - docs/spec/ — especificación de negocio capturada de la plataforma guía.
   Fuente de verdad antes que el código: ante cualquier duda sobre una
   regla de negocio, se consulta aquí primero, nunca se asume.
+- docs/diseno/ — mockups de interfaz (hoy, Lista de precios), como guía
+  visual de los listados. Nunca es spec: en datos y reglas manda
+  docs/spec/.
 - db/schema/ — definiciones de tablas en Drizzle.
 - db/migrations/ — migraciones generadas por Drizzle. Nunca se editan a mano.
 
 ## Reglas invariables
 1. Toda regla de negocio y todo cálculo vive en el backend. El frontend
    nunca calcula totales, descuentos ni impuestos, solo los muestra.
+   Única excepción, acotada: la vista previa en vivo del precio en el modal
+   de Lista de precios. Llama a la MISMA función que usa el servidor
+   (modules/lista-precios/precio.ts), el resultado no se envía y el servidor
+   recalcula al guardar. Las condiciones que la hacen aceptable están en la
+   skill de convenciones, sección "Valores calculados que se muestran en
+   vivo"; si el cálculo se complica, se deja de previsualizar.
 2. Todo monto se guarda como entero en la unidad mínima (céntimos), nunca
    como float.
 3. Ninguna cotización se edita después de aprobada — los cambios generan
@@ -151,9 +165,9 @@ trabaje en este código.
   `render` por bueno o por prohibido, mira qué elemento acaba en el DOM, no
   qué componente lo envuelve. El detalle, con números de línea, en la skill
   de convenciones y en la deuda técnica de abajo.
-- Una fila de listado que abre su registro (hoy Materiales, Personal y Órdenes
-  de Trabajo, y los catálogos que vengan) sigue el patrón compartido de
-  `core/fila-clicable.tsx`: tres modos
+- Una fila de listado que abre su registro (hoy los siete listados: Órdenes
+  de Trabajo, Personal y los cinco catálogos, y los que vengan) sigue el
+  patrón compartido de `core/fila-clicable.tsx`: tres modos
   —cerrado, viendo, editando— en un solo modal, la fila sigue siendo un `<tr>`
   con `tabIndex` (nunca un `<div role="button">`), y **todo lo interactivo que
   viva dentro de ella va envuelto en `SinPropagacion`**, el modal y los
@@ -342,6 +356,16 @@ por capricho: cada uno concentra reglas que no están en ningún otro sitio.
   módulo. Por eso `urlListado` entra como PARÁMETRO: generalizarlo obligaría a
   `core/` a conocer los parámetros de URL de todos los módulos, que es el
   acoplamiento que core/ existe para evitar.
+- RESUELTO (2026-09-24): `exigirSesion()` —la verificación de sesión al
+  inicio de cada Server Action— estaba copiada, byte a byte igual, en los
+  siete `actions.ts` (ordenes-trabajo, personal, materiales, lista-precios,
+  servicios, tarifario-personal y epps). Vive ahora en `core/sesion.ts`: la
+  estrenó ajustes-usuario, que habría sido la octava copia, y el mismo día se
+  retiraron las siete tras comprobar que seguían idénticas (4ff5f63). Sin
+  cambio de comportamiento. La regla de uso no cambia: se llama FUERA del
+  `try`, porque termina en `redirect()` (ver la convención de `try/catch`).
+  Es otra instancia de la regla de las tres copias, aplicada tarde: llegó a
+  siete por la misma razón que el hook de filtros de arriba.
 - El código de empresa "CCM" en el correlativo de OT vive en
   modules/ordenes-trabajo/constantes.ts, no en config/clientes/*.json
   como dice la convención de Correlativos en AGENTS.md —

@@ -75,7 +75,9 @@ export function AccionesMaterial({
   // La descripción identifica el material en los avisos; si viniera vacía
   // —la columna lo admite— se cae al código, y si tampoco, a algo genérico.
   const nombre =
-    material.descripcion?.trim() || material.codigo_interno?.trim() || "material";
+    material.descripcion?.trim() ||
+    material.codigo_interno?.trim() ||
+    "material";
 
   function aplicar(siguienteActivo: boolean) {
     iniciarGuardado(async () => {
@@ -88,7 +90,10 @@ export function AccionesMaterial({
         // lanzado. Es navegación, no fallo: se deja pasar.
         if (esRedireccionDeNext(error)) throw error;
 
-        console.error("[Materiales] fallo inesperado al cambiar el activo", error);
+        console.error(
+          "[Materiales] fallo inesperado al cambiar el activo",
+          error,
+        );
         toast.error("No se pudo completar. Intenta de nuevo.");
         return;
       }
@@ -110,24 +115,24 @@ export function AccionesMaterial({
   return (
     <>
       <BotonAccionFila
-  etiqueta="Editar"
-  etiquetaAccesible={`Editar ${nombre}`}
-  onClick={() => control.cambiar("editando")}
->
-  <PencilIcon />
-</BotonAccionFila>
+        etiqueta="Editar"
+        etiquetaAccesible={`Editar ${nombre}`}
+        onClick={() => control.cambiar("editando")}
+      >
+        <PencilIcon />
+      </BotonAccionFila>
 
       {material.activo ? (
         <>
           <BotonAccionFila
-  etiqueta="Dar de baja"
-  etiquetaAccesible={`Dar de baja ${nombre}`}
-  destructiva
-  disabled={guardando}
-  onClick={() => setConfirmando(true)}
->
-  <XIcon />
-</BotonAccionFila>
+            etiqueta="Dar de baja"
+            etiquetaAccesible={`Dar de baja ${nombre}`}
+            destructiva
+            disabled={guardando}
+            onClick={() => setConfirmando(true)}
+          >
+            <XIcon />
+          </BotonAccionFila>
 
           {/* Cerrar por cualquier vía (Cancelar, Escape, clic fuera) es soltar
               la intención: nada se ha enviado todavía, así que no hay que
@@ -166,13 +171,13 @@ export function AccionesMaterial({
         </>
       ) : (
         <BotonAccionFila
-  etiqueta="Reactivar"
-  etiquetaAccesible={`Reactivar ${nombre}`}
-  disabled={guardando}
-  onClick={() => aplicar(true)}
->
-  <RotateCcwIcon />
-</BotonAccionFila>
+          etiqueta="Reactivar"
+          etiquetaAccesible={`Reactivar ${nombre}`}
+          disabled={guardando}
+          onClick={() => aplicar(true)}
+        >
+          <RotateCcwIcon />
+        </BotonAccionFila>
       )}
     </>
   );
