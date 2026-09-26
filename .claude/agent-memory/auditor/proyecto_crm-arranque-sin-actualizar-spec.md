@@ -1,6 +1,6 @@
 ---
 name: proyecto-crm-arranque-sin-actualizar-spec
-description: Patrón recurrente — cada avance real de un bloque de CRM deja alguna nota de estado desactualizada en AGENTS.md (Arquitectura); tres ocurrencias (2026-09-24 arranque del menú, 2026-09-25 schema de Empresas, 2026-09-25 actions/queries de Empresas). Grep "sin actions, queries ni pantalla" / "sin tabla" / "rutas vacías" / "solo existen" en AGENTS.md en cada bloque nuevo.
+description: Patrón recurrente — cada avance real de un bloque de CRM deja alguna nota de estado desactualizada en AGENTS.md (Arquitectura) y/o docs/spec/oportunidades.md; siete ocurrencias a 2026-09-26 (arranque del menú, Empresas x3, Contactos, Oportunidades Parte 9). Grep "sin actions, queries ni pantalla" / "sin tabla" / "rutas vacías" / "solo existen" / "llegan después" en AGENTS.md y en el .md de spec del módulo en cada bloque nuevo.
 metadata:
   type: project
 ---
@@ -36,3 +36,9 @@ al agregar `actions.ts`, `queries.ts`, `schema.ts`, `decolecta.ts`, `filtros.ts`
 - `docs/spec/alcance-v2-servicios-ot.md:128`: "pero `/contactos` sigue siendo una ruta vacía" — mismo problema, ahí también.
 Reportado como MEDIO (2 hallazgos) en esa auditoría, no bloqueante. **Lección revisada:** la corrección de la cuarta ocurrencia (2026-09-24) no fue un arreglo permanente del proceso — fue que esa vez en particular sí se acordaron de actualizarlo. Sigue habiendo que revisar esta nota puntual EN VIVO en cada bloque de CRM que traiga código funcional nuevo, sin asumir ni que va a fallar ni que ya quedó resuelto por las veces anteriores en que no falló.
 **Dato adicional de esta ocurrencia:** el propio `AGENTS.md` inyectado en el system-reminder al arrancar esa conversación estaba MÁS desactualizado todavía que el archivo real en disco (traía una versión anterior incluso al checkpoint 2 de Contactos, ya fusionado) — confirma que ni siquiera el texto que llega "gratis" en el contexto es fiable sin un `Read` en vivo del archivo.
+
+**Séptima ocurrencia — se extiende a un segundo documento (2026-09-26, rama `feature/crm-oportunidades`, diff sin commitear que trae la Parte 9 del plan del Embudo: la página de detalle de solo lectura `/oportunidades/[id]`):** por primera vez el patrón no es solo AGENTS.md — también alcanzó al propio `docs/spec/oportunidades.md`, el archivo de spec del módulo (algo que hasta ahora se había mantenido fiable, a diferencia de AGENTS.md/alcance-v2):
+- `AGENTS.md:72-73` y `:86-87`: la nota de estado del CRM seguía describiendo el Embudo como si solo llegara hasta el kanban de la Parte 8, y hablaba del detalle en futuro ("hoy solo lo usará la página de detalle..."), sin reflejar que la Parte 9 ya estaba construida en el mismo diff.
+- `docs/spec/oportunidades.md:21-22`: "el detalle, el arrastre y la Tabla llegan después" — inexacto por la misma razón.
+Reportado como MEDIO (2 hallazgos) en esa auditoría, no bloqueante; sin hallazgos de fondo (seguridad, dinero, fechas, zona horaria, migas, visibilidad CRM, línea de tiempo) — el resto del checkpoint fue impecable.
+**Lección ampliada:** el punto ciego ya no es exclusivo de AGENTS.md/alcance-v2 — el propio archivo de spec de un módulo (aquí, oportunidades.md) puede quedarse con su párrafo "Estado (fecha)" desactualizado apenas un bloque avanza, si nadie lo actualiza explícitamente en el mismo commit. Al auditar el próximo bloque de un módulo con su propio .md de spec (Oportunidades, o el que le siga), grep en vivo su párrafo de "Estado" contra lo que el diff realmente trae, no solo AGENTS.md.

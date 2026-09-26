@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { crmOcultoPara } from "@/core/visibilidad-crm";
 import { BarraLateral } from "@/components/barra-lateral";
-import { MigasDePan } from "@/components/migas-de-pan";
+import { MigasDePan, ProveedorMigas } from "@/components/migas-de-pan";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -44,22 +44,26 @@ export default async function LayoutProtegido({
         correoUsuario={sesion.user.email}
         ocultarCrm={ocultarCrm}
       />
-      <SidebarInset>
-        {/* Cabecera: el disparador de la barra y las migas de pan. En móvil
+      {/* El tercer nivel de las migas lo registra la página de detalle que lo
+          tenga (hoy /oportunidades/[id]); ver components/migas-de-pan.tsx. */}
+      <ProveedorMigas>
+        <SidebarInset>
+          {/* Cabecera: el disparador de la barra y las migas de pan. En móvil
             el disparador es la única forma de abrir el cajón; en escritorio
             es el botón de colapsar. La sesión no vive aquí: está en el pie de
             la barra. */}
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
-          <Separator
-            orientation="vertical"
-            className="data-vertical:h-4 data-vertical:self-center"
-          />
-          <MigasDePan ocultarCrm={ocultarCrm} />
-        </header>
-        {/* `div` y no `main`: `SidebarInset` ya renderiza un <main>. */}
-        <div className="flex-1 p-6">{children}</div>
-      </SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <Separator
+              orientation="vertical"
+              className="data-vertical:h-4 data-vertical:self-center"
+            />
+            <MigasDePan ocultarCrm={ocultarCrm} />
+          </header>
+          {/* `div` y no `main`: `SidebarInset` ya renderiza un <main>. */}
+          <div className="flex-1 p-6">{children}</div>
+        </SidebarInset>
+      </ProveedorMigas>
       <Toaster />
     </SidebarProvider>
   );

@@ -106,7 +106,10 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   claro y en oscuro, expuestos como `bg-etapa-*` / `border-l-etapa-*`, y el
   mapa etapa → clase en `COLOR_ETAPA` (`modules/oportunidades/constantes.ts`),
   con las clases escritas enteras para que Tailwind las encuentre. **Solo para
-  bordes y puntos, nunca para texto**: naranja y verde no llegan a 4.5:1.
+  bordes, puntos y tintes de fondo, nunca para texto**: naranja y verde no
+  llegan a 4.5:1. Por eso la etapa actual de la línea de etapas del detalle
+  va con contorno y tinte (`contorno`/`tinte` de `COLOR_ETAPA`) y texto
+  normal, no con el relleno sólido y texto blanco del mockup.
 - Todo cambio de color se comprueba contra **WCAG AA** (4.5:1 en texto de
   cuerpo, 3:1 en texto grande y componentes) **antes** de aplicarlo, en claro y
   en oscuro. El modo oscuro no reusa el mismo verde: sube a
@@ -163,6 +166,9 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   (`SidebarFooter`). El bloque del usuario (avatar de iniciales, nombre y
   correo) es un `SidebarMenuButton size="lg"` que enlaza a `/ajustes` —la
   página de ajustes de usuario—, no un menú desplegable: hay un solo destino.
+  Una página de detalle en ruta propia añade un tercer nivel a las migas con
+  `<MigaDetalle etiqueta={...} />` (components/migas-de-pan.tsx); hoy solo
+  `/oportunidades/[id]`.
   `/ajustes` no está en `MENU` (no es un módulo del negocio), así que las migas
   de pan no muestran nada en esa pantalla. La sesión se lee en el Server Component del layout y
   llega a la barra por prop — la barra es cliente solo por `usePathname()`.

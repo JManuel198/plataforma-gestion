@@ -70,7 +70,14 @@ trabaje en este código.
   línea de tiempo y desplegable Cliente en queries.ts, con los filtros en
   filtros.ts. Pantalla: el modal "Nueva oportunidad" (Parte 7) y el kanban de
   SOLO LECTURA con su cabecera, métricas y filtros (Parte 8; sin arrastrar,
-  que es la Parte 11, y con el botón Tabla deshabilitado hasta la Parte 12).
+  que es la Parte 11, y con el botón Tabla deshabilitado hasta la Parte 12),
+  y la página de detalle `/oportunidades/[id]` de SOLO LECTURA (Parte 9,
+  2026-09-26: `obtenerOportunidad` en queries.ts, que devuelve `null` solo si
+  el id no existe y la página responde 404; línea de etapas solo visual,
+  información general, línea de tiempo y aviso de cierre; los botones de
+  acción se ven deshabilitados hasta la Parte 10). El clic en una tarjeta del
+  kanban lleva sus filtros a la URL del detalle (`urlDetalle`), y "< Pipeline"
+  reconstruye con ellos la del listado.
   Los colores de etapa son tokens `--etapa-*` en app/globals.css y
   `COLOR_ETAPA` en modules/oportunidades/constantes.ts. Cambios fuera del módulo: (1) la Parte 3 del plan movió
   (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
@@ -82,8 +89,9 @@ trabaje en este código.
   core/selector-empresas.ts (`buscarEmpresasParaSelector`, con
   `incluirInactivas`: Contactos las incluye, Oportunidades no), y Contactos
   la usa desde ahí; (3) el componente compartido
-  de migas de pan (components/migas-de-pan.tsx) se ampliará para aceptar un
-  tercer nivel dinámico — hoy solo lo usará la página de detalle
+  de migas de pan (components/migas-de-pan.tsx) acepta ya (Parte 9) un
+  tercer nivel dinámico: la página lo registra con `<MigaDetalle etiqueta>`
+  en el `ProveedorMigas` que monta el layout protegido. Hoy solo lo usa
   `/oportunidades/[id]`, el primer módulo con detalle en ruta propia; los
   demás siguen con modal y no se ven afectados. No es
   un "próximamente" indefinido: se llena en los bloques inmediatamente

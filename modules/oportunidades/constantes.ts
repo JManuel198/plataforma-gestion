@@ -58,17 +58,56 @@ export const ETIQUETAS_ETAPA = {
  * encuentra leyendo el código fuente, y una clase compuesta en tiempo de
  * ejecución no existiría en el CSS.
  *
- * Solo borde y relleno de puntos: los tokens no dan contraste de texto (ver
- * el comentario en globals.css).
+ * Solo bordes, puntos y tintes de fondo: los tokens no dan contraste de texto
+ * (ver el comentario en globals.css), así que ninguna clase de aquí colorea
+ * un texto.
+ * - `borde`: el borde izquierdo de la tarjeta del kanban.
+ * - `punto`: el punto de color junto al nombre.
+ * - `contorno` y `tinte`: la línea de etapas del detalle (la actual, con
+ *   contorno y fondo tenue de su color; las futuras, solo con contorno). El
+ *   texto encima sigue en `text-foreground`.
  */
 export const COLOR_ETAPA = {
-  prospecto: { borde: "border-l-etapa-prospecto", punto: "bg-etapa-prospecto" },
-  cotizacion: { borde: "border-l-etapa-cotizacion", punto: "bg-etapa-cotizacion" },
-  negociacion: { borde: "border-l-etapa-negociacion", punto: "bg-etapa-negociacion" },
-  adjudicado: { borde: "border-l-etapa-adjudicado", punto: "bg-etapa-adjudicado" },
-  ejecucion: { borde: "border-l-etapa-ejecucion", punto: "bg-etapa-ejecucion" },
-  finalizado: { borde: "border-l-etapa-finalizado", punto: "bg-etapa-finalizado" },
-} as const satisfies Record<EtapaOportunidad, { borde: string; punto: string }>;
+  prospecto: {
+    borde: "border-l-etapa-prospecto",
+    punto: "bg-etapa-prospecto",
+    contorno: "border-etapa-prospecto",
+    tinte: "bg-etapa-prospecto/15",
+  },
+  cotizacion: {
+    borde: "border-l-etapa-cotizacion",
+    punto: "bg-etapa-cotizacion",
+    contorno: "border-etapa-cotizacion",
+    tinte: "bg-etapa-cotizacion/15",
+  },
+  negociacion: {
+    borde: "border-l-etapa-negociacion",
+    punto: "bg-etapa-negociacion",
+    contorno: "border-etapa-negociacion",
+    tinte: "bg-etapa-negociacion/15",
+  },
+  adjudicado: {
+    borde: "border-l-etapa-adjudicado",
+    punto: "bg-etapa-adjudicado",
+    contorno: "border-etapa-adjudicado",
+    tinte: "bg-etapa-adjudicado/15",
+  },
+  ejecucion: {
+    borde: "border-l-etapa-ejecucion",
+    punto: "bg-etapa-ejecucion",
+    contorno: "border-etapa-ejecucion",
+    tinte: "bg-etapa-ejecucion/15",
+  },
+  finalizado: {
+    borde: "border-l-etapa-finalizado",
+    punto: "bg-etapa-finalizado",
+    contorno: "border-etapa-finalizado",
+    tinte: "bg-etapa-finalizado/15",
+  },
+} as const satisfies Record<
+  EtapaOportunidad,
+  { borde: string; punto: string; contorno: string; tinte: string }
+>;
 
 /**
  * La situación, independiente de la etapa (sección 2). Una oportunidad
@@ -89,6 +128,15 @@ export const TIPOS_ACTIVIDAD = [
 ] as const;
 
 export type TipoActividad = (typeof TIPOS_ACTIVIDAD)[number];
+
+/** Cómo se lee cada tipo de actividad en pantalla (único sitio con estos textos). */
+export const ETIQUETAS_TIPO_ACTIVIDAD = {
+  nota: "Nota",
+  llamada: "Llamada",
+  reunion: "Reunión",
+  correo: "Correo",
+  visita: "Visita",
+} as const satisfies Record<TipoActividad, string>;
 
 /**
  * Qué registra cada entrada del historial (sección 4). Qué columnas lleva

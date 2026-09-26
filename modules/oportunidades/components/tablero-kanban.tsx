@@ -5,6 +5,7 @@ import {
   DIAS_VENTANA_FINALIZADO,
   ETIQUETAS_ETAPA,
 } from "../constantes";
+import type { FiltrosOportunidades } from "../filtros";
 import type { ColumnaKanban } from "../queries";
 import { TarjetaOportunidad } from "./tarjeta-oportunidad";
 
@@ -22,9 +23,12 @@ import { TarjetaOportunidad } from "./tarjeta-oportunidad";
  */
 export function TableroKanban({
   columnas,
+  filtros,
   hayFiltros,
 }: {
   columnas: ColumnaKanban[];
+  /** Viajan en el enlace de cada tarjeta, para volver a ellos desde el detalle. */
+  filtros: FiltrosOportunidades;
   /** Cambia el texto de una columna vacía: "Sin coincidencias". */
   hayFiltros: boolean;
 }) {
@@ -35,6 +39,7 @@ export function TableroKanban({
           key={columna.etapa}
           columna={columna}
           numero={indice + 1}
+          filtros={filtros}
           hayFiltros={hayFiltros}
         />
       ))}
@@ -45,10 +50,12 @@ export function TableroKanban({
 function Columna({
   columna,
   numero,
+  filtros,
   hayFiltros,
 }: {
   columna: ColumnaKanban;
   numero: number;
+  filtros: FiltrosOportunidades;
   hayFiltros: boolean;
 }) {
   const { etapa, cantidad, total_usd, total_pen, tarjetas } = columna;
@@ -100,7 +107,11 @@ function Columna({
       <div className="flex flex-1 flex-col gap-2 p-2">
         {tarjetas.length > 0 ? (
           tarjetas.map((oportunidad) => (
-            <TarjetaOportunidad key={oportunidad.id} oportunidad={oportunidad} />
+            <TarjetaOportunidad
+              key={oportunidad.id}
+              oportunidad={oportunidad}
+              filtros={filtros}
+            />
           ))
         ) : (
           <p className="rounded-md border border-dashed px-2 py-4 text-center text-xs text-muted-foreground">

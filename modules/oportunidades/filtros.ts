@@ -66,10 +66,11 @@ export function normalizarFiltros(
   return { ...filtros, estado };
 }
 
-export function urlListado(
-  filtros: FiltrosOportunidades = {},
-  vista: Vista = "embudo",
-): string {
+/** Los parámetros de URL de una vista del listado con sus filtros. */
+function parametrosListado(
+  filtros: FiltrosOportunidades,
+  vista: Vista,
+): URLSearchParams {
   const params = new URLSearchParams();
 
   if (vista === "tabla") params.set("vista", "tabla");
@@ -89,9 +90,39 @@ export function urlListado(
     }
   }
 
-  const cadena = params.toString();
+  return params;
+}
+
+export function urlListado(
+  filtros: FiltrosOportunidades = {},
+  vista: Vista = "embudo",
+): string {
+  const cadena = parametrosListado(filtros, vista).toString();
 
   return cadena ? `${RUTA_LISTADO}?${cadena}` : RUTA_LISTADO;
+}
+
+/**
+ * El enlace al detalle de una oportunidad, LLEVANDO EL ORIGEN: la vista y los
+ * filtros con los que se llegó viajan como los mismos parámetros del listado
+ * (`/oportunidades/<id>?rapido=sin-mover&vista=tabla`). El detalle los valida
+ * con los mismos Zod y reconstruye con `urlListado` el destino de "< Pipeline"
+ * (sección 7: vuelve a la vista de la que se vino, con sus filtros).
+ *
+ * En la URL y no en el historial del navegador: sobrevive a una recarga y a
+ * abrir la tarjeta en otra pestaña, y es el mismo criterio de todo el
+ * proyecto (los filtros viven en la URL). Y como el destino se RECONSTRUYE
+ * desde filtros validados, nunca se redirige a una cadena recibida tal cual.
+ */
+export function urlDetalle(
+  id: string,
+  filtros: FiltrosOportunidades = {},
+  vista: Vista = "embudo",
+): string {
+  const ruta = `${RUTA_LISTADO}/${encodeURIComponent(id)}`;
+  const cadena = parametrosListado(filtros, vista).toString();
+
+  return cadena ? `${ruta}?${cadena}` : ruta;
 }
 
 /**

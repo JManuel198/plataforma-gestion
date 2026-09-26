@@ -2,6 +2,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gte,
   ilike,
@@ -468,6 +469,100 @@ export async function listarEmpresasConOportunidades() {
     .innerJoin(empresas, eq(oportunidades.empresa_id, empresas.id))
     .orderBy(asc(empresas.razon_social), asc(empresas.id));
 }
+
+// --- Detalle -------------------------------------------------------------------
+
+/**
+ * Una oportunidad con todo lo que pinta su página de detalle (sección 7): sus
+ * campos, la empresa, el contacto si tiene, el asesor y, si está cerrada, el
+ * momento del cierre.
+ *
+ * DEVUELVE `null` SI EL ID NO EXISTE, y solo entonces: la página lo convierte
+ * en un 404 real (`notFound()`). Una oportunidad que existe siempre trae
+ * empresa y asesor —las dos FK son `NOT NULL`, así que el `INNER JOIN` no
+ * puede perder la fila—, y el contacto va con `LEFT JOIN` porque es opcional:
+ * sin contacto sale `contacto: null`, no una oportunidad "vacía".
+ *
+ * El contacto y la empresa se muestran aunque se hayan dado de baja después
+ * (una oportunidad sigue siendo válida, ver db/schema/oportunidades.ts); por
+ * eso viaja su `activo`, para que la pantalla lo advierta.
+ *
+ * `cierre`: solo en perdidas y anuladas. La fecha y la hora salen de la última
+ * entrada `perdida`/`anulacion` del historial (la tabla no guarda cuándo se
+ * cerró); el motivo, de `oportunidades.motivo`, que es el del cierre vigente
+ * (reabrir lo vacía). La etapa en la que estaba es `etapa`: cerrar no la toca.
+ */
+export async function obtenerOportunidad(id: string) {
+  const [fila] = await db
+    .select({
+      oportunidad: oportunidades,
+      empresa: {
+        razon_social: empresas.razon_social,
+        nombre_comercial: empresas.nombre_comercial,
+        ruc: empresas.ruc,
+        activo: empresas.activo,
+      },
+      contacto: {
+        id: contactos.id,
+        nombre: contactos.nombre,
+        cargo: contactos.cargo,
+        correo: contactos.correo,
+        celular: contactos.celular,
+        activo: contactos.activo,
+      },
+      asesor_nombre: user.nombre_completo,
+    })
+    .from(oportunidades)
+    .innerJoin(empresas, eq(oportunidades.empresa_id, empresas.id))
+    .innerJoin(user, eq(oportunidades.asesor_id, user.id))
+    .leftJoin(contactos, eq(oportunidades.contacto_id, contactos.id))
+    .where(eq(oportunidades.id, id))
+    .limit(1);
+
+  if (!fila) return null;
+
+  const { oportunidad, empresa, contacto, asesor_nombre } = fila;
+
+  let cierre: { fecha: Date; motivo: string | null } | null = null;
+
+  if (oportunidad.situacion !== "abierta") {
+    const [entrada] = await db
+      .select({ fecha: oportunidadHistorial.createdAt })
+      .from(oportunidadHistorial)
+      .where(
+        and(
+          eq(oportunidadHistorial.oportunidad_id, id),
+          eq(
+            oportunidadHistorial.tipo,
+            oportunidad.situacion === "perdida" ? "perdida" : "anulacion",
+          ),
+        ),
+      )
+      .orderBy(desc(oportunidadHistorial.createdAt))
+      .limit(1);
+
+    // Toda acción que cierra escribe su entrada en la misma transacción
+    // (actions.ts), así que la entrada existe. Si faltara, el aviso se omite
+    // antes que inventar una fecha.
+    if (entrada) {
+      cierre = { fecha: entrada.fecha, motivo: oportunidad.motivo };
+    }
+  }
+
+  return {
+    ...oportunidad,
+    empresa,
+    // Con `LEFT JOIN` sin coincidencia, Drizzle ya devuelve el objeto entero
+    // como `null`; el `id` se comprueba para no depender de ese detalle.
+    contacto: contacto?.id ? contacto : null,
+    asesor: { nombre: asesor_nombre, iniciales: iniciales(asesor_nombre) },
+    cierre,
+  };
+}
+
+export type DetalleOportunidad = NonNullable<
+  Awaited<ReturnType<typeof obtenerOportunidad>>
+>;
 
 // --- Línea de tiempo del detalle ------------------------------------------------
 

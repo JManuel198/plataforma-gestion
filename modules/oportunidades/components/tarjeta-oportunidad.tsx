@@ -3,11 +3,8 @@ import { Building2Icon, ClockIcon } from "lucide-react";
 import { AvatarIniciales } from "@/core/components/avatar-iniciales";
 import { formatearMonto } from "@/core/dinero";
 import { cn } from "cn";
-import {
-  COLOR_ETAPA,
-  DIAS_SIN_MOVER_ALERTA,
-  RUTA_LISTADO,
-} from "../constantes";
+import { COLOR_ETAPA, DIAS_SIN_MOVER_ALERTA } from "../constantes";
+import { urlDetalle, type FiltrosOportunidades } from "../filtros";
 import type { TarjetaOportunidad as DatosTarjeta } from "../queries";
 
 /**
@@ -16,9 +13,8 @@ import type { TarjetaOportunidad as DatosTarjeta } from "../queries";
  *
  * ES UN ENLACE (`<a>`) A LA PÁGINA DE DETALLE, no un `<div>` con `onClick`:
  * se abre con Enter, en otra pestaña con el botón central, y un lector de
- * pantalla lo anuncia como enlace. `/oportunidades/[id]` llega en la Parte 9;
- * hasta entonces el enlace da la página de "no encontrado", y eso es lo
- * esperado.
+ * pantalla lo anuncia como enlace. Lleva los filtros del embudo (`urlDetalle`)
+ * para que "< Pipeline" del detalle vuelva al kanban tal como estaba.
  *
  * `draggable={false}`: todavía NO se arrastra (eso es la Parte 11). Un `<a>`
  * es arrastrable de fábrica en el navegador —se lleva la URL—, y arrastrarlo
@@ -30,8 +26,11 @@ import type { TarjetaOportunidad as DatosTarjeta } from "../queries";
  */
 export function TarjetaOportunidad({
   oportunidad,
+  filtros,
 }: {
   oportunidad: DatosTarjeta;
+  /** Los filtros del embudo, para volver a ellos desde el detalle. */
+  filtros: FiltrosOportunidades;
 }) {
   const {
     id,
@@ -48,7 +47,7 @@ export function TarjetaOportunidad({
 
   return (
     <Link
-      href={`${RUTA_LISTADO}/${id}`}
+      href={urlDetalle(id, filtros, "embudo")}
       draggable={false}
       className={cn(
         // El borde izquierdo del color de su etapa; el resto, el borde normal.

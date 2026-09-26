@@ -81,6 +81,7 @@ export default async function PaginaOportunidades({
 
       <TableroKanban
         columnas={columnas}
+        filtros={filtros}
         hayFiltros={contarFiltros(filtros) > 0}
       />
     </div>
