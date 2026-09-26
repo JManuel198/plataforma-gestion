@@ -8,6 +8,7 @@ import {
 import { MigaDetalle } from "@/components/migas-de-pan";
 import { paginaSchema } from "@/core/paginacion";
 import { exigirCrmVisible } from "@/core/visibilidad-crm";
+import { ZONA_HORARIA } from "@/lib/fecha";
 import { AvisoCierre } from "@/modules/oportunidades/components/aviso-cierre";
 import { CabeceraDetalle } from "@/modules/oportunidades/components/cabecera-detalle";
 import { InformacionGeneral } from "@/modules/oportunidades/components/informacion-general";
@@ -37,10 +38,15 @@ import {
 export const metadata = { title: "Oportunidad" };
 
 /**
- * El detalle de una oportunidad (sección 7 de la spec), parte de LECTURA
- * (Parte 9 del plan). Página completa, no modal, y sin título de módulo: el
- * primer módulo con detalle en ruta propia. Las ediciones, la línea de etapas
- * pulsable y las acciones de la cabecera llegan en la Parte 10.
+ * El detalle de una oportunidad (sección 7 de la spec): lectura (Parte 9 del
+ * plan) y acciones (Parte 10). Página completa, no modal, y sin título de
+ * módulo: el primer módulo con detalle en ruta propia.
+ *
+ * TODO LO QUE SE VE LO ESCRIBE ESTE SERVER COMPONENT. Las piezas interactivas
+ * (lápices, línea de etapas, botones de la cabecera) llaman a su Server
+ * Action y después a `router.refresh()`, que vuelve a pedir esta página: la
+ * información, la cabecera y la línea de tiempo se actualizan sin recargar, y
+ * ante un fallo se ve el estado real (ver `useAccionOportunidad`).
  *
  * Un id que no existe da un 404 REAL (`notFound()`), no una pantalla vacía:
  * `obtenerOportunidad` devuelve `null` solo en ese caso.
@@ -90,9 +96,17 @@ export default async function PaginaDetalleOportunidad({
     <div className="space-y-5">
       <MigaDetalle etiqueta={oportunidad.codigo} />
 
-      <CabeceraDetalle oportunidad={oportunidad} urlVolver={urlVolver} />
+      <CabeceraDetalle
+        oportunidad={oportunidad}
+        urlVolver={urlVolver}
+        zonaHoraria={ZONA_HORARIA}
+      />
 
-      <LineaEtapas etapa={oportunidad.etapa} cerrada={cerrada} />
+      <LineaEtapas
+        id={oportunidad.id}
+        etapa={oportunidad.etapa}
+        cerrada={cerrada}
+      />
 
       {oportunidad.situacion !== "abierta" && oportunidad.cierre ? (
         <AvisoCierre

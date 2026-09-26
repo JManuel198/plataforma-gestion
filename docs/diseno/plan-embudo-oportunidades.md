@@ -215,7 +215,7 @@ Página completa, no modal. Sin título de módulo.
 12. **Vista Tabla y botón Embudo / Tabla.**
 13. **Cierre.**
     1. Recorrido completo en el navegador.
-    2. Borrar todo lo "PRUEBA" (oportunidades, historial y actividades, y los contactos "PRUEBA" creados en AZUMA FOODS para probar la Parte 9 — después de las oportunidades, que los referencian). Reiniciar el contador de oportunidades solo tras comprobar que no existe ninguna real, para que la primera real sea `OPT.CCM.2026.00001`.
+    2. Borrar todo lo "PRUEBA" (oportunidades, historial y actividades). Los dos contactos "PRUEBA" que se crearon en AZUMA FOODS para probar la Parte 9 ya se borraron el 2026-09-26 (antes se desvinculó la OPT.CCM.2026.00001 y se borraron sus dos entradas de edición de contacto). Reiniciar el contador de oportunidades solo tras comprobar que no existe ninguna real, para que la primera real sea `OPT.CCM.2026.00001`.
     3. Sincronizar la documentación.
     4. Push, PR y fusión.
 

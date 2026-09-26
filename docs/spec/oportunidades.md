@@ -19,8 +19,8 @@ selectores, en `modules/oportunidades/actions.ts`) y las consultas (Parte 6:
 kanban, tabla, métricas y línea de tiempo, en `queries.ts`). La ruta
 `/oportunidades` muestra el kanban de solo lectura con su cabecera, métricas
 y filtros (Parte 8) y el modal "Nueva oportunidad" (Parte 7), y
-`/oportunidades/[id]` el detalle de solo lectura (Parte 9, 2026-09-26); las
-acciones del detalle, el arrastre y la Tabla llegan después. Sigue oculta a
+`/oportunidades/[id]` el detalle con sus acciones (Partes 9 y 10,
+2026-09-26); el arrastre y la Tabla llegan después. Sigue oculta a
 los correos de `CRM_OCULTO_PARA` (ver AGENTS.md).
 
 **Marcas.** Lo que lleva **[por defecto]** se decidió sin indicación explícita

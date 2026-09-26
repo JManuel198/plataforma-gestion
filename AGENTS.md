@@ -74,8 +74,12 @@ trabaje en este código.
   y la página de detalle `/oportunidades/[id]` de SOLO LECTURA (Parte 9,
   2026-09-26: `obtenerOportunidad` en queries.ts, que devuelve `null` solo si
   el id no existe y la página responde 404; línea de etapas solo visual,
-  información general, línea de tiempo y aviso de cierre; los botones de
-  acción se ven deshabilitados hasta la Parte 10). El clic en una tarjeta del
+  información general, línea de tiempo y aviso de cierre) con sus acciones
+  (Parte 10, 2026-09-26): lápices de título, contacto y fecha, línea de
+  etapas pulsable con confirmación, "+ Actividad", "Marcar perdida",
+  "Anular" y "Reabrir". Cada acción llama a su Server Action y luego a
+  `router.refresh()` (`useAccionOportunidad`), sin estado optimista: ante un
+  fallo se ve lo que de verdad guardó el servidor. El clic en una tarjeta del
   kanban lleva sus filtros a la URL del detalle (`urlDetalle`), y "< Pipeline"
   reconstruye con ellos la del listado.
   Los colores de etapa son tokens `--etapa-*` en app/globals.css y

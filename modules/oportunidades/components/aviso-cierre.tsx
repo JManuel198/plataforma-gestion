@@ -9,7 +9,7 @@ import { ETIQUETAS_ETAPA, type EtapaOportunidad } from "../constantes";
  * solo puede pasar al anular—.
  *
  * El botón "Reabrir" que la spec pone como única acción de una cerrada está
- * en la cabecera y llega con la Parte 10; este aviso solo informa.
+ * en la cabecera (`AccionesDetalle`); este aviso solo informa.
  */
 export function AvisoCierre({
   situacion,
