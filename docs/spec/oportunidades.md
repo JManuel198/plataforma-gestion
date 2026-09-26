@@ -15,7 +15,9 @@ archivo.
 `oportunidad_historial` y `oportunidad_actividades`, migración 0021, aplicada
 en desarrollo; detalle en `entidades.md`) y con las acciones del backend
 (Parte 5 del plan: crear, editar, cambiar etapa, cerrar/reabrir, actividades y
-selectores, en `modules/oportunidades/actions.ts`), pero **sin pantallas**. La
+selectores, en `modules/oportunidades/actions.ts`) y las consultas (Parte 6:
+kanban, tabla, métricas y línea de tiempo, en `queries.ts`), pero **sin
+pantallas**. La
 ruta `/oportunidades` existe solo con su título, y sigue oculta a los correos de
 `CRM_OCULTO_PARA` (ver AGENTS.md).
 

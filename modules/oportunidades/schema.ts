@@ -2,7 +2,14 @@ import { z } from "zod";
 import { aCentimos, aMontoDecimal } from "@/core/dinero";
 import { MONEDAS } from "@/core/monedas";
 import { instanteDeFechaHoraLocal } from "@/lib/fecha";
-import { ETAPAS_OPORTUNIDAD, TIPOS_ACTIVIDAD } from "./constantes";
+import {
+  CLAVES_RANGO_VALOR,
+  ESTADOS_TABLA,
+  ETAPAS_OPORTUNIDAD,
+  OPCIONES_RAPIDAS,
+  TIPOS_ACTIVIDAD,
+  VISTAS,
+} from "./constantes";
 
 // Nada que venga de un formulario o de un argumento de Server Action toca la
 // base sin pasar por aquí (regla 1 de AGENTS.md: la validación vive en el
@@ -239,6 +246,50 @@ export const actividadSchema = z.object({
 
 /** La empresa cuyos contactos pide el selector de contacto. */
 export const empresaDelSelectorSchema = idSchema("Falta la empresa.");
+
+// --- Filtros del embudo y de la tabla ---------------------------------------
+//
+// Vienen de `searchParams`, o sea que son input del usuario. Mismo patrón que
+// los demás módulos: `.optional().catch(undefined)` para que un parámetro
+// inventado o repetido no reviente la pantalla, solo se ignore.
+
+/** Mismo criterio y mismo tope que `filtroBusquedaSchema` en los otros módulos. */
+export const filtroBusquedaSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .catch(undefined);
+
+export const filtroRapidoSchema = z
+  .enum(OPCIONES_RAPIDAS)
+  .optional()
+  .catch(undefined);
+
+/**
+ * El `empresa_id` del desplegable Cliente. Solo se comprueba la forma: un id
+ * que no existe simplemente no casa con ninguna oportunidad.
+ */
+export const filtroClienteSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .optional()
+  .catch(undefined);
+
+export const filtroValorSchema = z
+  .enum(CLAVES_RANGO_VALOR)
+  .optional()
+  .catch(undefined);
+
+export const filtroEstadoSchema = z
+  .enum(ESTADOS_TABLA)
+  .optional()
+  .catch(undefined);
+
+export const filtroVistaSchema = z.enum(VISTAS).catch("embudo");
 
 export type OportunidadCrearInput = z.infer<typeof oportunidadCrearSchema>;
 export type OportunidadEditarInput = z.infer<typeof oportunidadEditarSchema>;

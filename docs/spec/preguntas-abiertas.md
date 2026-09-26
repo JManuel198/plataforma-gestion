@@ -780,7 +780,7 @@ cada punto.
 ## Embudo de oportunidades (CRM, especificado el 2026-09-25)
 
 Especificación en `oportunidades.md`. Tiene tablas (migración 0021) y
-acciones del backend (Parte 5); todavía no tiene pantallas.
+acciones y consultas del backend (Partes 5 y 6); todavía no tiene pantallas.
 
 26. **¿De dónde saldrán el valor estimado y la probabilidad cuando exista el
     módulo de Cotizaciones?** Hoy se fijan al crear la oportunidad (valor por
@@ -854,3 +854,27 @@ acciones del backend (Parte 5); todavía no tiene pantallas.
       spec solo dice que puede ser anterior al registro. Si no debe
       permitirse (p. ej. porque las reuniones futuras se agendarán en otro
       sitio), se añade la validación en `actividadSchema`.
+
+32. **Decisiones de las consultas (Parte 6, 2026-09-25)** que la spec no
+    dice textualmente (implementadas en `modules/oportunidades/queries.ts`):
+    - **">$50k" se combina con el desplegable Valor (AND)**, no lo excluye.
+      Así lo dice la sección 5 ("se combinan entre sí"; la selección única
+      es solo entre Todas · Sin mover ≥7d · >$50k) y así lo hace el mockup.
+      El encargo de la Parte 6 pedía que fueran excluyentes: **pendiente de
+      confirmar**. Si se decide excluir, es un cambio en `normalizarFiltros`
+      (modules/oportunidades/filtros.ts), no en la consulta.
+    - "Sin mover ≥7d" es **7 o más** días calendario en hora de Lima, como
+      dice la spec (el encargo decía "más de 7").
+    - En el kanban, las tarjetas de Finalizado no llevan reloj de días
+      (`null`) y "Sin mover ≥7d" no las incluye, por la sección 3 ("no aplica
+      a oportunidades cerradas"; la Tabla ya muestra "—" en Finalizadas). El
+      mockup sí pintaba días en esas tarjetas.
+    - **[por defecto]** La ventana de Finalizado del kanban son 30 días de
+      reloj (30 × 24 h) hacia atrás desde ahora, medidos sobre
+      `etapa_cambiada_en`.
+    - **[por defecto]** Las métricas de cabecera con filtros (cantidad y
+      totales) se calculan sobre lo que muestra la vista: en el Embudo, el
+      conjunto del kanban; en la Tabla, el del filtro de estado (como el
+      mockup).
+    - **[por defecto]** La tasa de cierre se entrega como porcentaje entero
+      redondeado.

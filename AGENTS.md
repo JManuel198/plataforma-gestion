@@ -66,9 +66,10 @@ trabaje en este código.
   2026-09-25): modules/oportunidades/ tiene actions (crear, editar,
   cambiarEtapa, marcarPerdida, anular, reabrir, agregarActividad y los dos
   selectores), schema (Zod), codigo.ts y el selector de contactos en
-  queries.ts. **Todavía sin pantallas ni consultas de listado** (Partes 6 en
-  adelante): la ruta sigue siendo la entrada del menú y la ruta protegida con
-  su título. Cambios fuera del módulo: (1) la Parte 3 del plan movió
+  queries.ts; y sus consultas (Parte 6): kanban, tabla paginada, métricas,
+  línea de tiempo y desplegable Cliente en queries.ts, con los filtros en
+  filtros.ts. **Todavía sin pantallas** (Partes 7 en adelante): la ruta sigue
+  siendo la entrada del menú y la ruta protegida con su título. Cambios fuera del módulo: (1) la Parte 3 del plan movió
   (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
   (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades es su
   segundo consumidor), **sin cambiar en nada la numeración de las OT**, en
