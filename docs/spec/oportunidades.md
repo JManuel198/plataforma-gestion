@@ -111,11 +111,16 @@ Días calendario, en hora de Lima, desde **Etapa cambiada en** hasta hoy.
   estancadas en su etapa, y solo tiene sentido medido así.
 - **Solo un cambio de etapa lo reinicia.** Marcar perdida, anular y reabrir
   no lo tocan, y tampoco las ediciones ni las actividades.
-- Se muestra en rojo **desde 7 días**.
-- **No aplica a oportunidades cerradas.** *Por qué:* mide movimiento, y solo
-  tiene sentido mientras la oportunidad sigue en movimiento. Por eso la Tabla
-  muestra "—" en Finalizadas, Perdidas y Anuladas, y el filtro "Sin mover
-  ≥7d" se deshabilita allí (sección 9).
+- Se muestra en rojo **desde 7 días**, y el filtro "Sin mover ≥7d" es
+  **7 días o más, inclusive** (confirmado el 2026-09-25).
+- **No aplica a oportunidades cerradas: Finalizadas, Perdidas y Anuladas.**
+  *Por qué:* mide movimiento, y solo tiene sentido mientras la oportunidad
+  sigue en movimiento. Ninguna de las tres lleva reloj de días **en ningún
+  sitio** —tampoco las tarjetas de la columna Finalizado del kanban— ni
+  entra en el filtro "Sin mover ≥7d". Por eso la Tabla muestra "—" en ellas y
+  el filtro se deshabilita allí (sección 9). Confirmado el 2026-09-25; el
+  mockup pintaba días en las tarjetas de Finalizado, y en esto manda este
+  archivo.
 
 ## 4. Historial y actividades
 
@@ -168,6 +173,9 @@ por fecha y hora, lo más reciente arriba, con un contador "N registros".
   oportunidades, total en dólares, total en soles y tasa de cierre.
   **[por defecto]** La cantidad y los totales cambian con los filtros
   aplicados; la tasa de cierre es global e histórica, sin filtros.
+  **Se calculan sobre lo que muestra la vista** (confirmado el 2026-09-25):
+  en el Embudo, las oportunidades del kanban; en la Tabla, además, el filtro
+  de estado activo.
 
 ### Nombres
 
@@ -187,6 +195,14 @@ Viven en la URL y se combinan entre sí.
   defecto, todas.
 - **Valor:** Todos · menos de $10k · de $10k a menos de $50k · de $50k a
   menos de $200k · $200k o más. Límite inferior incluido, superior excluido.
+- **">$50k" y el desplegable Valor se combinan (AND)**, como el resto de
+  filtros (confirmado el 2026-09-25). La selección única es solo entre las
+  tres opciones rápidas; Valor es un filtro aparte. *Por qué:* esta sección
+  ya lo definía así desde el principio: "selección única" está escrita para
+  las opciones rápidas, y "se combinan entre sí" para los filtros. Si se
+  combinan sin intersección (">$50k" con "menos de $10k"), el resultado es
+  una lista vacía, sin manejo especial. Si conviene que elegir uno limpie el
+  otro en la interfaz se decide en la Parte 7 del plan.
 - **Los filtros de valor (">$50k" y el desplegable) solo consideran
   oportunidades en dólares.** No hay tipo de cambio (ver "Una sola moneda por
   trabajo" en `reglas-negocio.md`), así que las de soles quedan fuera.
@@ -200,7 +216,8 @@ Viven en la URL y se combinan entre sí.
   convierten ni se mezclan.**
 - El kanban muestra **solo oportunidades abiertas**.
 - **Finalizado muestra solo las que llegaron a esa etapa en los últimos 30
-  días.** Las anteriores se consultan en la Tabla (estado Finalizadas).
+  días**: 30 × 24 horas hacia atrás desde el momento de la consulta, medidas
+  sobre **Etapa cambiada en** (confirmado el 2026-09-25). Las anteriores se consultan en la Tabla (estado Finalizadas).
   *Por qué:* Finalizado es la última etapa y solo acumula; sin límite, la
   columna crecería sin fin en una vista que no pagina.
 - Scroll general de la página, sin paginación.
@@ -211,7 +228,8 @@ Viven en la URL y se combinan entre sí.
 - De arriba hacia abajo: código (pequeño y claro); título; empresa (más
   pequeña, con el ícono `Building2`); valor a la izquierda y probabilidad a la
   derecha; avatar de iniciales con el nombre del asesor a la izquierda y, a la
-  derecha, el reloj de días (sección 3), en rojo desde 7.
+  derecha, el reloj de días (sección 3), en rojo desde 7. Las tarjetas de
+  Finalizado no llevan reloj.
 - Dentro de cada columna, ordenadas por fecha estimada de cierre, de la más
   próxima a la más lejana; **[por defecto]** sin fecha, al final.
 - No se reordenan a mano.

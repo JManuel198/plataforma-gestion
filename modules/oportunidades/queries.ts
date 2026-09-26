@@ -392,7 +392,7 @@ export type FilaOportunidad = Awaited<
  *
  * CON FILTROS, sobre lo que se está viendo: en el Embudo, el conjunto del
  * kanban (abiertas, Finalizado con su ventana de 30 días); en la Tabla, el
- * del filtro de estado. [por defecto en la spec]
+ * del filtro de estado (confirmado, sección 5 de la spec).
  * - `cantidad`, `total_usd` y `total_pen`: las dos sumas por separado, cada
  *   una con su `FILTER (WHERE moneda = …)`. Nunca se convierten ni se suman
  *   entre sí.
