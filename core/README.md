@@ -39,3 +39,10 @@ desde una consulta al servidor y el otro desde una constante del código, y de
 ahí sale todo lo demás (pausa de tecleo, turnos, fallo de red: imprescindibles
 en el primero, inexistentes en el segundo). La tabla comparativa está en la
 cabecera del propio archivo y en la skill de convenciones.
+
+`selector-empresas.ts` (2026-09-25) es la consulta del selector de empresa de
+los formularios, que estuvo en `modules/contactos/` hasta que el Embudo de
+oportunidades la necesitó. Se comparte con un parámetro, `incluirInactivas`,
+porque es la única diferencia entre los dos: Contactos ofrece también las
+empresas dadas de baja y Oportunidades no. La Server Action que la envuelve
+sigue en cada módulo. Si algún día divergen en algo más, se vuelven a separar.

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { db } from "@/db";
 import { correlativo } from "@/db/schema/correlativo";
+import { ZONA_HORARIA } from "@/lib/fecha";
 
 /**
  * El handle de transacción que entrega `db.transaction(async (tx) => ...)`.
@@ -85,15 +86,14 @@ export async function reservarCorrelativo(
  * tiene que numerar el contador y escribirse en el código visible (si se
  * calculara dos veces, un alta en el borde de fin de año podría salir como
  * `…2027.0001` contando sobre 2026), y tiene que calcularse en la zona horaria
- * del negocio, no en la del servidor. Ver `anioVigente` en
- * modules/ordenes-trabajo/codigo.ts.
+ * del negocio, no en la del servidor. Ver `anioVigente`, abajo.
  *
  * `clave` no puede contener `:`, que separa el año: así la fila de un
  * correlativo anual nunca coincide con la de uno global ni con la de otro
  * anual.
  *
- * Lo usan Órdenes de Trabajo (`"ordenes-trabajo"`) y, cuando exista, el Embudo
- * de oportunidades. Hasta el 2026-09-25 OT tenía su propia tabla,
+ * Lo usan Órdenes de Trabajo (`"ordenes-trabajo"`) y el Embudo de
+ * oportunidades (`"oportunidades"`). Hasta el 2026-09-25 OT tenía su propia tabla,
  * `ot_correlativo` (PK `anio`); la migración 0020 copió su contador aquí y
  * esa tabla quedó sin uso.
  */
@@ -108,4 +108,30 @@ export async function reservarCorrelativoAnual(
   }
 
   return reservarCorrelativo(tx, `${clave}:${anio}`, inicial);
+}
+
+/**
+ * El año con el que se numera un registro nuevo de un correlativo anual.
+ *
+ * Se calcula en la zona horaria del negocio, no en la del servidor: en Vercel
+ * el reloj corre en UTC, así que un alta del 31 de diciembre a las 20:00 en
+ * Lima ya es 1 de enero en UTC y se numeraría con el año siguiente. Cinco
+ * horas al año en las que el correlativo saltaría de año antes de tiempo, y
+ * el reinicio anual quedaría corrido respecto al calendario que ve el cliente.
+ *
+ * VIVE AQUÍ DESDE 2026-09-25. Estuvo en `modules/ordenes-trabajo/codigo.ts`
+ * mientras la OT fue el único correlativo anual; el Embudo de oportunidades es
+ * el segundo, y ninguno debe importar del otro. Se movió tal cual, sin cambiar
+ * el cálculo: la numeración de las OT no se toca.
+ */
+export function anioVigente(fecha: Date = new Date()): number {
+  // Misma ZONA_HORARIA que usa formatearFecha() para mostrar: el año con el
+  // que se numera un registro y el que se ve en pantalla salen de la misma
+  // fuente.
+  const formateador = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+  });
+
+  return Number(formateador.format(fecha));
 }

@@ -13,7 +13,9 @@ archivo.
 
 **Estado (2026-09-25):** especificado y con esquema (tablas `oportunidades`,
 `oportunidad_historial` y `oportunidad_actividades`, migración 0021, aplicada
-en desarrollo; detalle en `entidades.md`), pero **sin código de módulo**. La
+en desarrollo; detalle en `entidades.md`) y con las acciones del backend
+(Parte 5 del plan: crear, editar, cambiar etapa, cerrar/reabrir, actividades y
+selectores, en `modules/oportunidades/actions.ts`), pero **sin pantallas**. La
 ruta `/oportunidades` existe solo con su título, y sigue oculta a los correos de
 `CRM_OCULTO_PARA` (ver AGENTS.md).
 

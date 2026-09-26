@@ -1,10 +1,9 @@
-import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contactos } from "@/db/schema/contactos";
 import { empresas } from "@/db/schema/empresas";
 import { patronParcial } from "@/core/busqueda";
 import type { Paginacion } from "@/core/paginacion";
-import { MAXIMO_EMPRESAS_SELECTOR } from "./constantes";
 import type { FiltrosContactos } from "./filtros";
 
 // Este módulo LEE la tabla `empresas` directamente, con JOIN, y no a través de
@@ -167,45 +166,5 @@ export type DetalleContacto = NonNullable<
   Awaited<ReturnType<typeof obtenerContacto>>
 >;
 
-/**
- * Empresas para el selector del formulario de contacto.
- *
- * Trae TODAS, activas e inactivas, con su `activo`: un contacto puede estar
- * asociado a una empresa dada de baja, y al editarlo la suya tiene que poder
- * aparecer. Marcar visualmente las inactivas es cosa de la interfaz; esto solo
- * entrega el dato. Se ordenan las activas primero, que son las que se eligen
- * casi siempre.
- *
- * Sin texto devuelve las primeras por razón social: el combobox se abre antes
- * de que el usuario escriba. Con texto busca por razón social, nombre
- * comercial o RUC. El tope (`MAXIMO_EMPRESAS_SELECTOR`) es de combobox, no de
- * listado: si la empresa no aparece, se afina el texto.
- */
-export async function listarEmpresasParaSelector(busqueda: string) {
-  const patron = busqueda ? patronParcial(busqueda) : null;
-
-  return db
-    .select({
-      id: empresas.id,
-      razon_social: empresas.razon_social,
-      ruc: empresas.ruc,
-      activo: empresas.activo,
-    })
-    .from(empresas)
-    .where(
-      patron
-        ? or(
-            ilike(empresas.razon_social, patron),
-            ilike(empresas.nombre_comercial, patron),
-            ilike(empresas.ruc, patron),
-          )
-        : undefined,
-    )
-    .orderBy(desc(empresas.activo), asc(empresas.razon_social), asc(empresas.id))
-    .limit(MAXIMO_EMPRESAS_SELECTOR);
-}
-
-/** Una opción del selector de empresa, con el tipo real de la consulta. */
-export type EmpresaSeleccionable = Awaited<
-  ReturnType<typeof listarEmpresasParaSelector>
->[number];
+// El selector de empresa del formulario vive en core/selector-empresas.ts
+// (`buscarEmpresasParaSelector`), compartido con el Embudo de oportunidades.

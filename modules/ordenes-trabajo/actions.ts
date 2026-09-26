@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { reservarCorrelativoAnual } from "@/core/correlativo";
+import { anioVigente, reservarCorrelativoAnual } from "@/core/correlativo";
 import { exigirSesion } from "@/core/sesion";
 import { db } from "@/db";
 import { ordenTrabajo } from "@/db/schema/orden-trabajo";
-import { anioVigente, formatearCodigoOt } from "./codigo";
+import { formatearCodigoOt } from "./codigo";
 import {
   CLAVE_CORRELATIVO_OT,
   CORRELATIVO_INICIAL,

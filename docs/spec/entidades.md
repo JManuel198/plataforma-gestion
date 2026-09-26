@@ -235,13 +235,13 @@ otro. La `clave` no puede contener `:` (la función lo rechaza), así que una
 fila anual nunca coincide con una global.
 
 El **año lo decide quien llama**, en la zona horaria del negocio
-(`anioVigente` en `modules/ordenes-trabajo/codigo.ts`), y se usa el mismo
+(`anioVigente` en `core/correlativo.ts`), y se usa el mismo
 valor para el contador y para el código visible.
 
 | `clave` | Filas | Formato | Quién lo usa |
 |---|---|---|---|
 | `"ordenes-trabajo"` | `"ordenes-trabajo:2026"`, … | `OT.CCM.AAAA.NNNN` — 4 dígitos, arranca en `0001` | `orden_trabajo.codigo_ot` |
-| `"oportunidades"` (próximamente) | `"oportunidades:2026"`, … | `OPT.CCM.AAAA.NNNNN` — 5 dígitos | Embudo de oportunidades (`oportunidades.md`), sin tabla todavía |
+| `"oportunidades"` | `"oportunidades:2026"`, … | `OPT.CCM.AAAA.NNNNN` — 5 dígitos, arranca en `00001` | `oportunidades.codigo` |
 
 **Cómo llegó aquí el contador de OT.** Hasta el 2026-09-25 vivía en su propia
 tabla, `ot_correlativo` (PK `anio`), con una copia del mismo upsert en
@@ -1314,8 +1314,8 @@ invariable 2 piden céntimos enteros, y así están ya `orden_trabajo.precio` y
 precisión que ve el usuario; la conversión la hace `core/dinero.ts`. El CHECK
 `>= 0` viene de la spec ("mayor o igual a 0").
 
-**Lo que la base NO aplica, a propósito, y queda para la capa de acciones
-(Parte 5):** que empresa, moneda, valor y probabilidad no se editen después de
+**Lo que la base NO aplica, a propósito, y aplica la capa de acciones
+(`modules/oportunidades/actions.ts`, Parte 5):** que empresa, moneda, valor y probabilidad no se editen después de
 crear; que el motivo sea obligatorio al perder y opcional al anular; que
 Finalizado no se pueda marcar perdida; que al crear solo se ofrezcan empresas y
 contactos activos; y que **el contacto pertenezca a la empresa de la

@@ -9,13 +9,13 @@ import { contactos } from "@/db/schema/contactos";
 import type { EstadoFormulario } from "@/core/estado-formulario";
 import type { ResultadoAccion } from "@/core/resultado-accion";
 import { esFkViolada } from "@/core/errores-postgres";
+import {
+  buscarEmpresasParaSelector,
+  busquedaSelectorEmpresaSchema,
+  type EmpresaSeleccionable,
+} from "@/core/selector-empresas";
 import { RUTA_LISTADO } from "./constantes";
 import {
-  listarEmpresasParaSelector,
-  type EmpresaSeleccionable,
-} from "./queries";
-import {
-  busquedaSelectorEmpresaSchema,
   contactoCambioActivoSchema,
   contactoDatosSchema,
   contactoIdSchema,
@@ -188,11 +188,16 @@ export async function alternarActivoContacto(
 /**
  * Empresas para el selector del formulario de contacto.
  *
- * ES UNA LECTURA, y aun así vive aquí y no solo en queries.ts: la invoca un
- * Client Component (el combobox) mientras el usuario teclea, así que tiene que
- * ser una Server Action. La consulta sigue en queries.ts; esto es el envoltorio
- * con la sesión y la validación que exige cualquier otra action. Mismo reparto
- * que `buscarProveedoresAction` en Lista de precios.
+ * ES UNA LECTURA, y aun así vive aquí: la invoca un Client Component (el
+ * combobox) mientras el usuario teclea, así que tiene que ser una Server
+ * Action. La consulta vive en core/selector-empresas.ts, compartida con el
+ * Embudo de oportunidades; esto es el envoltorio con la sesión y la validación
+ * que exige cualquier otra action. Mismo reparto que `buscarProveedoresAction`
+ * en Lista de precios.
+ *
+ * Pide también las empresas dadas de baja (`incluirInactivas: true`): un
+ * contacto puede pertenecer a una empresa inactiva (decisión confirmada, ver
+ * entidades.md).
  *
  * Devuelve `[]` ante un texto absurdo en vez de fallar: un combobox que lanza
  * excepciones mientras se teclea es peor que uno que no encuentra nada.
@@ -207,7 +212,9 @@ export async function listarEmpresasParaSelectorAction(
   if (!resultado.success) return [];
 
   try {
-    return await listarEmpresasParaSelector(resultado.data);
+    return await buscarEmpresasParaSelector(resultado.data, {
+      incluirInactivas: true,
+    });
   } catch (error) {
     console.error("[Contactos] fallo inesperado al buscar empresas", error);
     return [];

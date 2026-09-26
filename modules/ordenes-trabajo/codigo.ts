@@ -1,4 +1,3 @@
-import { ZONA_HORARIA } from "@/lib/fecha";
 import { CODIGO_EMPRESA, DIGITOS_CORRELATIVO, PREFIJO_OT } from "./constantes";
 
 /**
@@ -15,23 +14,6 @@ export function formatearCodigoOt(anio: number, correlativo: number): string {
   return `${PREFIJO_OT}.${CODIGO_EMPRESA}.${anio}.${numero}`;
 }
 
-/**
- * El año con el que se numera una OT nueva.
- *
- * Se calcula en la zona horaria del negocio, no en la del servidor: en Vercel
- * el reloj corre en UTC, así que una OT creada el 31 de diciembre a las 20:00
- * en Lima ya es 1 de enero en UTC y se numeraría con el año siguiente. Cinco
- * horas al año en las que el correlativo saltaría de año antes de tiempo, y
- * el `RESTART` anual quedaría corrido respecto al calendario que ve el
- * cliente.
- */
-export function anioVigente(fecha: Date = new Date()): number {
-  // Misma ZONA_HORARIA que usa formatearFecha() para mostrar: el año con el
-  // que se numera una OT y el que se ve en pantalla salen de la misma fuente.
-  const formateador = new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-  });
-
-  return Number(formateador.format(fecha));
-}
+// `anioVigente` —el año con el que se numera una OT nueva, en la zona horaria
+// del negocio— vive en core/correlativo.ts desde el 2026-09-25: el Embudo de
+// oportunidades es su segundo consumidor.

@@ -62,13 +62,22 @@ trabaje en este código.
   docs/diseno/plan-embudo-oportunidades.md) y ya tiene esquema —
   `oportunidades`, `oportunidad_historial` y `oportunidad_actividades`
   (db/schema/oportunidades.ts, migración 0021, aplicada en desarrollo
-  (2026-09-25)) —, pero **todavía sin código de módulo** (solo
-  modules/oportunidades/constantes.ts, con las listas de los enums): sigue
-  siendo la entrada del menú y la ruta protegida con su título. Dos cambios fuera del módulo: (1) la Parte 3 del plan movió
+  (2026-09-25)) — y ya tiene su backend de escritura (Parte 5 del plan,
+  2026-09-25): modules/oportunidades/ tiene actions (crear, editar,
+  cambiarEtapa, marcarPerdida, anular, reabrir, agregarActividad y los dos
+  selectores), schema (Zod), codigo.ts y el selector de contactos en
+  queries.ts. **Todavía sin pantallas ni consultas de listado** (Partes 6 en
+  adelante): la ruta sigue siendo la entrada del menú y la ruta protegida con
+  su título. Cambios fuera del módulo: (1) la Parte 3 del plan movió
   (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
-  (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades será su
+  (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades es su
   segundo consumidor), **sin cambiar en nada la numeración de las OT**, en
-  un commit propio (ver la deuda técnica del correlativo, abajo); (2) el componente compartido
+  un commit propio (ver la deuda técnica del correlativo, abajo); en la
+  Parte 5 subió también `anioVigente` a core/correlativo.ts, tal cual; (2)
+  la consulta del selector de empresa pasó de modules/contactos/ a
+  core/selector-empresas.ts (`buscarEmpresasParaSelector`, con
+  `incluirInactivas`: Contactos las incluye, Oportunidades no), y Contactos
+  la usa desde ahí; (3) el componente compartido
   de migas de pan (components/migas-de-pan.tsx) se ampliará para aceptar un
   tercer nivel dinámico — hoy solo lo usará la página de detalle
   `/oportunidades/[id]`, el primer módulo con detalle en ruta propia; los

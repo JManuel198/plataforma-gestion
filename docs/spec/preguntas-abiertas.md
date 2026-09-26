@@ -779,8 +779,8 @@ cada punto.
 
 ## Embudo de oportunidades (CRM, especificado el 2026-09-25)
 
-Especificación en `oportunidades.md`. El módulo todavía no tiene tabla ni
-código.
+Especificación en `oportunidades.md`. Tiene tablas (migración 0021) y
+acciones del backend (Parte 5); todavía no tiene pantallas.
 
 26. **¿De dónde saldrán el valor estimado y la probabilidad cuando exista el
     módulo de Cotizaciones?** Hoy se fijan al crear la oportunidad (valor por
@@ -830,3 +830,27 @@ código.
       con contorno.
     - Al guardar una oportunidad nueva, el modal se cierra, aparece un aviso
       y la tarjeta se muestra en su columna sin recargar.
+
+31. **Decisiones de la capa de acciones (Parte 5, 2026-09-25)** que la spec
+    no dice textualmente. Las tres primeras se derivan de la sección 7 ("una
+    oportunidad perdida o anulada es de solo lectura; único botón: Reabrir");
+    las otras se tomaron por defecto y pueden cambiarse:
+    - Una oportunidad cerrada (perdida o anulada) rechaza en el servidor la
+      edición, el cambio de etapa y las actividades nuevas, no solo en la
+      interfaz.
+    - No se puede anular una perdida ni marcar perdida una anulada: primero
+      se reabre. Así cada cierre queda como una entrada propia del
+      historial.
+    - Al crear se exige empresa **activa**, y contacto activo y de esa
+      empresa; al editar, lo mismo para el contacto nuevo (el que ya tenía
+      no se revalida, para que su baja no impida editar el título o la
+      fecha).
+    - **[por defecto]** Mover una oportunidad a la etapa en la que ya está no
+      escribe nada y responde como éxito (doble clic, pestaña
+      desactualizada).
+    - **[por defecto]** Reabrir vacía `oportunidades.motivo` (el motivo del
+      último cierre); el motivo sigue en el historial.
+    - **[por defecto]** La fecha y hora de una actividad puede ser futura: la
+      spec solo dice que puede ser anterior al registro. Si no debe
+      permitirse (p. ej. porque las reuniones futuras se agendarán en otro
+      sitio), se añade la validación en `actividadSchema`.

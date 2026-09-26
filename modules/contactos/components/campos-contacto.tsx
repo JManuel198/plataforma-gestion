@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { BuscadorSeleccion } from "@/core/components/buscador-seleccion";
 import { MensajeError } from "@/core/components/mensaje-error";
 import { listarEmpresasParaSelectorAction } from "../actions";
-import type { EmpresaSeleccionable, FilaContacto } from "../queries";
+import type { EmpresaSeleccionable } from "@/core/selector-empresas";
+import type { FilaContacto } from "../queries";
 
 type Props = {
   /** Errores por campo que devolvió el servidor, ya aplanados con Zod. */
@@ -25,8 +26,9 @@ type Props = {
  * (`listarEmpresasParaSelectorAction`, con su pausa de tecleo y su turno, ver
  * `core/components/busqueda-remota.ts`). La acción se importa directa y no
  * llega como prop desde la página, al revés que el material en Lista de
- * precios: la consulta es de ESTE módulo (lee la tabla `empresas`, no código
- * de modules/clientes/).
+ * precios: la acción es de ESTE módulo, y la consulta que envuelve vive en
+ * core/selector-empresas.ts (lee la tabla `empresas`, no código de
+ * modules/clientes/).
  *
  * A DIFERENCIA DE MATERIALES, EL SELECTOR OFRECE TAMBIÉN LAS EMPRESAS DADAS DE
  * BAJA, por decisión confirmada (ver la ficha de Contactos en

@@ -86,12 +86,6 @@ export const contactoCambioActivoSchema = z.object({
   activo: z.boolean(),
 });
 
-/**
- * El texto del selector de empresa. Vacío es válido (el combobox se abre sin
- * texto y enseña las primeras); el tope es el mismo que el del buscador.
- */
-export const busquedaSelectorEmpresaSchema = z.string().trim().max(200);
-
 // --- Filtros del listado ---------------------------------------------------
 //
 // Vienen de `searchParams`, o sea que son input del usuario. Mismo patrón que

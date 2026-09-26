@@ -65,8 +65,9 @@ export const DIGITOS_CORRELATIVO = 4;
 
 // La zona horaria del negocio NO está aquí: vive en lib/fecha.ts. El `AAAA`
 // del código y el reinicio anual del correlativo se calculan con esa misma
-// zona (ver `anioVigente` en codigo.ts), no con el reloj del servidor — en
-// Vercel ese reloj corre en UTC y adelantaría el cambio de año cinco horas.
+// zona (ver `anioVigente` en core/correlativo.ts), no con el reloj del
+// servidor — en Vercel ese reloj corre en UTC y adelantaría el cambio de año
+// cinco horas.
 
 /**
  * Primer correlativo de cada año nuevo.

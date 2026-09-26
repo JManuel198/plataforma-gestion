@@ -74,6 +74,19 @@ export function inicioDelDiaSiguiente(fechaIso: string): Date {
 }
 
 /**
+ * El instante que corresponde a una fecha y hora escritas en un `<input
+ * type="datetime-local">` (`2026-09-25T10:30`, sin zona), leídas en la zona
+ * del negocio: quien escribe "10:30" quiere decir las 10:30 de Lima, no las de
+ * UTC en que corre el servidor.
+ *
+ * `fechaHora` tiene que venir ya validada (`z.iso.datetime({ local: true })`);
+ * aquí no se comprueba.
+ */
+export function instanteDeFechaHoraLocal(fechaHora: string): Date {
+  return dayjs.tz(fechaHora, ZONA_HORARIA).toDate();
+}
+
+/**
  * Edad en años cumplidos a partir de una fecha de nacimiento `YYYY-MM-DD`.
  *
  * POR QUÉ ES UNA FUNCIÓN Y NO UNA COLUMNA: la edad no es un dato, es una

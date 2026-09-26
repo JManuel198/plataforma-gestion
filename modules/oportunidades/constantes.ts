@@ -85,3 +85,29 @@ export const CAMPOS_HISTORIAL = [
 ] as const;
 
 export type CampoHistorial = (typeof CAMPOS_HISTORIAL)[number];
+
+export const RUTA_LISTADO = "/oportunidades";
+
+/**
+ * Las piezas fijas del código `OPT.CCM.AAAA.NNNNN` (sección 3 de la spec).
+ * "CCM" es la empresa, fija como en las OT y no configurable hasta que se pida
+ * explícitamente; se declara aquí y no dentro de la lógica por lo mismo que
+ * `CODIGO_EMPRESA` de las OT. No se importa de allí: un módulo no depende de
+ * otro, y el día que el correlativo se mueva a config/clientes/ (ver la deuda
+ * técnica de AGENTS.md) se moverán juntas las de los dos.
+ */
+export const PREFIJO_OPORTUNIDAD = "OPT";
+export const CODIGO_EMPRESA = "CCM";
+export const DIGITOS_CORRELATIVO = 5;
+
+/** Primer correlativo de cada año: `OPT.CCM.2026.00001`. */
+export const CORRELATIVO_INICIAL = 1;
+
+/**
+ * Ámbito del correlativo anual en la tabla compartida `correlativo`
+ * (`reservarCorrelativoAnual`, core/correlativo.ts): la fila de cada año es
+ * `"oportunidades:<año>"`. NO SE RENOMBRA una vez emitida la primera
+ * oportunidad real: el año en curso arrancaría de nuevo en
+ * `CORRELATIVO_INICIAL` y chocaría con el UNIQUE de `codigo`.
+ */
+export const CLAVE_CORRELATIVO_OPORTUNIDAD = "oportunidades";
