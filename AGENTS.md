@@ -59,9 +59,12 @@ trabaje en este código.
   (2026-09-25). Embudo de oportunidades está **especificado** en
   docs/spec/oportunidades.md (2026-09-25; guía visual en
   docs/diseno/embudo-oportunidades.html, orden de trabajo en
-  docs/diseno/plan-embudo-oportunidades.md), pero **todavía sin tabla ni
-  código**: sigue siendo solo la entrada del menú y la ruta protegida con su
-  título. Dos cambios fuera del módulo: (1) la Parte 3 del plan movió
+  docs/diseno/plan-embudo-oportunidades.md) y ya tiene esquema —
+  `oportunidades`, `oportunidad_historial` y `oportunidad_actividades`
+  (db/schema/oportunidades.ts, migración 0021, aplicada en desarrollo
+  (2026-09-25)) —, pero **todavía sin código de módulo** (solo
+  modules/oportunidades/constantes.ts, con las listas de los enums): sigue
+  siendo la entrada del menú y la ruta protegida con su título. Dos cambios fuera del módulo: (1) la Parte 3 del plan movió
   (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
   (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades será su
   segundo consumidor), **sin cambiar en nada la numeración de las OT**, en

@@ -11,3 +11,4 @@ export * from "./tarifario-personal";
 export * from "./epps";
 export * from "./empresas";
 export * from "./contactos";
+export * from "./oportunidades";

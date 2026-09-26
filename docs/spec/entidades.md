@@ -1189,8 +1189,8 @@ en vez de apilar un `ALTER` encima.
 defecto). El `ruc` y el `codigo` ya quedan indexados por sus UNIQUE.
 
 **Consume:** `correlativo` (clave `"empresas"`). **Consumida por:** el módulo
-Clientes, y `contactos` la referencia con la FK `empresa_id` (ver la sección
-siguiente).
+Clientes; `contactos` la referencia con la FK `empresa_id` (ver la sección
+siguiente) y `oportunidades` también (sección Oportunidades).
 
 ## Contactos (CRM, Bloque 3)
 
@@ -1257,3 +1257,182 @@ corresponde a ninguna empresa, la acción reconoce el choque con
 `esFkViolada(error, "contactos_empresa_id_empresas_id_fk")`
 (`core/errores-postgres.ts`) y lo cuelga del campo `empresa_id` con un
 mensaje legible. No hay SELECT previo: la FK es la garantía.
+
+## Oportunidades (Embudo de oportunidades — CRM, Bloque 4)
+
+Tres tablas en `db/schema/oportunidades.ts`, creadas el 2026-09-25 (Parte 4
+del plan) para el módulo Embudo de oportunidades (`/oportunidades`). Reglas de
+negocio en `oportunidades.md`, que manda sobre esta sección. Migración
+`0021_sturdy_toad.sql`, aplicada en desarrollo (2026-09-25). Solo crea tipos y
+tablas nuevos; no toca ninguna tabla existente.
+
+### Enums
+
+| Enum en la BD | Valores (en este orden) | Fuente en el código |
+|---|---|---|
+| `oportunidad_etapa` | `prospecto`, `cotizacion`, `negociacion`, `adjudicado`, `ejecucion`, `finalizado` | `ETAPAS_OPORTUNIDAD` |
+| `oportunidad_situacion` | `abierta`, `perdida`, `anulada` | `SITUACIONES_OPORTUNIDAD` |
+| `oportunidad_actividad_tipo` | `nota`, `llamada`, `reunion`, `correo`, `visita` | `TIPOS_ACTIVIDAD` |
+| `oportunidad_historial_tipo` | `creacion`, `cambio_etapa`, `edicion`, `perdida`, `anulacion`, `reapertura` | `TIPOS_HISTORIAL` |
+| `oportunidad_historial_campo` | `titulo`, `contacto`, `fecha_cierre_estimada` | `CAMPOS_HISTORIAL` |
+| `moneda` (**existente, compartido**) | `PEN`, `USD` | `MONEDAS` (`core/monedas.ts`) |
+
+Las listas viven en `modules/oportunidades/constantes.ts` (salvo `MONEDAS`),
+mismo patrón que `ot_estado`/`ESTADOS_OT`. Los valores son claves en minúsculas
+y sin tildes, no la grafía visible: las etiquetas y los colores de las etapas
+se definen en la interfaz (sección 1 de la spec), y renombrar una etiqueta no
+exige una migración.
+
+**`moneda` no es un enum nuevo:** `oportunidades.moneda` usa el mismo tipo
+`moneda` que `orden_trabajo` y `lista_precios`. Crear un segundo enum con los
+mismos valores habría dado dos fuentes de verdad.
+
+### `oportunidades`
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `codigo` | `text` (**UNIQUE**) | sí | **automático**: `OPT.CCM.AAAA.NNNNN`, correlativo anual (clave `"oportunidades"`) |
+| `titulo` | `text` | **sí** | manual; editable |
+| `empresa_id` | `text` (FK → `empresas.id`) | **sí** | manual; no se cambia después de crear |
+| `contacto_id` | `text` (FK → `contactos.id`) | no | manual; editable y se puede quitar |
+| `asesor_id` | `text` (FK → `user.id`) | sí | **automático**: el usuario que la crea |
+| `moneda` | `moneda` DEFAULT `'USD'` | sí | manual al crear; fija |
+| `valor_estimado` | `bigint` DEFAULT `0`, CHECK `>= 0` | sí | manual al crear, **en céntimos**; fijo |
+| `probabilidad` | `integer` DEFAULT `0`, CHECK 0–100 | sí | manual al crear; fija |
+| `etapa` | `oportunidad_etapa` DEFAULT `'prospecto'` | sí | manual al crear; cambia con el arrastre o la línea de etapas |
+| `situacion` | `oportunidad_situacion` DEFAULT `'abierta'` | sí | perder / anular / reabrir |
+| `motivo` | `text` | no | al perder (obligatorio en la aplicación) o anular (opcional) |
+| `fecha_cierre_estimada` | `date` | no | manual; editable |
+| `etapa_cambiada_en` | `timestamp with time zone` DEFAULT `now()` | sí | automático; se actualiza solo al cambiar de etapa |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
+
+**`valor_estimado` es `bigint` en céntimos, no `numeric(…, 2)`.** El encargo de
+la Parte 4 pedía "numérico con 2 decimales"; la spec (sección 3) y la regla
+invariable 2 piden céntimos enteros, y así están ya `orden_trabajo.precio` y
+`lista_precios.precio_lista` (`bigint`, `mode: "number"`). "2 decimales" es la
+precisión que ve el usuario; la conversión la hace `core/dinero.ts`. El CHECK
+`>= 0` viene de la spec ("mayor o igual a 0").
+
+**Lo que la base NO aplica, a propósito, y queda para la capa de acciones
+(Parte 5):** que empresa, moneda, valor y probabilidad no se editen después de
+crear; que el motivo sea obligatorio al perder y opcional al anular; que
+Finalizado no se pueda marcar perdida; que al crear solo se ofrezcan empresas y
+contactos activos; y que **el contacto pertenezca a la empresa de la
+oportunidad**. Esto último necesitaría en la base una FK compuesta contra
+`contactos(id, empresa_id)` y un UNIQUE nuevo en `contactos`, y esta migración
+no toca tablas existentes.
+
+**`etapa_cambiada_en` nace igual a `created_at` sin copiarse:** las dos usan
+`DEFAULT now()`, y en PostgreSQL `now()` es la hora de inicio de la
+transacción, así que en el mismo INSERT dan el mismo valor (verificado contra
+la base de desarrollo). Para que se cumpla, el INSERT no debe mandar ninguna de
+las dos. Después, solo un cambio de etapa la actualiza (sección 3 de la spec).
+
+**Sin baja lógica:** no hay columna `activo`. `situacion = 'anulada'` cumple
+ese papel, misma excepción razonada que la OT con `Cancelada` (regla
+invariable 9). La fila nunca se borra.
+
+**FK:** las tres con `ON DELETE NO ACTION`, mismo patrón que
+`contactos.empresa_id`. `asesor_id` no lleva la cascada que tienen
+`session`/`account` contra `user`: borrar una cuenta no puede llevarse
+oportunidades por delante. Ninguna FK mira `activo`.
+
+**Índices:** `oportunidades_empresa_id_idx`, `oportunidades_contacto_id_idx` y
+`oportunidades_asesor_id_idx` (Postgres no indexa el lado que referencia de una
+FK; sirven a los JOIN del embudo y la tabla y al desplegable "Cliente"), y
+`oportunidades_situacion_etapa_idx` (el kanban y el filtro de estado filtran
+siempre por las dos). `codigo` queda indexado por su UNIQUE.
+
+**Consume:** `correlativo` (clave `"oportunidades:<año>"`, vía
+`reservarCorrelativoAnual`), `empresas`, `contactos` y `user`.
+
+### `oportunidad_historial`
+
+Una fila por acción sobre una oportunidad (sección 4 de la spec). **No se edita
+ni se borra**, así que no lleva `updated_at` (excepción razonada, como
+`material_caracteristicas`).
+
+| Columna | Tipo en la BD | Obligatorio |
+|---|---|---|
+| `id` | `text` (PK, UUID) | sí |
+| `oportunidad_id` | `text` (FK → `oportunidades.id`) | sí |
+| `tipo` | `oportunidad_historial_tipo` | sí |
+| `etapa_anterior` / `etapa_nueva` | `oportunidad_etapa` | según `tipo` |
+| `campo` | `oportunidad_historial_campo` | solo en `edicion` |
+| `titulo_anterior` / `titulo_nuevo` | `text` | solo si `campo = 'titulo'` |
+| `contacto_anterior_id` / `contacto_nuevo_id` | `text` (FK → `contactos.id`) | solo si `campo = 'contacto'` |
+| `fecha_cierre_anterior` / `fecha_cierre_nueva` | `date` | solo si `campo = 'fecha_cierre_estimada'` |
+| `motivo` | `text` | solo en `perdida` / `anulacion` |
+| `usuario_id` | `text` (FK → `user.id`) | sí |
+| `created_at` | `timestamp with time zone` | sí (fecha y hora de la entrada) |
+
+**Cómo se interpreta cada tipo.** Las columnas que no se nombran van en NULL:
+
+| `tipo` | Columnas que lleva | Se lee como |
+|---|---|---|
+| `creacion` | `etapa_nueva` | "Creó la oportunidad en *etapa_nueva*" (la etapa inicial) |
+| `cambio_etapa` | `etapa_anterior`, `etapa_nueva` (distintas) | "Movió de *etapa_anterior* a *etapa_nueva*" |
+| `edicion` | `campo` + el par anterior/nuevo de ese campo | "Cambió *campo* de *anterior* a *nuevo*". En contacto y fecha, un lado NULL significa "sin contacto" / "sin fecha" (asignar o quitar) |
+| `perdida` | `motivo` | "Marcó perdida: *motivo*" |
+| `anulacion` | `motivo` (opcional) | "Anuló: *motivo*" o "Anuló (sin motivo)" |
+| `reapertura` | `etapa_nueva` | "Reabrió en *etapa_nueva*" (la etapa a la que vuelve) |
+
+En `perdida` y `anulacion` no se guarda la etapa: la oportunidad la conserva
+(sección 2 de la spec) y el aviso de cierre la lee de `oportunidades.etapa`.
+La fecha y hora del cierre es el `created_at` de la última entrada `perdida` o
+`anulacion`.
+
+**Por qué columnas tipadas y no un JSON o un par `valor_anterior`/`valor_nuevo`
+de texto:** cada valor se guarda con su tipo real. Las etapas usan su enum, la
+fecha es `date` (regla invariable 10) y el contacto es una FK, así que la base
+comprueba que existe. El nombre del contacto se resuelve por JOIN, y
+`contactos` nunca se borra (regla 9). Si algún día se edita otro campo, se
+añade su valor a `CAMPOS_HISTORIAL` y su par de columnas.
+
+**Seis CHECK hacen que cada fila tenga exactamente una de esas formas**
+(verificados contra la base de desarrollo el 2026-09-25, 19 casos válidos e
+inválidos en una transacción revertida):
+- `oportunidad_historial_etapas_check`: qué etapas lleva cada `tipo`, y que un
+  `cambio_etapa` no vaya de una etapa a la misma;
+- `oportunidad_historial_campo_check`: `campo` presente si y solo si
+  `tipo = 'edicion'`;
+- `oportunidad_historial_motivo_check`: `motivo` solo en `perdida`/`anulacion`;
+- `oportunidad_historial_titulo_check`, `…_contacto_check` y
+  `…_fecha_cierre_check`: el par de un campo solo aparece cuando `campo` es
+  ese, y el valor anterior y el nuevo son distintos. Una edición que no cambia
+  nada no se registra. En el título, los dos son obligatorios.
+
+Los CHECK usan `IS [NOT] DISTINCT FROM` y no `=` para comparar `campo`: un
+CHECK que se evalúa a NULL se da por cumplido, y `campo = 'titulo'` con `campo`
+NULL daría NULL. Que `perdida` **exija** motivo no lo aplica la base, igual que
+en `oportunidades.motivo`: es de la capa de acciones.
+
+**Índice:** `oportunidad_historial_oportunidad_id_idx` (la línea de tiempo lee
+siempre por oportunidad).
+
+### `oportunidad_actividades`
+
+| Columna | Tipo en la BD | Obligatorio | Cómo se llena |
+|---|---|---|---|
+| `id` | `text` (PK, UUID) | sí | automático |
+| `oportunidad_id` | `text` (FK → `oportunidades.id`) | sí | automático |
+| `tipo` | `oportunidad_actividad_tipo` (sin default) | sí | manual |
+| `descripcion` | `text` | sí | manual |
+| `fecha_hora` | `timestamp with time zone` DEFAULT `now()` | sí | manual, por defecto el momento actual |
+| `autor_id` | `text` (FK → `user.id`) | sí | **automático**: el usuario en sesión |
+| `created_at` / `updated_at` | `timestamp with time zone` | sí | automáticos |
+
+**`fecha_hora` no es `created_at`:** es cuándo ocurrió la actividad, que puede
+ser antes de registrarla.
+
+**Lleva `updated_at` aunque hoy las actividades no se editan.** Esa decisión
+está marcada **[por defecto]** en la spec y se revisa con los roles. La
+columna no estorba si nunca cambia, y quitarla ahora obligaría a una migración
+el día que se editen.
+
+**Índice:** `oportunidad_actividades_oportunidad_id_idx`.
+
+**La línea de tiempo del detalle** une `oportunidad_historial` (por
+`created_at`) y `oportunidad_actividades` (por `fecha_hora`) en una sola
+lista, lo más reciente arriba (sección 4 de la spec).

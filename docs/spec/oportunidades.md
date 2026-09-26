@@ -11,8 +11,10 @@ pantallas en `#/embudo`, `#/tabla` y `#/oportunidad/6`). Como todo lo de
 `docs/diseno/`, decide cómo se ve, no qué hace: en datos y reglas manda este
 archivo.
 
-**Estado (2026-09-25):** especificado, **sin tabla ni código**. La ruta
-`/oportunidades` existe solo con su título, y sigue oculta a los correos de
+**Estado (2026-09-25):** especificado y con esquema (tablas `oportunidades`,
+`oportunidad_historial` y `oportunidad_actividades`, migración 0021, aplicada
+en desarrollo; detalle en `entidades.md`), pero **sin código de módulo**. La
+ruta `/oportunidades` existe solo con su título, y sigue oculta a los correos de
 `CRM_OCULTO_PARA` (ver AGENTS.md).
 
 **Marcas.** Lo que lleva **[por defecto]** se decidió sin indicación explícita
