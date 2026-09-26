@@ -39,9 +39,7 @@ export type EtapaOportunidad = (typeof ETAPAS_OPORTUNIDAD)[number];
 /**
  * Cómo se lee cada etapa en pantalla. Es el único sitio con estos textos:
  * renombrar una etapa para el usuario es editar esta tabla, sin migración
- * (el valor guardado es la clave). Los colores de etapa llegan con el kanban
- * (Parte 8) y vivirán junto a esta tabla, en un solo lugar (sección 1 de la
- * spec).
+ * (el valor guardado es la clave). Sus colores: `COLOR_ETAPA`, abajo.
  */
 export const ETIQUETAS_ETAPA = {
   prospecto: "Prospecto",
@@ -51,6 +49,26 @@ export const ETIQUETAS_ETAPA = {
   ejecucion: "Ejecución",
   finalizado: "Finalizado",
 } as const satisfies Record<EtapaOportunidad, string>;
+
+/**
+ * Las clases de color de cada etapa. Los VALORES viven en un solo sitio, los
+ * tokens `--etapa-*` de app/globals.css (claro y oscuro); esto solo dice qué
+ * token usa cada etapa, y así ningún componente escribe un color suelto.
+ * Las clases van escritas enteras, no armadas con plantillas: Tailwind las
+ * encuentra leyendo el código fuente, y una clase compuesta en tiempo de
+ * ejecución no existiría en el CSS.
+ *
+ * Solo borde y relleno de puntos: los tokens no dan contraste de texto (ver
+ * el comentario en globals.css).
+ */
+export const COLOR_ETAPA = {
+  prospecto: { borde: "border-l-etapa-prospecto", punto: "bg-etapa-prospecto" },
+  cotizacion: { borde: "border-l-etapa-cotizacion", punto: "bg-etapa-cotizacion" },
+  negociacion: { borde: "border-l-etapa-negociacion", punto: "bg-etapa-negociacion" },
+  adjudicado: { borde: "border-l-etapa-adjudicado", punto: "bg-etapa-adjudicado" },
+  ejecucion: { borde: "border-l-etapa-ejecucion", punto: "bg-etapa-ejecucion" },
+  finalizado: { borde: "border-l-etapa-finalizado", punto: "bg-etapa-finalizado" },
+} as const satisfies Record<EtapaOportunidad, { borde: string; punto: string }>;
 
 /**
  * La situación, independiente de la etapa (sección 2). Una oportunidad

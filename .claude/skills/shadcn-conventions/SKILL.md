@@ -18,7 +18,13 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
 - Instalados hoy: `alert-dialog`, `avatar`, `badge`, `button`, `card`, `collapsible`,
   `combobox`, `dialog`, `input`, `input-group`, `label`, `select`, `separator`,
   `sheet`, `sidebar`, `skeleton`, `sonner`, `switch`, `table`, `textarea`,
-  `tooltip`. Cualquier otro hay que agregarlo. `collapsible` entró en el Bloque
+  `toggle`, `toggle-group`, `tooltip`. Cualquier otro hay que agregarlo.
+  `toggle-group` (con su dependencia `toggle`) entró con el Embudo de
+  oportunidades (2026-09-26), para los grupos de selección única de la barra
+  de filtros: las opciones rápidas y el conmutador Embudo / Tabla
+  (`modules/oportunidades/components/filtros-embudo.tsx`). Su `value` es un
+  array aunque sea de selección única, y un clic en la opción activa la
+  desmarca (llega `[]`): trátalo como "ninguna". `collapsible` entró en el Bloque
   11, para plegar las secciones de la barra lateral. `combobox` (con su
   dependencia `input-group`) entró con el formulario de Empresas (2026-09-25),
   para el país: se usa SOLO a través de `CampoPais` (ver "El cuarto" más abajo).
@@ -95,6 +101,12 @@ cambias un patrón, actualiza este archivo en el mismo cambio.
   con el primario en verde chocaba con `Facturado` (`--success`). Ese token vale
   lo que valía `--primary` antes del tema verde. Si ves `bg-primary` en
   `badge.tsx`, es una regresión.
+- **Colores de etapa del Embudo** (`--etapa-prospecto` … `--etapa-finalizado`,
+  2026-09-26): mismo criterio que los de estado — tokens en `globals.css`, en
+  claro y en oscuro, expuestos como `bg-etapa-*` / `border-l-etapa-*`, y el
+  mapa etapa → clase en `COLOR_ETAPA` (`modules/oportunidades/constantes.ts`),
+  con las clases escritas enteras para que Tailwind las encuentre. **Solo para
+  bordes y puntos, nunca para texto**: naranja y verde no llegan a 4.5:1.
 - Todo cambio de color se comprueba contra **WCAG AA** (4.5:1 en texto de
   cuerpo, 3:1 en texto grande y componentes) **antes** de aplicarlo, en claro y
   en oscuro. El modo oscuro no reusa el mismo verde: sube a

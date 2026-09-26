@@ -31,6 +31,12 @@
   --color-info: var(--info);
   --color-chip-neutral: var(--chip-neutral);
   --color-chip-neutral-foreground: var(--chip-neutral-foreground);
+  --color-etapa-prospecto: var(--etapa-prospecto);
+  --color-etapa-cotizacion: var(--etapa-cotizacion);
+  --color-etapa-negociacion: var(--etapa-negociacion);
+  --color-etapa-adjudicado: var(--etapa-adjudicado);
+  --color-etapa-ejecucion: var(--etapa-ejecucion);
+  --color-etapa-finalizado: var(--etapa-finalizado);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -103,6 +109,23 @@
      esto no se toca. */
   --chip-neutral: oklch(0.205 0 0);
   --chip-neutral-foreground: oklch(0.985 0 0);
+  /* Colores de las seis etapas del Embudo de oportunidades
+     (docs/spec/oportunidades.md, sección 1: gris, morado, naranja, verde, azul
+     oscuro y verde oscuro, con los valores del mockup). ESTE ES EL ÚNICO SITIO
+     con sus valores: el cliente puede querer cambiarlos, y cambiar uno es
+     editar esta línea (y la de `.dark`). Qué clase usa cada etapa lo dice
+     `COLOR_ETAPA` en modules/oportunidades/constantes.ts.
+     SOLO PARA BORDES Y PUNTOS, NUNCA PARA TEXTO: todos pasan el 3:1 que AA
+     pide a un elemento gráfico sobre blanco y sobre --muted, pero naranja
+     (3.56:1) y verde (3.30:1) no llegan al 4.5:1 del texto. El nombre de la
+     etapa va siempre escrito al lado, así que el color nunca es la única
+     señal. */
+  --etapa-prospecto: #71717a;
+  --etapa-cotizacion: #7c3aed;
+  --etapa-negociacion: #ea580c;
+  --etapa-adjudicado: #16a34a;
+  --etapa-ejecucion: #1e3a8a;
+  --etapa-finalizado: #14532d;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   /* Anillo de foco de inputs, textarea, select y botones. Sobre fondo blanco
@@ -154,6 +177,15 @@
      --primary tenía en oscuro antes del verde. */
   --chip-neutral: oklch(0.922 0 0);
   --chip-neutral-foreground: oklch(0.205 0 0);
+  /* Etapas en oscuro: versiones más claras del mismo tono (el azul y el verde
+     oscuros de claro se perderían sobre fondo casi negro). Todas por encima
+     de 5.5:1 sobre el fondo y sobre las tarjetas. */
+  --etapa-prospecto: #a1a1aa;
+  --etapa-cotizacion: #a78bfa;
+  --etapa-negociacion: #fb923c;
+  --etapa-adjudicado: #4ade80;
+  --etapa-ejecucion: #7b93f0;
+  --etapa-finalizado: #22a35a;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.7 0.13 158.3);

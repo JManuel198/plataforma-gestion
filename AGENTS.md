@@ -68,10 +68,11 @@ trabaje en este código.
   selectores), schema (Zod), codigo.ts y el selector de contactos en
   queries.ts; y sus consultas (Parte 6): kanban, tabla paginada, métricas,
   línea de tiempo y desplegable Cliente en queries.ts, con los filtros en
-  filtros.ts. Pantalla (Parte 7): solo una cabecera PROVISIONAL "CRM
-  Comercial" con el modal "Nueva oportunidad"
-  (components/dialogo-nueva-oportunidad.tsx + campos-oportunidad.tsx); el
-  kanban, las métricas y los filtros llegan en la Parte 8. Cambios fuera del módulo: (1) la Parte 3 del plan movió
+  filtros.ts. Pantalla: el modal "Nueva oportunidad" (Parte 7) y el kanban de
+  SOLO LECTURA con su cabecera, métricas y filtros (Parte 8; sin arrastrar,
+  que es la Parte 11, y con el botón Tabla deshabilitado hasta la Parte 12).
+  Los colores de etapa son tokens `--etapa-*` en app/globals.css y
+  `COLOR_ETAPA` en modules/oportunidades/constantes.ts. Cambios fuera del módulo: (1) la Parte 3 del plan movió
   (2026-09-25) a core/ la lógica de correlativo anual de Órdenes de Trabajo
   (`reservarCorrelativoAnual` en core/correlativo.ts; Oportunidades es su
   segundo consumidor), **sin cambiar en nada la numeración de las OT**, en

@@ -17,8 +17,9 @@ en desarrollo; detalle en `entidades.md`) y con las acciones del backend
 (Parte 5 del plan: crear, editar, cambiar etapa, cerrar/reabrir, actividades y
 selectores, en `modules/oportunidades/actions.ts`) y las consultas (Parte 6:
 kanban, tabla, métricas y línea de tiempo, en `queries.ts`). La ruta
-`/oportunidades` tiene por ahora una cabecera provisional con el modal "Nueva
-oportunidad" (Parte 7); el kanban y el detalle llegan después. Sigue oculta a
+`/oportunidades` muestra el kanban de solo lectura con su cabecera, métricas
+y filtros (Parte 8) y el modal "Nueva oportunidad" (Parte 7); el detalle, el
+arrastre y la Tabla llegan después. Sigue oculta a
 los correos de `CRM_OCULTO_PARA` (ver AGENTS.md).
 
 **Marcas.** Lo que lleva **[por defecto]** se decidió sin indicación explícita
@@ -203,9 +204,14 @@ Viven en la URL y se combinan entre sí.
   ya lo definía así desde el principio: "selección única" está escrita para
   las opciones rápidas, y "se combinan entre sí" para los filtros. Si se
   combinan sin intersección (">$50k" con "menos de $10k"), el resultado es
-  una lista vacía, sin manejo especial. Si conviene que elegir uno limpie el
-  otro en la interfaz se decide en la Parte 8 del plan, al construir el
-  filtro Valor.
+  una lista vacía, sin manejo especial.
+- **En la interfaz, Valor y ">$50k" se excluyen** (decidido en la Parte 8,
+  2026-09-26): elegir un rango en Valor quita ">$50k" si estaba activo, y
+  activar ">$50k" devuelve Valor a "Todos". *Por qué:* los dos filtran por
+  importe en dólares y juntos casi siempre dan una lista vacía; es la forma
+  más simple de evitarlo sin quitarle a Valor su combinación con Cliente, la
+  búsqueda y "Sin mover ≥7d". Es solo de la interfaz: una URL con los dos
+  (escrita a mano) sigue combinándolos con AND.
 - **Los filtros de valor (">$50k" y el desplegable) solo consideran
   oportunidades en dólares.** No hay tipo de cambio (ver "Una sola moneda por
   trabajo" en `reglas-negocio.md`), así que las de soles quedan fuera.

@@ -780,7 +780,8 @@ cada punto.
 ## Embudo de oportunidades (CRM, especificado el 2026-09-25)
 
 Especificación en `oportunidades.md`. Tiene tablas (migración 0021) y
-acciones y consultas del backend (Partes 5 y 6) y el modal de alta (Parte 7); el kanban y el detalle llegan después.
+acciones y consultas del backend (Partes 5 y 6) el modal de alta (Parte 7) y el kanban de solo lectura (Parte 8); el detalle,
+el arrastre y la Tabla llegan después.
 
 26. **¿De dónde saldrán el valor estimado y la probabilidad cuando exista el
     módulo de Cotizaciones?** Hoy se fijan al crear la oportunidad (valor por

@@ -80,8 +80,8 @@ export function DialogoNuevaOportunidad({ guardarAction, disparador }: Props) {
       setAbierto(false);
       setEstado(estadoFormularioInicial);
       toast.success("Oportunidad registrada.");
-      // Trae lo que haya en la página; la tarjeta en su columna llega con el
-      // kanban (Parte 8).
+      // Vuelve a pedir el kanban al servidor: la tarjeta nueva aparece en su
+      // columna y las métricas se actualizan, sin recargar la página.
       router.refresh();
     });
   }
