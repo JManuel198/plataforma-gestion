@@ -16,10 +16,10 @@ archivo.
 en desarrollo; detalle en `entidades.md`) y con las acciones del backend
 (Parte 5 del plan: crear, editar, cambiar etapa, cerrar/reabrir, actividades y
 selectores, en `modules/oportunidades/actions.ts`) y las consultas (Parte 6:
-kanban, tabla, métricas y línea de tiempo, en `queries.ts`), pero **sin
-pantallas**. La
-ruta `/oportunidades` existe solo con su título, y sigue oculta a los correos de
-`CRM_OCULTO_PARA` (ver AGENTS.md).
+kanban, tabla, métricas y línea de tiempo, en `queries.ts`). La ruta
+`/oportunidades` tiene por ahora una cabecera provisional con el modal "Nueva
+oportunidad" (Parte 7); el kanban y el detalle llegan después. Sigue oculta a
+los correos de `CRM_OCULTO_PARA` (ver AGENTS.md).
 
 **Marcas.** Lo que lleva **[por defecto]** se decidió sin indicación explícita
 del cliente y puede cambiarse; está registrado también en
@@ -204,7 +204,8 @@ Viven en la URL y se combinan entre sí.
   las opciones rápidas, y "se combinan entre sí" para los filtros. Si se
   combinan sin intersección (">$50k" con "menos de $10k"), el resultado es
   una lista vacía, sin manejo especial. Si conviene que elegir uno limpie el
-  otro en la interfaz se decide en la Parte 7 del plan.
+  otro en la interfaz se decide en la Parte 8 del plan, al construir el
+  filtro Valor.
 - **Los filtros de valor (">$50k" y el desplegable) solo consideran
   oportunidades en dólares.** No hay tipo de cambio (ver "Una sola moneda por
   trabajo" en `reglas-negocio.md`), así que las de soles quedan fuera.

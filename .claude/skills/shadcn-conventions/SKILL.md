@@ -484,12 +484,19 @@ qué muestra (`principalDe` / `secundarioDe`). No sabe qué es un material.
   `BadgeSituacion` gris, en la lista y en la tarjeta del elegido, para que
   asociar un registro de baja sea siempre una decisión a la vista. Si la
   consulta ya filtra por `activo`, no se pasa.
-- **Si el módulo es dueño de la consulta, la acción se importa directa.** El
-  selector de empresa de Contactos lee la tabla `empresas` desde su propio
-  `queries.ts` (no código de `modules/clientes/`), así que
-  `listarEmpresasParaSelectorAction` se importa en `campos-contacto.tsx`, igual
-  que `buscarProveedoresAction`. El rodeo por prop de la página (abajo) es solo
+- **Si la acción es del propio módulo, se importa directa.** El selector de
+  empresa lee la tabla `empresas` con `buscarEmpresasParaSelector`
+  (`core/selector-empresas.ts`, compartida desde el 2026-09-25 con el parámetro
+  `incluirInactivas`), no código de `modules/clientes/`. Contactos y
+  Oportunidades la envuelven cada uno en su `listarEmpresasParaSelectorAction`,
+  que se importa en `campos-contacto.tsx` / `campos-oportunidad.tsx`, igual que
+  `buscarProveedoresAction`. El rodeo por prop de la página (abajo) es solo
   para cuando la búsqueda vive en OTRO módulo.
+- **Un campo que depende de la selección** (el contacto de una oportunidad, que
+  se habilita al elegir empresa y se vacía si cambia): se recarga en el
+  `onSeleccionar`, no en un `useEffect` que mire la empresa, con un turno
+  (`useRef`) para que solo escriba la respuesta de la última empresa, y su
+  fallo se muestra. Ver `modules/oportunidades/components/campos-oportunidad.tsx`.
 - **Cómo lo recibe un módulo que no es dueño de esos datos** — el caso
   importante: `modules/lista-precios/` NO importa de `modules/materiales/`. La
   acción llega como **prop desde la página**

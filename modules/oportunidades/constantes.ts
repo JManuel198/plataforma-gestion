@@ -37,6 +37,22 @@ export const ETAPAS_OPORTUNIDAD = [
 export type EtapaOportunidad = (typeof ETAPAS_OPORTUNIDAD)[number];
 
 /**
+ * Cómo se lee cada etapa en pantalla. Es el único sitio con estos textos:
+ * renombrar una etapa para el usuario es editar esta tabla, sin migración
+ * (el valor guardado es la clave). Los colores de etapa llegan con el kanban
+ * (Parte 8) y vivirán junto a esta tabla, en un solo lugar (sección 1 de la
+ * spec).
+ */
+export const ETIQUETAS_ETAPA = {
+  prospecto: "Prospecto",
+  cotizacion: "Cotización",
+  negociacion: "Negociación",
+  adjudicado: "Adjudicado",
+  ejecucion: "Ejecución",
+  finalizado: "Finalizado",
+} as const satisfies Record<EtapaOportunidad, string>;
+
+/**
  * La situación, independiente de la etapa (sección 2). Una oportunidad
  * perdida o anulada conserva su última etapa; reabrir la devuelve a ella. No
  * hay columna `activo`: `anulada` cumple ese papel.
