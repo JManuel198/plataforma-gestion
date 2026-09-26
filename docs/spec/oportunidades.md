@@ -80,7 +80,9 @@ La situación es independiente de la etapa: **abierta**, **perdida** o
 - **Oportunidades activas:** situación abierta y etapa distinta de Finalizado.
 - **Ganadas:** oportunidades abiertas en Adjudicado, Ejecución o Finalizado.
 - **Tasa de cierre:** ganadas ÷ (ganadas + perdidas). Las anuladas no
-  cuentan. Sin datos suficientes (denominador 0) se muestra "—".
+  cuentan. Sin datos suficientes (denominador 0) se muestra "—". Se entrega
+  como **porcentaje entero redondeado** (ej. 2 ÷ 3 → 67 %), calculado en el
+  backend (confirmado el 2026-09-25).
 
 ## 3. Campos de una oportunidad
 

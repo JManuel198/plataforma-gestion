@@ -855,14 +855,13 @@ acciones y consultas del backend (Partes 5 y 6); todavía no tiene pantallas.
       permitirse (p. ej. porque las reuniones futuras se agendarán en otro
       sitio), se añade la validación en `actividadSchema`.
 
-32. **Decisiones de las consultas (Parte 6) — Resuelto (2026-09-25),
-    salvo la última viñeta.** Confirmadas y movidas a `oportunidades.md` como
-    reglas: ">$50k" y el desplegable Valor se combinan (AND) (sección 5,
-    Filtros); "Sin mover" es 7 días o más, inclusive (sección 3); las
-    cerradas —Finalizadas, Perdidas y Anuladas— no llevan reloj ni entran en
-    "Sin mover", también en el kanban (sección 3); la ventana de Finalizado
-    son 30 × 24 h desde el momento de la consulta (sección 5, Columnas); y en
-    la Tabla las métricas siguen el filtro de estado (sección 5, Cabecera).
-    Sigue abierta:
-    - **[por defecto]** La tasa de cierre se entrega como porcentaje entero
-      redondeado.
+32. **Decisiones de las consultas (Parte 6) — Resuelto (2026-09-25).**
+    Confirmadas y movidas a `oportunidades.md` como reglas: ">$50k" y el
+    desplegable Valor se combinan (AND) (sección 5, Filtros); "Sin mover" es
+    7 días o más, inclusive (sección 3); las cerradas —Finalizadas, Perdidas
+    y Anuladas— no llevan reloj ni entran en "Sin mover", también en el
+    kanban (sección 3); la ventana de Finalizado son 30 × 24 h desde el
+    momento de la consulta (sección 5, Columnas); en la Tabla las métricas
+    siguen el filtro de estado (sección 5, Cabecera); y la tasa de cierre se
+    entrega como porcentaje entero redondeado (sección 2, Definiciones
+    derivadas).
